@@ -167,10 +167,8 @@ flowchart TD
 
 ## 6. เริ่มเรียนที่ไหน
 
-1. [instructions/00-prerequisites.md](instructions/00-prerequisites.md) — สิ่งที่ต้องเตรียม
-2. [instructions/00-setup.md](instructions/00-setup.md) — ติดตั้งและตรวจสอบ
-3. [instructions/00-architecture.md](instructions/00-architecture.md) — ภาพรวมและตารางเวลา
-4. [instructions/day1/](instructions/day1/) — เริ่มวันที่ 1
+**เปิด [index.md](index.md)** — หน้าแผนที่หลักสูตรฉบับเต็ม
+มีลิงก์ไปทุกเอกสารเรียงตามเวลาจริง ตั้งแต่ก่อนอบรมจนถึงวันที่ 3 รวมเฉลยและเอกสารอ้างอิง
 
 ---
 
