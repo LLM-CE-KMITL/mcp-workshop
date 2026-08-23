@@ -1,0 +1,83 @@
+{
+  "_readme": "แก้เฉพาะส่วน descriptions_under_test เท่านั้น ห้ามแก้ expected_tool และห้ามแก้โค้ดของ tool",
+  "descriptions_under_test": {
+    "search_tickets": "ค้นหา ticket",
+    "search_logs": "ค้นหา log",
+    "search_tickets_semantic": "ค้นหา ticket แบบ semantic",
+    "search_docs_semantic": "ค้นหาเอกสาร"
+  },
+  "cases": [
+    {
+      "id": "TS-01",
+      "question": "ticket ที่ยังไม่ปิดของนนทบุรีมีกี่ใบ",
+      "expected_tool": "search_tickets",
+      "why": "กรองด้วยเงื่อนไขที่รู้แน่นอน"
+    },
+    {
+      "id": "TS-02",
+      "question": "เมื่อคืนมี log critical อะไรบ้าง",
+      "expected_tool": "search_logs",
+      "why": "ถามถึงเหตุการณ์ที่อุปกรณ์รายงาน"
+    },
+    {
+      "id": "TS-03",
+      "question": "เคยมีเคสที่อาการเหมือนเน็ตกระตุกแบบนี้มาก่อนไหม",
+      "expected_tool": "search_tickets_semantic",
+      "why": "หาเคสที่อาการคล้ายแต่เขียนคนละคำ"
+    },
+    {
+      "id": "TS-04",
+      "question": "ปกติเวลา ISIS adjacency ไม่ขึ้น เราตรวจอะไรก่อน",
+      "expected_tool": "search_docs_semantic",
+      "why": "ถามขั้นตอนปฏิบัติ ไม่ใช่เหตุการณ์"
+    },
+    {
+      "id": "TS-05",
+      "question": "APE-NBI-03 มี interface flap กี่ครั้งสัปดาห์นี้",
+      "expected_tool": "search_logs",
+      "why": "นับเหตุการณ์จาก log"
+    },
+    {
+      "id": "TS-06",
+      "question": "ticket ระดับ critical ของเดือนนี้",
+      "expected_tool": "search_tickets",
+      "why": "กรองด้วย severity ที่รู้แน่นอน"
+    },
+    {
+      "id": "TS-07",
+      "question": "มีเอกสารเรื่องมาตรฐาน MTU ไหม",
+      "expected_tool": "search_docs_semantic",
+      "why": "ค้นเอกสาร"
+    },
+    {
+      "id": "TS-08",
+      "question": "ลูกค้าเคยบ่นเรื่องความเร็วไม่เต็มบ้างไหม",
+      "expected_tool": "search_tickets_semantic",
+      "why": "อาการที่เขียนได้หลายแบบ"
+    },
+    {
+      "id": "TS-09",
+      "question": "PE-BKK-02 มี CRC error เมื่อไหร่บ้าง",
+      "expected_tool": "search_logs",
+      "why": "เหตุการณ์จากอุปกรณ์"
+    },
+    {
+      "id": "TS-10",
+      "question": "ticket หมายเลข TK-25-00003 มีรายละเอียดอะไร",
+      "expected_tool": "search_tickets",
+      "why": "รู้หมายเลขแน่นอน ไม่ต้องใช้ semantic"
+    },
+    {
+      "id": "TS-11",
+      "question": "ขั้นตอนแจ้งลูกค้าก่อนปิดอุปกรณ์ซ่อมทำยังไง",
+      "expected_tool": "search_docs_semantic",
+      "why": "ขั้นตอนปฏิบัติ"
+    },
+    {
+      "id": "TS-12",
+      "question": "มีเคสไหนที่ปิดไปแล้วแต่ลูกค้าเปิดใหม่ด้วยอาการเดิม",
+      "expected_tool": "search_tickets_semantic",
+      "why": "ต้องเทียบความหมายของอาการ"
+    }
+  ]
+}
