@@ -71,7 +71,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    S["สร้างมาแล้ว: {\"severity\": \""] --> M{"Mask ตาม schema"}
+    S["สร้างมาแล้ว: {'severity': '"] --> M{"Mask ตาม schema"}
     M -->|อนุญาต| A["low / medium / high / critical"]
     M -->|ห้าม| B["คำอื่นทั้งหมด"]
     A --> OUT["เลือกจากที่อนุญาตเท่านั้น"]
