@@ -1,2 +1,2 @@
-# MCP2
-for learning MCP2
+# MCP Workshops
+for learning MCP
