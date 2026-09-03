@@ -61,7 +61,7 @@ curl -s $LLM_BASE_URL/models -H "Authorization: Bearer $LLM_API_KEY" | head -40
 ## 4. เตรียม repo และดึง image ล่วงหน้า
 
 ```bash
-git clone <repo-url> && cd ai-mpls-workshop
+git clone https://github.com/LLM-CE-KMITL/mcp-workshop.git && cd mcp-workshop
 ```
 
 ```bash
