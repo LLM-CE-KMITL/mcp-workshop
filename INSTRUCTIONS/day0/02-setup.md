@@ -24,7 +24,7 @@ LLM_MODEL=qwen/qwen3.5-35b-a3b
 `solutions/day2/workshop2_agent.py`
 `test_api.py`
 ```bash
-docker compose -f docker/docker-compose.yml --env-file .env up -d 
+docker compose -f docker/docker-compose.yml --env-file .env up -d postgres pgadmin neo4j opensearch opensearch-dashboards mailhog
 ```
 ```bash
 docker compose -f docker/docker-compose.yml --env-file .env up seeder
@@ -74,7 +74,7 @@ flowchart LR
 
 | บริการ | URL | ล็อกอิน |
 |---|---|---|
-| pgAdmin | http://localhost:5050 | `workshop@example.local` / `workshop` |
+| pgAdmin | http://localhost:5050 | `workshop@example.com` / `workshop` |
 | Neo4j Browser | http://localhost:7474 | `neo4j` / `neo4j_dev_password` |
 | OpenSearch Dashboards | http://localhost:5601 | ไม่ต้องล็อกอิน |
 | MailHog | http://localhost:8025 | ไม่ต้องล็อกอิน |
@@ -119,7 +119,7 @@ GET network-logs-*/_search
 เปิด 2 terminal:
 
 ```bash
-uv run uvicorn apps.agent-api.main:app --reload --port 8080
+uv run uvicorn main:app --app-dir apps/agent-api --reload --port 8080
 ```
 
 ```bash
@@ -151,11 +151,11 @@ uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w
 |---|---|
 | `docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python verify.py` | ตรวจว่าข้อมูลครบ |
 | `docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python seed.py --purge` | สร้างข้อมูลใหม่ให้ timestamp สดใหม่ |
-| `uv run uvicorn apps.agent-api.main:app --reload --port 8080` / `uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w` | รันแอปของตัวเอง |
+| `uv run uvicorn main:app --app-dir apps/agent-api --reload --port 8080` / `uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w` | รันแอปของตัวเอง |
 | `uv run pytest -v` | ตรวจงานตัวเอง |
 | `docker compose -f docker/docker-compose.yml --env-file .env down` | ปิดระบบ (ข้อมูลยังอยู่) |
 | `docker compose -f docker/docker-compose.yml --env-file .env down -v` | ล้างทุกอย่างเริ่มใหม่ |
-| `docker compose -f docker/docker-compose.yml --env-file .env up -d + docker compose -f docker/docker-compose.yml --env-file .env up seeder` | เปิดระบบทั้งหมด + seed อัตโนมัติ |
+| `docker compose -f docker/docker-compose.yml --env-file .env up -d postgres pgadmin neo4j opensearch opensearch-dashboards mailhog + docker compose -f docker/docker-compose.yml --env-file .env up seeder` | เปิดระบบทั้งหมด + seed อัตโนมัติ |
 | `docker compose -f docker/docker-compose.yml --env-file .env run --rm loader python load_logs.py` | โหลด log จาก `data/logs/incoming/` เข้า OpenSearch |
 | `docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo` | เปิดแอปสำเร็จรูป (โหมดจริง) |
 | `$env:DEMO_MODE="replay"; docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo` | เปิดแอปสำเร็จรูป (โหมด replay ไม่ต้องมี LLM) |
@@ -168,11 +168,11 @@ uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w
 |---|---|
 | `make verify` | docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python verify.py |
 | `make reseed` | docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python seed.py --purge |
-| `make api` / `make ui` | uv run uvicorn apps.agent-api.main:app --reload --port 8080 / uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w |
+| `make api` / `make ui` | uv run uvicorn main:app --app-dir apps/agent-api --reload --port 8080 / uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w |
 | `make test` | uv run pytest -v |
 | `make down` | docker compose -f docker/docker-compose.yml --env-file .env down |
 | `make reset` | docker compose -f docker/docker-compose.yml --env-file .env down -v |
-| `make up` | docker compose -f docker/docker-compose.yml --env-file .env up -d + docker compose -f docker/docker-compose.yml --env-file .env up seeder |
+| `make up` | docker compose -f docker/docker-compose.yml --env-file .env up -d postgres pgadmin neo4j opensearch opensearch-dashboards mailhog + docker compose -f docker/docker-compose.yml --env-file .env up seeder |
 | `make load-logs` | docker compose -f docker/docker-compose.yml --env-file .env run --rm loader python load_logs.py |
 | `make demo` | docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo |
 | `make demo-offline` | $env:DEMO_MODE="replay"; docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo |

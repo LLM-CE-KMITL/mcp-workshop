@@ -29,19 +29,22 @@ def _driver():
 
 
 def _split_statements(text: str) -> list[str]:
-    """Split a Cypher file on semicolons, ignoring comment-only fragments.
+    """Split a Cypher file on semicolons, ignoring comment lines.
 
     The driver executes one statement per call, unlike cypher-shell which
-    accepts a whole script.
+    accepts a whole script. Comment lines are stripped BEFORE splitting on
+    ";" - a ";" inside a "//" comment (e.g. "seed.py; this file only...")
+    must not be treated as a statement separator, or the trailing half of
+    the comment leaks into the next statement as invalid Cypher.
     """
+    code_only = "\n".join(
+        ln for ln in text.splitlines() if not ln.strip().startswith("//")
+    )
     statements = []
-    for raw in text.split(";"):
-        lines = [
-            ln for ln in raw.splitlines()
-            if ln.strip() and not ln.strip().startswith("//")
-        ]
-        if lines:
-            statements.append("\n".join(lines))
+    for raw in code_only.split(";"):
+        stripped = raw.strip()
+        if stripped:
+            statements.append(stripped)
     return statements
 
 

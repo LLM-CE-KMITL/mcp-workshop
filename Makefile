@@ -54,7 +54,7 @@ load-logs-watch: ## Watch incoming/ and auto-load new files
 
 # ---------- Participant apps ----------
 api: ## Run the Agent API (:8080)
-	$(PY) uvicorn apps.agent-api.main:app --reload --port $${AGENT_API_PORT:-8080}
+	$(PY) uvicorn main:app --app-dir apps/agent-api --reload --port $${AGENT_API_PORT:-8080}
 
 ui: ## Run the Chainlit UI (:8000)
 	$(PY) chainlit run apps/chainlit-ui/app.py --port $${CHAINLIT_PORT:-8000} -w

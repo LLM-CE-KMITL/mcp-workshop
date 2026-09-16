@@ -65,7 +65,7 @@ async def create_plan(
 
 `uv run apps/agent-api/main.py `
 
-`uv run uvicorn apps.agent-api.main:app --reload --port 8080`
+`uv run uvicorn main:app --app-dir apps/agent-api --reload --port 8080`
 
 `uv run pytest tests/test_agent_flow.py -v`
 

@@ -63,7 +63,7 @@ services:
     restart: unless-stopped
     environment:
       <<: *common-env
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-workshop@example.local}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-workshop@example.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-workshop}
       PGADMIN_CONFIG_SERVER_MODE: "False"
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
@@ -187,6 +187,10 @@ services:
       OPENSEARCH_DOC_INDEX: ${OPENSEARCH_DOC_INDEX:-network-docs}
       SEED_RANDOM_SEED: ${SEED_RANDOM_SEED:-42}
       SEED_DAYS_BACK: ${SEED_DAYS_BACK:-30}
+      LLM_API_KEY: ${LLM_API_KEY:-not-needed}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-https://openrouter.ai/api/v1}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-baai/bge-m3}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-1024}
     volumes:
       - ../data:/data:ro
       - ./neo4j/seed:/seed/neo4j:ro

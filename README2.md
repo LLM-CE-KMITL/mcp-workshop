@@ -39,7 +39,7 @@ docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder pyth
 | Neo4j Browser | http://localhost:7474 | ดู topology |
 | MailHog | http://localhost:8025 | ดูอีเมลที่ agent ส่ง |
 
-> **pgAdmin**: ล็อกอินด้วย `workshop@example.local` / `workshop` (ตั้งค่าได้ใน `.env`)
+> **pgAdmin**: ล็อกอินด้วย `workshop@example.com` / `workshop` (ตั้งค่าได้ใน `.env`)
 > มี server ลงทะเบียนไว้แล้ว 2 ตัว — ตัวเต็มสิทธิ์ (`mpls`) และ **ตัวอ่านอย่างเดียวที่ MCP ใช้จริง** (`mcp_reader`)
 > ลองรัน `UPDATE` ด้วยบัญชี `mcp_reader` เพื่อเห็นว่า guardrail ระดับสิทธิ์ทำงานอย่างไร (ใช้ใน Module 8)
 
@@ -184,7 +184,7 @@ flowchart TD
 | `docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python verify.py` | ตรวจว่าข้อมูลครบทั้ง 3 ฐาน |
 | `docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python seed.py --purge` | สร้างข้อมูลใหม่ให้ timestamp สดใหม่ (**ทำเช้าวันเดโม**) |
 | `docker compose -f docker/docker-compose.yml --env-file .env run --rm loader python load_logs.py` | โหลด log จาก `data/logs/incoming/` เข้า OpenSearch |
-| `uv run uvicorn apps.agent-api.main:app --reload --port 8080` / `uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w` | รัน Agent API / Chainlit ของผู้เรียน |
+| `uv run uvicorn main:app --app-dir apps/agent-api --reload --port 8080` / `uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w` | รัน Agent API / Chainlit ของผู้เรียน |
 | `docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo` | เปิดแอปสำเร็จรูป (โหมดจริง) |
 | `$env:DEMO_MODE="replay"; docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo` | เปิดแอปสำเร็จรูป (โหมด replay ไม่ต้องมี LLM) |
 | `docker compose -f docker/docker-compose.yml --env-file .env down` / `docker compose -f docker/docker-compose.yml --env-file .env down -v` | ปิดระบบ / ล้างข้อมูลทั้งหมด |

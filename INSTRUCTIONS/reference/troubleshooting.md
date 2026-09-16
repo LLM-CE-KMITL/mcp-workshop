@@ -10,7 +10,7 @@
 | `make up` ค้างที่ seeder | Neo4j ยังบูตไม่เสร็จ (ใช้เวลานานกว่าตัวอื่น) | รอ 60 วินาที ถ้ายังค้างให้ `make down && make up` |
 | Port ชนกัน | มีบริการอื่นใช้ port อยู่ | `lsof -i :5432` แล้วปิด หรือแก้ port ใน `docker/docker-compose.yml` |
 | `make verify` FAIL ทุกข้อ | seed ยังไม่ทำงาน | `make seed` แล้วดู log |
-| pgAdmin ล็อกอินไม่ได้ | ค่าใน `.env` ไม่ตรง | ค่าเริ่มต้น `workshop@example.local` / `workshop` |
+| pgAdmin ล็อกอินไม่ได้ | ค่าใน `.env` ไม่ตรง | ค่าเริ่มต้น `workshop@example.com` / `workshop` |
 
 ---
 
