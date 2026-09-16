@@ -36,8 +36,9 @@ from pydantic import BaseModel, Field
 BANGKOK = timezone(timedelta(hours=7))
 PG_DSN = os.getenv("PG_DSN",
                    "postgresql://mcp_reader:mcp_reader_password@localhost:5432/mplsdb")
-LLM_BASE_URL = "https://openrouter.ai/api/v1"
-LLM_MODEL = "openai/gpt-4o-mini"
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
+LLM_API_KEY = os.getenv("LLM_API_KEY", "not-needed")
+LLM_MODEL = os.getenv("LLM_MODEL", "qwen/qwen3.5-35b-a3b")
 OUTPUT_DIR = Path("data/reports")
 
 MAX_STEPS = 8
@@ -231,27 +232,23 @@ class Plan(BaseModel):
 
 async def call_llm(messages: list[dict], schema: type[BaseModel] | None = None,
                    temperature: float = 0.0) -> str:
-    # 1. บังคับชื่อโมเดลตรงนี้เลย
-    payload: dict = {"model": "openai/gpt-4o-mini", "messages": messages,
+    payload: dict = {"model": LLM_MODEL, "messages": messages,
                      "temperature": temperature, "max_tokens": 1500}
     if schema is not None:
         payload["response_format"] = {
             "type": "json_schema",
-            # 2. เอา "strict": True ออกเพื่อป้องกัน OpenRouter งอแง
             "json_schema": {"name": schema.__name__,
                             "schema": schema.model_json_schema()},
         }
     async with httpx.AsyncClient(timeout=180) as client:
-        # 3. บังคับ URL และใส่ API Key ตรงนี้
         response = await client.post(
-            "https://openrouter.ai/api/v1/chat/completions", json=payload,
-            headers={"Authorization": "Bearer "},
+            f"{LLM_BASE_URL.rstrip('/')}/chat/completions", json=payload,
+            headers={"Authorization": f"Bearer {LLM_API_KEY}"},
         )
-        
-        # 4. ถ้า Error ให้ปริ้นท์สาเหตุที่แท้จริงออกมาโชว์
+
         if response.status_code != 200:
-            print(f"\n🚨 [API ERROR จาก OpenRouter]: {response.text}\n")
-            
+            print(f"\n🚨 [LLM API ERROR]: {response.text}\n")
+
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"] or ""
 

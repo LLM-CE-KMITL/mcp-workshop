@@ -29,8 +29,8 @@ import psycopg
 PG_DSN = os.getenv("PG_ADMIN_DSN",
                    "postgresql://mpls:mpls_dev_password@localhost:5432/mplsdb")
 EMBEDDING_BASE_URL = os.getenv("EMBEDDING_BASE_URL", "https://openrouter.ai/api/v1")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "openai/text-embedding-3-small")
-EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "1536"))  # text-embedding-3-small มี 1536 dimensions
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "baai/bge-m3")
+EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "1024"))  # baai/bge-m3 มี 1024 dimensions
 
 BATCH_SIZE = 32
 
@@ -73,7 +73,8 @@ def embed_batch(texts: list[str]) -> list[list[float]]:
 # --------------------------------------------------------------------------
 
 def add_column(cur) -> None:
-    """Step 1. 1536 is not arbitrary - it is EmbeddingGemma's output size."""
+    """Step 1. EMBEDDING_DIM must match whatever embedding model is
+    configured (EMBEDDING_MODEL) - not a fixed number."""
     cur.execute(f"ALTER TABLE tickets ADD COLUMN IF NOT EXISTS embedding vector({EMBEDDING_DIM})")
     print(f"  column ready: tickets.embedding vector({EMBEDDING_DIM})")
 

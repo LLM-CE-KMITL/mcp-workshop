@@ -15,15 +15,14 @@ import sys
 import httpx
 from neo4j import GraphDatabase
 
-# 1. บังคับชี้ไปที่ OpenRouter และใส่ API Key
-EMBEDDING_BASE_URL = "https://openrouter.ai/api/v1"
-EMBEDDING_MODEL = "openai/text-embedding-3-small"
-API_KEY = ""
+EMBEDDING_BASE_URL = os.getenv("EMBEDDING_BASE_URL", "https://openrouter.ai/api/v1")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "baai/bge-m3")
+API_KEY = os.getenv("LLM_API_KEY", "not-needed")
 
 def embed_batch(texts: list[str]) -> list[list[float]]:
     response = httpx.post(
         f"{EMBEDDING_BASE_URL.rstrip('/')}/embeddings",
-        headers={"Authorization": f"Bearer {API_KEY}"}, # 2. เพิ่ม Header เพื่อยืนยันตัวตน
+        headers={"Authorization": f"Bearer {API_KEY}"},
         json={"model": EMBEDDING_MODEL, "input": texts},
         timeout=90,
     )

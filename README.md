@@ -3,7 +3,7 @@
 หน้านี้คือ**จุดเริ่มต้นเดียว**ของหลักสูตร ไล่ลิงก์ตามลำดับนี้ตั้งแต่บนลงล่างแล้วจะไม่หลง
 แต่ละบรรทัดมีเวลาเรียนกำกับไว้ตรงกับตารางจริง ถ้าหลุดตาราง ให้กลับมาเปิดหน้านี้เพื่อดูว่าอยู่จุดไหน
 
-> ภาพรวมสถาปัตยกรรม, model stack และการ map กับ production อยู่ที่ [README.md](README.md) —
+> ภาพรวมสถาปัตยกรรม, model stack และการ map กับ production อยู่ที่ [README2.md](README2.md) —
 > เปิดที่นั่นก่อนถ้ายังไม่เคยเห็นภาพรวมทั้งระบบ
 
 ---
@@ -73,7 +73,7 @@
 | 15:30–16:30 | [day3/14-wrap-up-mpls-llm.md](instructions/day3/14-wrap-up-mpls-llm.md) — สรุปผลการอบรม และแบ่งงานสำหรับ MPLS LLM |
 
 **เฉลยวันที่ 3**: ไม่มีไฟล์แยก — โค้ดจริงใน [apps/mcp-server/](apps/mcp-server/) และ [apps/agent-api/](apps/agent-api/)
-**คือ**เฉลย อ่านเหตุผลที่ [solutions/day3/README2.md](solutions/day3/README2.md)
+**คือ**เฉลย อ่านเหตุผลที่ [solutions/day3/README.md](solutions/day3/README.md)
 
 ---
 
