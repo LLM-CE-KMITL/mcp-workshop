@@ -21,6 +21,9 @@ import sys
 import time
 from enum import Enum
 from pathlib import Path
+from dotenv import load_dotenv  # ← เพิ่ม
+
+load_dotenv()  # ← เพิ่ม ก่อน config อื่น
 
 import httpx
 import psycopg
@@ -28,9 +31,9 @@ from pydantic import BaseModel, Field, ValidationError, model_validator
 
 PG_DSN = os.getenv("PG_ADMIN_DSN",
                    "postgresql://mpls:mpls_dev_password@localhost:5432/mplsdb")
-LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:11434/v1")
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "not-needed")
-LLM_MODEL = os.getenv("LLM_MODEL", "gemma3:27b")
+LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-4o-mini")
 GUIDED = os.getenv("LLM_GUIDED_DECODING", "true").lower() == "true"
 
 VALID_DEVICES = {
@@ -156,7 +159,7 @@ class StructuredExtractor:
             payload["response_format"] = {
                 "type": "json_schema",
                 "json_schema": {"name": self.schema.__name__,
-                                "schema": self.json_schema, "strict": True},
+                                "schema": self.json_schema},
             }
 
         async with httpx.AsyncClient(timeout=120) as client:

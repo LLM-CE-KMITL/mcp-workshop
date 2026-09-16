@@ -5,27 +5,19 @@ dataset. This module exists to make the alternative concrete rather than
 theoretical, and to let participants measure the difference themselves.
 
 Pattern implemented: Orchestrator-Workers.
-
-    router  decides which specialists are relevant
-    workers each own one data source and one narrow skill
-    merger  combines their findings
-
-When it helps: many tools, or specialists that need different instructions.
-When it hurts: this workshop's ten tools, where the coordination overhead of
-extra model calls exceeds anything gained.
-
-The comparison, not the code, is the lesson. instructions/day2/module6 has
-participants run both against the same question and look at the numbers.
 """
 
 from __future__ import annotations
-
 from enum import Enum
-
 from pydantic import BaseModel, Field
 
-from . import llm
-
+# ==========================================
+# ส่วนที่เพิ่มเข้ามาเพื่อให้รันไฟล์นี้ได้ตรงๆ
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from agent import llm
+# ==========================================
 
 class Specialist(str, Enum):
     TICKETS = "tickets"      # PostgreSQL: what was reported
@@ -44,7 +36,6 @@ class RoutingDecision(BaseModel):
             "False when they can work independently and be merged."
         )
     )
-
 
 SPECIALIST_BRIEF = {
     Specialist.TICKETS: (
@@ -75,7 +66,6 @@ needs another's output first - for example, finding devices from tickets before
 looking up what they share upstream.
 """
 
-
 async def route(question: str, stats: llm.LLMStats | None = None,
                 model: str | None = None) -> RoutingDecision:
     return await llm.complete_structured(
@@ -85,3 +75,24 @@ async def route(question: str, stats: llm.LLMStats | None = None,
         ],
         RoutingDecision, stats=stats, model=model,
     )
+
+# ==========================================
+# บล็อกทดสอบจำลอง (จะทำงานเมื่อรันไฟล์นี้ตรงๆ)
+if __name__ == "__main__":
+    import asyncio
+    
+    async def run_test():
+        print("🚀 ทดสอบระบบ Orchestrator Router...")
+        
+        # ลองตั้งคำถามให้ Router ตัดสินใจ
+        question = "ช่วยหาข้อมูลให้หน่อยว่า Ticket ของสาขา BKK มีแจ้งอุปกรณ์ตัวไหนเสียบ้าง แล้วเอาไปเช็ค Topology ซิว่ามันต่อกับ upstream ตัวไหน"
+        print(f"\nคำถาม: {question}")
+        print("-" * 40)
+        
+        decision = await route(question)
+        
+        print(f"✅ ผู้เชี่ยวชาญ (Specialists) ที่เลือกใช้งาน: {[s.value for s in decision.specialists]}")
+        print(f"✅ ทำงานตามลำดับไหม (Sequential): {decision.sequential}")
+        print(f"✅ เหตุผล (Reason): {decision.reason}")
+
+    asyncio.run(run_test())

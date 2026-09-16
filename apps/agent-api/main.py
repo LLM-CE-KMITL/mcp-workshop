@@ -12,7 +12,6 @@ is what makes a demo persuasive rather than magical.
 Run:
     make api          -> http://localhost:8080/docs
 """
-
 from __future__ import annotations
 
 import sys
@@ -25,6 +24,7 @@ from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import StreamingResponse  # noqa: E402
 from schemas import ChatRequest, IntentLabel  # noqa: E402
+from verifier import verify
 
 from agent import (  # noqa: E402
     events,
@@ -153,12 +153,12 @@ async def run_turn(request: ChatRequest):
 
         # ---------- 6. Ground ----------
         try:
-            verdict = await grounding.verify(answer, results, stats=stats,
-                                             model=request.model)
-            yield events.sse(EventType.GROUNDING_CHECKED, verdict.model_dump())
+            # เรียกใช้ฟังก์ชัน verify จาก verifier.py ที่เราสร้างขึ้น
+            verdict = await verify(answer, results)
+            yield events.sse(EventType.GROUNDING_CHECKED, verdict)
         except Exception as exc:  # noqa: BLE001 - never fail a turn on the check
             yield events.sse(EventType.GROUNDING_CHECKED,
-                             {"supported": None, "error": str(exc)})
+                             {"is_grounded": None, "error": str(exc)})
 
         yield events.sse(EventType.USAGE, {
             **stats.as_dict(),

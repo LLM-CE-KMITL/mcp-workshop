@@ -13,7 +13,7 @@
 ## 1. ดูเวอร์ชันที่ใช้จริง
 
 ```bash
-make protocol-version
+uv run python scripts/print_protocol_version.py
 ```
 
 จดเลข `protocolVersion` ไว้ เอกสารทุกฉบับในคอร์สนี้อ้างอิงเลขที่ได้จากคำสั่งนี้ ไม่ได้ hardcode ไว้
@@ -25,34 +25,27 @@ make protocol-version
 รัน server แบบ HTTP:
 
 ```bash
-make mcp
+uv run python apps/mcp-server/server.py --transport streamable-http --port 9000
 ```
 
 เปิด terminal ใหม่ แล้วยิง `initialize` เอง:
 
 ```bash
-curl -s -X POST http://localhost:9000/mcp \
-  -H 'Content-Type: application/json' \
-  -H 'Accept: application/json, text/event-stream' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"manual","version":"1.0"}}}'
+Invoke-RestMethod -Uri http://localhost:9000/mcp -Method Post -ContentType "application/json" -Headers @{"Accept"="application/json, text/event-stream"} -Body '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"manual","version":"1.0"}}}'
 ```
 
 ดูรายการ tool:
 
 ```bash
-curl -s -X POST http://localhost:9000/mcp \
-  -H 'Content-Type: application/json' \
-  -H 'Accept: application/json, text/event-stream' \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+Invoke-RestMethod -Uri http://localhost:8080/tools -Method Get | ConvertTo-Json -Depth 5
 ```
 
 เรียก tool จริง:
 
 ```bash
-curl -s -X POST http://localhost:9000/mcp \
-  -H 'Content-Type: application/json' \
-  -H 'Accept: application/json, text/event-stream' \
-  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"list_devices","arguments":{}}}'
+$payload = '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "workshop-client", "version": "1.0"}}}'
+
+Write-Output $payload | uv run python apps/mcp-server/server.py --transport stdio
 ```
 
 ---
@@ -62,7 +55,7 @@ curl -s -X POST http://localhost:9000/mcp \
 เครื่องมือทางการสำหรับดูและทดสอบ MCP server:
 
 ```bash
-npx @modelcontextprotocol/inspector python apps/mcp-server/server.py
+$json = '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_upstream_devices", "arguments": {"device_ids": ["LPE-NBI-11", "LPE-NBI-12", "LPE-NBI-13"]}}}'; $initialize = '{"jsonrpc": "2.0", "id": 0, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "cli", "version": "1.0"}}}'; Write-Output "$initialize`n$json" | uv run python apps/mcp-server/server.py --transport stdio
 ```
 
 เปิดเบราว์เซอร์ตามที่แจ้ง แล้วลอง:

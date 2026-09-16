@@ -70,7 +70,7 @@ async def start():
 
 @cl.on_message
 async def on_message(message: cl.Message):
-    session_id = cl.user_session.get("session_id") or "default"
+    session_id = "default"  # session_id = cl.user_session.get("session_id") or "default" หากต้องการรัน ID
 
     answer = cl.Message(content="")
     steps: dict[int, cl.Step] = {}

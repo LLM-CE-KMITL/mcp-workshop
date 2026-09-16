@@ -13,7 +13,7 @@
 ## คำถามเดียว 3 ที่
 
 ```bash
-make vector-compare
+uv run scripts/compare_vector_stores.py     
 ```
 
 สคริปต์ยิงคำถามเดียวกันไปทั้ง 3 ระบบแล้วเทียบผล
@@ -46,12 +46,14 @@ flowchart TB
 ---
 
 ## ตัวอย่างที่ Neo4j ทำได้คนเดียว
-
+```cypher
+:param vec => [i in range(1, 1536) | 0.1]
+```
 ```cypher
 CALL db.index.vector.queryNodes('device_embedding', 3, $vec)
 YIELD node, score
-MATCH (node)<-[:UPLINK_TO]-(down:Device)
-RETURN node.device_id, score, collect(down.device_id) AS downstream
+OPTIONAL MATCH (node)<-[:UPLINK_TO]-(down:Device)
+RETURN node.device_id AS id, score, collect(down.device_id) AS downstream
 ```
 
 *"หาอุปกรณ์ที่ทำหน้าที่รวบรวม traffic แล้วบอกว่ามีอะไรอยู่ใต้มัน"* — จบใน query เดียว

@@ -60,7 +60,7 @@ flowchart TD
 
 ## สิ่งที่ต้องทำ
 
-### 1. เขียน fast path
+### 1. เขียน fast path apps/agent-api/agent/intent.py
 
 ```python
 def fast_path(message: str) -> IntentResult | None:
@@ -92,7 +92,7 @@ def fast_path(message: str) -> IntentResult | None:
 ## ทดสอบ
 
 ```bash
-make test -- tests/test_intent_gate.py
+uv run pytest tests/test_intent_gate.py
 ```
 
 ใช้ชุดคำถาม `data/questions/L0-out-of-scope.yaml` และ `L5-ambiguous.yaml`

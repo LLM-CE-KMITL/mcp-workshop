@@ -42,6 +42,7 @@
   }
 }
 ```
+หากยังไม่มีไฟล์ให้รัน `mkdir $env:APPDATA\Claude` ตามด้วย `notepad $env:APPDATA\Claude\claude_desktop_config.json` เพื่อสร้าง
 
 **ต้อง restart Claude Desktop** หลังแก้ config
 
@@ -55,7 +56,10 @@
 
 ---
 
-## 2. Claude Code
+## 2. Claude Code 
+```bash
+irm https://claude.ai/install.ps1 | iex
+```
 
 ```bash
 claude mcp add nt-network -- uv --directory "$(pwd)" run python apps/mcp-server/server.py --transport stdio
@@ -75,13 +79,27 @@ claude mcp list
 {
   "mcpServers": {
     "nt-network": {
-      "command": "uv",
-      "args": ["--directory", "${workspaceFolder}", "run", "python",
-               "apps/mcp-server/server.py", "--transport", "stdio"]
+      "command": "C:/Users/ratta/mcp-workshop/.venv/Scripts/python.exe",
+      "args": [
+        "C:/Users/ratta/mcp-workshop/apps/mcp-server/server.py",
+        "--transport",
+        "stdio"
+      ],
+      "env": {
+        "PG_DSN": "postgresql://mcp_reader:mcp_reader_password@localhost:5432/mplsdb",
+        "NEO4J_URI": "bolt://localhost:7687",
+        "NEO4J_USER": "neo4j",
+        "NEO4J_PASSWORD": "neo4j_dev_password",
+        "OPENSEARCH_URL": "http://localhost:9200"
+      }
     }
   }
 }
 ```
+เข้าที่ตั้งค่าแล้วพิมพ์ค้นหา `Model Context Protocol` ตรงหัวข้อ Chat > Mcp > Discovery: Enabled คลิกติ๊กถูก ให้อนุญาต (Enable)
+
+✅ Cursor workspace configuration ('.cursor/mcp.json') (cursor-workspace)
+ต่อมา Ctrl + Shift + P ค้นหา MCP กดเปิด nt-network
 
 ---
 

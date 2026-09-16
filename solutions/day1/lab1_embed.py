@@ -20,15 +20,17 @@ from __future__ import annotations
 import os
 import sys
 import time
+from dotenv import load_dotenv
+load_dotenv()
 
 import httpx
 import psycopg
 
 PG_DSN = os.getenv("PG_ADMIN_DSN",
                    "postgresql://mpls:mpls_dev_password@localhost:5432/mplsdb")
-EMBEDDING_BASE_URL = os.getenv("EMBEDDING_BASE_URL", "http://localhost:11434/v1")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "embeddinggemma:300m")
-EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "768"))
+EMBEDDING_BASE_URL = os.getenv("EMBEDDING_BASE_URL", "https://openrouter.ai/api/v1")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "openai/text-embedding-3-small")
+EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "1536"))  # text-embedding-3-small มี 1536 dimensions
 
 BATCH_SIZE = 32
 
@@ -71,9 +73,9 @@ def embed_batch(texts: list[str]) -> list[list[float]]:
 # --------------------------------------------------------------------------
 
 def add_column(cur) -> None:
-    """Step 1. 768 is not arbitrary - it is EmbeddingGemma's output size."""
-    cur.execute("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS embedding vector(768)")
-    print("  column ready: tickets.embedding vector(768)")
+    """Step 1. 1536 is not arbitrary - it is EmbeddingGemma's output size."""
+    cur.execute(f"ALTER TABLE tickets ADD COLUMN IF NOT EXISTS embedding vector({EMBEDDING_DIM})")
+    print(f"  column ready: tickets.embedding vector({EMBEDDING_DIM})")
 
 
 def backfill(conn, cur) -> int:

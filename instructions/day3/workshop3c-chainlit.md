@@ -24,7 +24,7 @@ flowchart TB
 
 ---
 
-## 1. รับ SSE และแยก event
+## 1. รับ SSE และแยก event apps/chainlit-ui/app.py 
 
 ```python
 async with client.stream("POST", f"{API}/chat", json={...}) as response:
@@ -56,7 +56,7 @@ await step.__aexit__(None, None, None)
 
 ## 3. แสดงแผนเป็นแผนภาพ
 
-Chainlit เรนเดอร์ Mermaid ได้ ทำให้ dependency ของแผนเห็นได้ทันที
+Chainlit เรนเดอร์ Mermaid ได้ ทำให้ dependency ของแผนเห็นได้ทันที apps/chainlit-ui/elements.py
 
 ```python
 lines = ["```mermaid", "flowchart TD"]
@@ -85,7 +85,7 @@ lines.append("```")
 
 ---
 
-## 5. ปุ่มคำถามตัวอย่าง
+## 5. ปุ่มคำถามตัวอย่าง apps/chainlit-ui/app.py 
 
 ```python
 @cl.set_starters

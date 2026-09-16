@@ -20,22 +20,27 @@ flowchart LR
 
 ## 1. เปลี่ยนจากเรียกฟังก์ชันตรง เป็นเรียกผ่าน MCP
 
-เมื่อวาน agent เรียกฟังก์ชัน Python ตรงๆ วันนี้ต้องเรียกผ่าน MCP
+เมื่อวาน agent เรียกฟังก์ชัน Python ตรงๆ วันนี้ต้องเรียกผ่าน MCP apps/agent-api/agent/executor.py
 
 ```python
-# เดิม
-result = search_tickets(site_code="NBI")
-
-# ใหม่
-result = await mcp_client.call_tool("search_tickets", {"site_code": "NBI"})
+result = await asyncio.wait_for(
+    client.call_tool(step.tool, arguments),
+    timeout=STEP_TIMEOUT_SECONDS,
 ```
 
 **สิ่งที่ได้มาฟรีจากการเปลี่ยน**: tool ชุดเดียวกันนี้ใช้ได้กับ Claude Desktop ทันทีโดยไม่ต้องเขียนอะไรเพิ่ม
 
-### รายการ tool ต้องมาจาก MCP ไม่ใช่ hardcode
+### รายการ tool ต้องมาจาก MCP ไม่ใช่ hardcode apps/agent-api/agent/planner.py
 
 ```python
-tools = await mcp_client.list_tools()   # planner ใช้รายการนี้สร้าง plan
+async def create_plan(
+    question: str,
+    context: list[dict] | None = None,
+    stats: llm.LLMStats | None = None,
+    model: str | None = None,
+) -> Plan:
+    client = mcp_client.get()
+    tools = await client.list_tools()
 ```
 
 เพิ่ม tool ใน MCP Server → planner รู้จักทันที ไม่ต้องแก้ agent
@@ -56,7 +61,13 @@ tools = await mcp_client.list_tools()   # planner ใช้รายการน
 
 ## 3. Stream เป็น Event ไม่ใช่แค่ข้อความ
 
-**นี่คือจุดตัดสินว่า UI จะดีหรือไม่ดี**
+**นี่คือจุดตัดสินว่า UI จะดีหรือไม่ดี** รันตามนี้เพื่อทดสอบ
+
+`uv run apps/agent-api/main.py `
+
+`uv run uvicorn apps.agent-api.main:app --reload --port 8080`
+
+`uv run pytest tests/test_agent_flow.py -v`
 
 ```
 intent_checked → memory_updated → plan_created
@@ -65,12 +76,18 @@ intent_checked → memory_updated → plan_created
 ```
 
 ถ้า API คืนแค่ข้อความสุดท้าย UI จะทำได้แค่แสดง spinner
-ถ้าคืน event ครบ UI จะแสดงกระบวนการคิดทั้งหมดได้
+ถ้าคืน event ครบ UI จะแสดงกระบวนการคิดทั้งหมดได้ apps/agent-api/agent/events.py
 
 ```python
-def sse(event_type, data) -> str:
-    payload = json.dumps({"type": event_type, "data": data}, ensure_ascii=False)
-    return f"event: {event_type}\ndata: {payload}\n\n"    # บรรทัดว่างท้ายจำเป็น
+def sse(event_type: EventType, data: Any) -> str:
+    """Format one Server-Sent Event.
+
+    The blank line at the end is required by the SSE spec; leaving it out
+    produces a stream that appears to hang.
+    """
+    payload = json.dumps({"type": event_type.value, "data": data},
+                         ensure_ascii=False, default=str)
+    return f"event: {event_type.value}\ndata: {payload}\n\n"
 ```
 
 > ลืมบรรทัดว่างสองบรรทัดท้าย = stream ค้าง เป็นบั๊กที่เจอบ่อยที่สุด
@@ -101,7 +118,7 @@ flowchart TD
 - [ ] คำถามนอกขอบเขต: `tool_calls == 0`
 - [ ] `GET /sessions/{id}/memory` แสดง `context_tokens` ที่เปลี่ยนตามจริง
 - [ ] เพิ่ม tool ใน MCP Server แล้ว planner ใช้ได้โดยไม่แก้ agent
-- [ ] `make test -- tests/test_agent_flow.py` ผ่าน
+- [ ] `uv run pytest tests/test_agent_flow.py` ผ่าน
 
 ---
 

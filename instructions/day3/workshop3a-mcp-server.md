@@ -25,12 +25,15 @@ flowchart TB
 ## ขั้นที่ 1 · รัน server ที่มีอยู่ก่อน (5 นาที)
 
 ```bash
-make mcp
+uv run python apps/mcp-server/server.py --transport streamable-http --port 9000
 ```
 
 ```bash
-npx @modelcontextprotocol/inspector python apps/mcp-server/server.py
+npx @modelcontextprotocol/inspector uv run python apps/mcp-server/server.py
 ```
+หากเปิดไม่ได้ลองตรวจสอบว่ามีพอร์ตซ้ำหรือไม่
+`netstat -ano | findstr :9000`
+`taskkill /PID ***เลขที่ได้มา*** /F`
 
 ทำความเข้าใจโครงสร้างก่อนแก้:
 
@@ -50,7 +53,7 @@ apps/mcp-server/
 
 ## ขั้นที่ 2 · Resource Setup (20 นาที)
 
-### 2.1 เปิด schema ให้ AI อ่าน
+### 2.1 เปิด schema ให้ AI อ่าน apps/mcp-server/resources/schemas.py
 
 ```python
 @mcp.resource("schema://postgres")
@@ -62,7 +65,7 @@ def postgres_schema() -> str:
 
 **ทำไมต้องมี comment** — comment ในฐานข้อมูลคือคำอธิบายที่โมเดลใช้ตัดสินใจ ถ้า column ชื่อ `mtu` ไม่มี comment โมเดลอาจไม่รู้ว่ามันสำคัญกับ adjacency
 
-### 2.2 `clock://now`
+### 2.2 `clock://now`apps/mcp-server/resources/clock_resource.py
 
 ```python
 @mcp.resource("clock://now")
@@ -72,7 +75,7 @@ def now() -> str:
 
 **ทดสอบ**: ถามระบบว่า *"log ปีที่แล้วเป็นยังไง"* — ต้องตอบว่าข้อมูลมีแค่ 30 วัน ไม่ใช่แต่งขึ้น
 
-### 2.3 ระบบไฟล์จำลอง
+### 2.3 ระบบไฟล์จำลอง apps/mcp-server/resources/files.py
 
 ```python
 @mcp.resource("files://index")
@@ -101,7 +104,7 @@ files://read/../../../etc/passwd
 
 ดู `tools/tickets.py` → `search_tickets` เป็นแม่แบบ แล้วเติมที่เหลือตาม `# TODO`
 
-### 3.2 Tool รันสคริปต์ — จุดที่อันตรายที่สุด
+### 3.2 Tool รันสคริปต์ — จุดที่อันตรายที่สุด apps/mcp-server/tools/reports.py
 
 ```python
 ALLOWED_SCRIPTS = {
@@ -157,7 +160,7 @@ def generate_report(title: str, format: str = "markdown", range: str = "last_7d"
 - [ ] `files://read/../../.env` ถูกปฏิเสธและมี audit log
 - [ ] `run_report_script` ปฏิเสธชื่อที่ไม่อยู่ใน allowlist
 - [ ] ทดสอบผ่าน MCP Inspector ได้ทุก tool
-- [ ] `make test -- tests/test_mcp_tools.py` ผ่าน
+- [ ] `uv run pytest tests/test_mcp_tools.py` ผ่าน
 
 ---
 

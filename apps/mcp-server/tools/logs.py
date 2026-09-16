@@ -38,7 +38,18 @@ def register(mcp) -> None:
         contains: str | None = None,
         range: str = "last_24h",
         limit: int = 30,
-    ) -> dict:
+    ) -> dict | str: # <--- อัปเดต Type Hint ตรงนี้ให้คืนค่าเป็น str ได้ด้วย
+        """Search device logs and system events over a specific time range. Use this to investigate historical issues, find error messages, or check interface status changes. Requires a relative time range like 'last_24h' or 'last_7d'."""
+        
+        try:
+            # ของเดิมจะมีบรรทัดคล้ายๆ แบบนี้อยู่
+            start, end = clock.resolve_range(range) 
+        except ValueError as e:
+            # เพิ่มบล็อกนี้เข้าไป เพื่อคืนค่า Error กลับไปเป็นข้อความให้ AI รู้ตัว
+            return f"Error: {e}"
+
+        # ... (โค้ดเดิมที่เหลือสำหรับดึง Log ปล่อยไว้เหมือนเดิม) ...
+        # ...
         """Search raw device logs - what the equipment actually reported.
 
         Use for observed behaviour: interfaces changing state, adjacencies

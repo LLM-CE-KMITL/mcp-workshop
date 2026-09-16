@@ -61,6 +61,13 @@ def detect_topic_shift(self, message: str) -> tuple[bool, str]:
 ```
 GET /sessions/{id}/memory
 ```
+### 5. ตรวจสอบ
+
+```
+http://localhost:8080/sessions/default/memory
+```
+default คือค่า sessions โดยสามารถตั้งให้ ID รัน Unique ID ได้โดยเข้าที่ `apps/chainlit-ui/app.py` แก้ไขบรรทัดที่ 73 เปลี่ยนเป็น Code ที่ # ไว้ `session_id = "default"  # session_id = cl.user_session.get("session_id") or "default"`
+
 
 **สำคัญ** — กลไกความจำมองจากภายนอกไม่เห็น ถ้าไม่มี endpoint นี้ก็ debug ไม่ได้และเรียนรู้ไม่ได้
 
@@ -69,7 +76,7 @@ GET /sessions/{id}/memory
 ## ทดสอบ
 
 ```bash
-make test -- tests/test_topic_shift.py
+uv run pytest tests/test_topic_shift.py
 ```
 
 ใช้บทสนทนา 10 turn จาก `data/questions/L4-conversation.yaml`

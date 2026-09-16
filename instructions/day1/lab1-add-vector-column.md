@@ -27,7 +27,11 @@ SELECT count(*) AS total, count(embedding) AS embedded FROM tickets;
 ## ขั้นที่ 1 · ลบทิ้ง
 
 ```bash
-make lab1-reset
+cmd /c "docker exec -i mpls-postgres psql -U mpls -d mplsdb < scripts/lab/lab1_reset_vector.sql"
+```
+
+```bash
+cmd /c "docker exec -i mpls-neo4j cypher-shell -u neo4j -p neo4j_dev_password < scripts/lab/lab1_reset_vector.cypher"
 ```
 
 คำสั่งนี้ลบ vector ทั้งใน **PostgreSQL และ Neo4j**
@@ -36,19 +40,21 @@ make lab1-reset
 
 ---
 
+**ทำไมต้อง 1536** — ต้องตรงกับมิติของโมเดล ถ้าใส่ผิด `INSERT` จะ error ทุกแถว
+
+```bash
+$headers = @{
+    "Authorization" = "Bearer ***Your Key***"
+    "Content-Type" = "application/json"
+}
+$body = '{"model":"openai/text-embedding-3-small","input":["test"]}'
+(Invoke-RestMethod -Uri "https://openrouter.ai/api/v1/embeddings" -Method Post -Headers $headers -Body $body).data[0].embedding.Count
+```
+
 ## ขั้นที่ 2 · เพิ่ม column
 
 ```sql
-ALTER TABLE tickets ADD COLUMN embedding vector(768);
-```
-
-**ทำไมต้อง 768** — ต้องตรงกับมิติของโมเดล ถ้าใส่ผิด `INSERT` จะ error ทุกแถว
-
-```bash
-curl -s $EMBEDDING_BASE_URL/embeddings \
-  -H 'Content-Type: application/json' \
-  -d '{"model":"embeddinggemma:300m","input":["test"]}' \
-  | python3 -c "import sys,json; print(len(json.load(sys.stdin)['data'][0]['embedding']))"
+ALTER TABLE tickets ADD COLUMN embedding vector(1536);
 ```
 
 ---
@@ -58,14 +64,39 @@ curl -s $EMBEDDING_BASE_URL/embeddings \
 เขียน `my_embed.py` เอง โครงประมาณนี้:
 
 ```python
-import httpx, psycopg
+import os
+import httpx
+import psycopg
+from dotenv import load_dotenv
+
+load_dotenv()
 
 PG = "postgresql://mpls:mpls_dev_password@localhost:5432/mplsdb"
-EMB = "http://localhost:11434/v1/embeddings"
-MODEL = "embeddinggemma:300m"
+
+# 1. เปลี่ยนตัวแปร EMB และ MODEL ให้เป็นของ OpenRouter (ตามที่คุณต้องการเปลี่ยน)
+EMB = "https://openrouter.ai/api/v1/embeddings"
+MODEL = "openai/text-embedding-3-small"
+API_KEY = os.getenv("LLM_API_KEY", "")
 
 def embed_batch(texts: list[str]) -> list[list[float]]:
-    r = httpx.post(EMB, json={"model": MODEL, "input": texts}, timeout=60)
+    # 2. เพิ่ม headers สำหรับยืนยันตัวตนของ OpenRouter
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "HTTP-Referer": "http://localhost",
+        "X-Title": "MCP Workshop"
+    }
+    
+    # 3. ส่ง dimensions: 768 ไปด้วย เพื่อให้ขนาดตรงกับตารางเดิม
+    r = httpx.post(
+        EMB, 
+        json={
+            "model": MODEL, 
+            "input": texts,
+            "dimensions": 1536
+        }, 
+        headers=headers, 
+        timeout=60
+    )
     r.raise_for_status()
     data = sorted(r.json()["data"], key=lambda d: d["index"])   # อย่าลืมเรียงลำดับ
     return [d["embedding"] for d in data]
@@ -75,13 +106,15 @@ with psycopg.connect(PG) as conn:
     cur.execute("SELECT ticket_id, title, description FROM tickets ORDER BY ticket_id")
     rows = cur.fetchall()
 
-    BATCH = 32          # ยิงทีละ 1 แถวจะช้ามาก
+    BATCH = 32           # ยิงทีละ 32 แถว
     for i in range(0, len(rows), BATCH):
         chunk = rows[i:i+BATCH]
         vecs = embed_batch([f"{t}\n\n{d}" for _, t, d in chunk])
         for (tid, _, _), v in zip(chunk, vecs):
-            cur.execute("UPDATE tickets SET embedding = %s WHERE ticket_id = %s",
-                        (str(v), tid))
+            # แปลง vector เป็น string สำหรับใส่ใน postgres
+            vector_str = "[" + ",".join(map(str, v)) + "]"
+            cur.execute("UPDATE tickets SET embedding = %s::vector WHERE ticket_id = %s",
+                        (vector_str, tid))
         conn.commit()
         print(f"{i+len(chunk)}/{len(rows)}")
 ```
@@ -114,14 +147,34 @@ CREATE INDEX idx_tickets_embedding ON tickets
 SELECT count(*) AS total, count(embedding) AS embedded FROM tickets;
 ```
 
-ค้นด้วย Python:
+ค้นด้วย Python เขียน `cosine.py` เอง โครงประมาณนี้:
 
 ```python
+import httpx
+from openai import OpenAI
+
+print("กำลังเชื่อมต่อ OpenRouter เพื่อสร้าง Embedding...")
+
+# 1. ตั้งค่าเชื่อมต่อ OpenRouter (ใช้คีย์ที่ถูกต้อง)
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key="sk-or-v1-***Your Key***",  # คีย์ที่ใช้งานได้จริง
+    http_client=httpx.Client(verify=False)
+)
+
+def embed_batch(texts: list[str]) -> list[list[float]]:
+    response = client.embeddings.create(
+        model="openai/text-embedding-3-small",
+        input=texts
+    )
+    return [item.embedding for item in response.data]
+
+# 2. ทดสอบแปลงข้อความ
 q = embed_batch(["ลูกค้าบ่นว่าอินเทอร์เน็ตหลุดบ่อย"])[0]
-cur.execute("""SELECT ticket_id, title, embedding <=> %s::vector AS d
-               FROM tickets ORDER BY embedding <=> %s::vector LIMIT 5""",
-            (str(q), str(q)))
-for r in cur.fetchall(): print(r)
+
+print("✅ แปลง Embedding สำเร็จ!")
+print("ความยาวมิติเวกเตอร์:", len(q)) # ควรจะได้ 1536
+print("ตัวอย่างข้อมูลเวกเตอร์ 5 ค่าแรก:", q[:5])
 ```
 
 `<=>` คือ cosine distance — **ยิ่งน้อยยิ่งใกล้**
@@ -134,18 +187,47 @@ for r in cur.fetchall(): print(r)
 CREATE VECTOR INDEX device_embedding IF NOT EXISTS
 FOR (d:Device) ON (d.embedding)
 OPTIONS { indexConfig: {
-  `vector.dimensions`: 768,
+  `vector.dimensions`: 1536,
   `vector.similarity_function`: 'cosine'
 }};
 ```
 
 แล้ว backfill `d.profile_text` เข้าไป (ดูตัวอย่างใน `docker/seeder/seed_neo4j.py`)
 
+ลบ Vector ขนาด 768
+
+```cypher
+DROP INDEX device_embedding IF EXISTS;
+```
+
+"สร้างใหม่" ให้รองรับ 1536 มิติ
+
+```cypher
+CREATE VECTOR INDEX device_embedding IF NOT EXISTS
+FOR (d:Device) ON (d.embedding)
+OPTIONS {
+  indexConfig: {
+    `vector.dimensions`: 1536,
+    `vector.similarity_function`: 'cosine'
+  }
+};
+```
+
+รันไฟล์ embed_devices.py
+
+```cypher
+uv run python scripts/embed_devices.py
+```
+
 ค้นหา:
 
 ```cypher
-CALL db.index.vector.queryNodes('device_embedding', 3, $vec)
-YIELD node, score RETURN node.device_id, score
+MATCH (d:Device) 
+WHERE d.embedding IS NOT NULL
+WITH d.embedding AS mock_vec LIMIT 1
+CALL db.index.vector.queryNodes('device_embedding', 3, mock_vec)
+YIELD node, score 
+RETURN node.device_id, score
 ```
 
 ---

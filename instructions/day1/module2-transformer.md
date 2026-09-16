@@ -107,11 +107,12 @@ flowchart LR
 4. ทำซ้ำโดยย้ายประโยคไปไว้ **ต้น** และ **ท้าย**
 5. เทียบว่าตำแหน่งไหนตอบถูก
 
+Code เปิดไฟล์ Log ของระบบเน็ตเวิร์กขึ้นมาอ่าน แล้วนับว่าข้อมูลในไฟล์นั้นมีความยาวทั้งหมดกี่ Token
 ```bash
-python -c "
+uv run python -c "
 import sys; sys.path.insert(0,'apps/agent-api')
 from agent import tokenizer
-text = open('data/logs/samples/01-cisco-ios-APE-NBI-03.log').read()
+text = open('data/logs/samples/01-cisco-ios-APE-NBI-03.log', encoding='utf-8').read()
 print('tokens:', tokenizer.count(text))
 "
 ```

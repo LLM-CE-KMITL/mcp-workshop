@@ -36,8 +36,8 @@ from pydantic import BaseModel, Field
 BANGKOK = timezone(timedelta(hours=7))
 PG_DSN = os.getenv("PG_DSN",
                    "postgresql://mcp_reader:mcp_reader_password@localhost:5432/mplsdb")
-LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:11434/v1")
-LLM_MODEL = os.getenv("LLM_MODEL", "gemma3:27b")
+LLM_BASE_URL = "https://openrouter.ai/api/v1"
+LLM_MODEL = "openai/gpt-4o-mini"
 OUTPUT_DIR = Path("data/reports")
 
 MAX_STEPS = 8
@@ -231,19 +231,27 @@ class Plan(BaseModel):
 
 async def call_llm(messages: list[dict], schema: type[BaseModel] | None = None,
                    temperature: float = 0.0) -> str:
-    payload: dict = {"model": LLM_MODEL, "messages": messages,
+    # 1. บังคับชื่อโมเดลตรงนี้เลย
+    payload: dict = {"model": "openai/gpt-4o-mini", "messages": messages,
                      "temperature": temperature, "max_tokens": 1500}
     if schema is not None:
         payload["response_format"] = {
             "type": "json_schema",
+            # 2. เอา "strict": True ออกเพื่อป้องกัน OpenRouter งอแง
             "json_schema": {"name": schema.__name__,
-                            "schema": schema.model_json_schema(), "strict": True},
+                            "schema": schema.model_json_schema()},
         }
     async with httpx.AsyncClient(timeout=180) as client:
+        # 3. บังคับ URL และใส่ API Key ตรงนี้
         response = await client.post(
-            f"{LLM_BASE_URL.rstrip('/')}/chat/completions", json=payload,
-            headers={"Authorization": f"Bearer {os.getenv('LLM_API_KEY', 'x')}"},
+            "https://openrouter.ai/api/v1/chat/completions", json=payload,
+            headers={"Authorization": "Bearer "},
         )
+        
+        # 4. ถ้า Error ให้ปริ้นท์สาเหตุที่แท้จริงออกมาโชว์
+        if response.status_code != 200:
+            print(f"\n🚨 [API ERROR จาก OpenRouter]: {response.text}\n")
+            
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"] or ""
 
@@ -255,10 +263,18 @@ PLANNER_PROMPT = """\
 กติกา:
 1. ใช้ขั้นตอนน้อยที่สุดที่ทำงานสำเร็จ
 2. ใส่ depends_on เฉพาะเมื่อขั้นนั้นต้องใช้ผลของขั้นก่อนจริงๆ
-   ขั้นที่ไม่ขึ้นต่อกันจะถูกรันพร้อมกัน การใส่ dependency เกินจำเป็นทำให้ช้าลงจริง
-3. ค่าที่ยังไม่รู้จนกว่าขั้นก่อนจะรัน ให้ใส่ใน argument_from
-   เช่น {"device_ids": "step.1.tickets.*.device_id"}
+3. พารามิเตอร์ที่ต้องอ้างอิงข้อมูลจากขั้นก่อน (เช่น step.1...) **ห้ามใส่ใน arguments เด็ดขาด** ให้ใส่ใน argument_from เท่านั้น!
+   ตัวอย่างการเขียน JSON ของแต่ละขั้นตอน (ต้องมีฟิลด์ purpose เสมอ):
+   {{
+       "step": 2,
+       "tool": "export_report",
+       "purpose": "สร้างรายงานสรุปจากข้อมูล Ticket",
+       "arguments": {{"title": "รายงาน Ticket", "format": "markdown"}},
+       "argument_from": {{"rows": "step.1.tickets"}},
+       "depends_on": [1]
+   }}
 4. ถ้าผู้ใช้ขอให้ส่งผลให้ทีม ต้องมีขั้น export_report ก่อน send_notification
+   (และอย่าลืมแนบไฟล์รายงานในขั้น send_notification ด้วย "argument_from": {{"attachment": "step.2.path"}})
 
 ความรู้ที่ต้องใช้:
 - ถ้าลูกค้าหลายรายที่อยู่คนละอุปกรณ์แจ้งอาการเดียวกัน
@@ -270,8 +286,9 @@ PLANNER_PROMPT = """\
 
 
 async def create_plan(goal: str) -> Plan:
+    import inspect  # เพิ่มบรรทัดนี้เข้ามา
     catalogue = "\n\n".join(
-        f"{name}: {(fn.__doc__ or '').strip()}" for name, fn in TOOLS.items()
+        f"{name}{inspect.signature(fn)}: {(fn.__doc__ or '').strip()}" for name, fn in TOOLS.items()
     )
     raw = await call_llm(
         [

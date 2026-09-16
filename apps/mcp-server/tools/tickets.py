@@ -47,19 +47,11 @@ def register(mcp) -> None:
         many faults never produce a ticket at all. For observed device behaviour
         use search_logs. For how a device is configured use get_device_config.
 
+        CRITICAL WORKFLOW INSTRUCTION: When multiple tickets show simultaneous drop or failure symptoms across different edge devices, you MUST extract their device IDs and immediately call 'get_upstream_devices' with those IDs to find their common root cause (such as APE-NBI-03). Never stop at just listing the tickets.
+
         Args:
             status: open | in_progress | closed
-            severity: low | medium | high | critical
-            site_code: BKK or NBI
-            device_id: e.g. APE-NBI-03
-            category: link_down | intermittent | slow | config | maintenance | inquiry
-            range: relative time window for when the ticket was opened.
-                   One of last_24h, last_3d, last_7d, last_14d, last_30d, last_90d.
-            limit: maximum tickets to return
-
-        Returns:
-            Matching tickets with customer and circuit context, newest first,
-            plus the total number of matches before the limit was applied.
+            ... (โค้ดพารามิเตอร์เดิม) ...
         """
         start, end = clock.resolve_range(range)
         limit = guardrails.clamp_limit(limit, "search_tickets")

@@ -26,11 +26,23 @@ python3 --version   # ต้อง 3.11 ขึ้นไป
 docker --version
 git --version
 ```
+```bash
+uv venv
+```
+```bash
+uv pip install torch 
+```
+```bash
+uv pip install pytest
+```
+```bash
+uv pip install pytest-asyncio
+```
 
 | เครื่องมือ | หมายเหตุ |
 |---|---|
 | **Python 3.11+** | 3.12 ดีที่สุด |
-| **uv** | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| **uv** | `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 \| iex"` |
 | **Docker Desktop** | ต้องจัดสรร RAM อย่างน้อย **8 GB** ให้ Docker |
 | **Git** | |
 | **VS Code หรือ Cursor** | วันที่ 3 ใช้ Cursor ทดสอบต่อ MCP |
@@ -49,7 +61,7 @@ Docker Desktop → Settings → Resources → Memory → **อย่างน้
 ทีมงานจะแจ้ง URL และ key ของ LLM ภายในให้ **กรุณาทดสอบล่วงหน้าจากเครื่องที่จะใช้จริง**
 
 ```bash
-curl -s $LLM_BASE_URL/models -H "Authorization: Bearer $LLM_API_KEY" | head -40
+curl.exe -s "https://openrouter.ai/api/v1/models" -H "Authorization: Bearer ***Your Key***"
 ```
 
 ถ้าต้องต่อ VPN ให้ทดสอบขณะต่อ VPN
@@ -61,11 +73,19 @@ curl -s $LLM_BASE_URL/models -H "Authorization: Bearer $LLM_API_KEY" | head -40
 ## 4. เตรียม repo และดึง image ล่วงหน้า
 
 ```bash
-git clone <repo-url> && cd ai-mpls-workshop
+git clone ***Your URL***
 ```
 
 ```bash
-cp .env.example .env && make install
+cd mcp-workshop-kmitl
+```
+
+```bash
+cp .env.example .env 
+```
+
+```bash
+uv sync 
 ```
 
 ```bash

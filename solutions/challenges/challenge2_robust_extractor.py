@@ -199,6 +199,10 @@ async def main() -> int:
         all_results.append((ticket_id, result, notes, []))
         if not result.ok:
             failures.append(f"{ticket_id}: สกัดไม่สำเร็จ")
+            
+            # --- เพิ่มบรรทัดปริ้นท์ Error ตรงนี้ ---
+            print(f"           🚨 สาเหตุ: {result.errors}")
+            
         print(f"  {ticket_id:<12}{'yes' if result.ok else 'NO':<5}"
               f"{result.attempts:<7}{notes['input_tokens']}→"
               f"{notes.get('sent_tokens', '-'):<7}")

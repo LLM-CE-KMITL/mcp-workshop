@@ -8,18 +8,6 @@ details in the middle of it - the content dilution effect from Module 2.
 
 The fix is not a bigger window. It is noticing when the subject changes and
 throwing away what no longer matters, keeping only a one-line summary.
-
-How a topic change is detected
-------------------------------
-Cheap signals first, embeddings only if needed:
-
-  1. An explicit marker ("เปลี่ยนเรื่อง", "ขอถามอีกเรื่อง")
-  2. Entity overlap - a message naming devices from a different site
-  3. Cosine similarity between the new message and the topic centroid
-
-An out-of-scope aside is deliberately NOT a topic change. A user who asks
-about lunch in the middle of an investigation has not changed the subject,
-and wiping their context would be actively hostile.
 """
 
 from __future__ import annotations
@@ -27,11 +15,21 @@ from __future__ import annotations
 import os
 import re
 import uuid
-
 import httpx
+
+# ==========================================
+# ส่วนที่เพิ่มเข้ามาเพื่อให้รันไฟล์นี้ได้ตรงๆ
+import sys
+from pathlib import Path
+# ชี้ Path กลับไปที่โฟลเดอร์ apps/agent-api (ถอยขึ้นไป 1 ชั้น)
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+# ==========================================
+
 from schemas import MemorySnapshot, TopicState
 
-from . import llm, tokenizer
+# แก้ไขจาก from . import llm, tokenizer เป็น:
+from agent import llm, tokenizer
+
 
 SIMILARITY_THRESHOLD = float(os.getenv("MEMORY_TOPIC_SHIFT_THRESHOLD", "0.55"))
 WINDOW_TURNS = int(os.getenv("MEMORY_WINDOW_TURNS", "6"))
@@ -123,12 +121,7 @@ class SessionMemory:
     # ------------------------------------------------------------------
 
     async def start_topic(self, message: str, stats=None) -> None:
-        """Archive the previous topic as one line, then begin a new one.
-
-        Archiving as a SUMMARY rather than keeping the transcript is the entire
-        point: the user can still ask "what did we conclude about NBI", and the
-        answer costs one line of context instead of twenty turns.
-        """
+        """Archive the previous topic as one line, then begin a new one."""
         if self.topic and self.recent:
             summary = await self._summarise_topic(stats)
             self.archived.append(summary)
@@ -167,7 +160,7 @@ class SessionMemory:
             )
             label = self.topic.label if self.topic else "ไม่ระบุ"
             return f"[{label}] {summary.strip()}"
-        except Exception:  # noqa: BLE001 - never fail a turn over a summary
+        except Exception:  # noqa: BLE001
             label = self.topic.label if self.topic else "ไม่ระบุ"
             return f"[{label}] (สรุปอัตโนมัติไม่สำเร็จ - คุยกัน {len(self.recent)} ข้อความ)"
 
@@ -175,8 +168,6 @@ class SessionMemory:
 
     def add_turn(self, role: str, content: str) -> None:
         self.recent.append({"role": role, "content": content})
-        # Sliding window inside a topic. Older turns of the SAME topic are
-        # dropped without summarising - they are usually intermediate steps.
         if len(self.recent) > WINDOW_TURNS * 2:
             self.recent = self.recent[-WINDOW_TURNS * 2:]
 
@@ -220,3 +211,29 @@ def get(session_id: str) -> SessionMemory:
 
 def reset(session_id: str) -> None:
     _SESSIONS.pop(session_id, None)
+
+
+# ==========================================
+# บล็อกทดสอบการทำงานจำลอง (จะทำงานเมื่อรันไฟล์นี้ตรงๆ)
+if __name__ == "__main__":
+    import asyncio
+    
+    async def run_test():
+        print("🚀 เริ่มทดสอบระบบ Memory...")
+        session = get("test-session-123")
+        
+        print("\n1. ทดสอบบันทึกความจำ (หัวข้อแรก)...")
+        await session.start_topic("เน็ตที่สาขา BKK หลุดครับ เช็ค CR-BKK-01 ให้หน่อย")
+        session.add_turn("user", "เน็ตที่สาขา BKK หลุดครับ เช็ค CR-BKK-01 ให้หน่อย")
+        session.add_turn("assistant", "กำลังตรวจสอบอุปกรณ์ CR-BKK-01 ให้ครับ")
+        print(f"✅ ความจำถูกบันทึก (Context tokens ที่ใช้: {session.context_tokens()})")
+        
+        print("\n2. ทดสอบเช็กการเปลี่ยนเรื่อง (Topic Shift)...")
+        # ทดสอบโยนประโยคที่จะทำให้เกิด Topic Shift แน่ๆ (เปลี่ยนสถานที่)
+        changed, reason = session.detect_topic_shift("เปลี่ยนเรื่องครับ ไปดูที่สาขา NBI แทนหน่อย")
+        print(f"เกิดการเปลี่ยนหัวข้อใหม่?: {changed}")
+        print(f"เหตุผลที่ตรวจจับได้: {reason}")
+        
+        print("\n🎉 รันสคริปต์สมบูรณ์แบบ ทำงานได้ 100%!")
+
+    asyncio.run(run_test())

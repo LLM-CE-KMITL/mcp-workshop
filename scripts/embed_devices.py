@@ -9,28 +9,27 @@ the only store where a semantic hit can be followed by a graph traversal in
 the same query.
 """
 
-from __future__ import annotations
-
 import os
 import sys
 
 import httpx
 from neo4j import GraphDatabase
 
-EMBEDDING_BASE_URL = os.getenv("EMBEDDING_BASE_URL", "http://localhost:11434/v1")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "embeddinggemma:300m")
-
+# 1. บังคับชี้ไปที่ OpenRouter และใส่ API Key
+EMBEDDING_BASE_URL = "https://openrouter.ai/api/v1"
+EMBEDDING_MODEL = "openai/text-embedding-3-small"
+API_KEY = ""
 
 def embed_batch(texts: list[str]) -> list[list[float]]:
     response = httpx.post(
         f"{EMBEDDING_BASE_URL.rstrip('/')}/embeddings",
+        headers={"Authorization": f"Bearer {API_KEY}"}, # 2. เพิ่ม Header เพื่อยืนยันตัวตน
         json={"model": EMBEDDING_MODEL, "input": texts},
         timeout=90,
     )
     response.raise_for_status()
     ordered = sorted(response.json()["data"], key=lambda d: d["index"])
     return [d["embedding"] for d in ordered]
-
 
 def main() -> int:
     driver = GraphDatabase.driver(

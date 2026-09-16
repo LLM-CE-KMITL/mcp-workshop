@@ -37,6 +37,8 @@ from resources import clock_resource, files, schemas  # noqa: E402
 from security.guardrails import GuardrailViolation  # noqa: E402
 from tools import logs, network, reports, tickets  # noqa: E402
 
+from tools import logs, network, reports, tickets, notifications  # เพิ่ม notifications ต่อท้าย
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)-7s %(name)s %(message)s",
@@ -89,7 +91,8 @@ def build_server() -> FastMCP:
     network.register(mcp)
     logs.register(mcp)
     reports.register(mcp)
-
+    notifications.register(mcp)  # เพิ่มบรรทัดนี้ลงไป
+    
     # Resources: what the model reads before it acts.
     schemas.register(mcp)
     clock_resource.register(mcp)

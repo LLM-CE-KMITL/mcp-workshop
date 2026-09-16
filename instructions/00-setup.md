@@ -13,15 +13,26 @@ cp .env.example .env
 แก้ค่า LLM ใน `.env` ให้ตรงกับที่ทีมงานแจ้ง:
 
 ```
-LLM_BASE_URL=http://<ที่ทีมงานแจ้ง>/v1
-LLM_API_KEY=<ที่ทีมงานแจ้ง>
-LLM_MODEL=gemma3:27b
+LLM_BASE_URL=https://openrouter.ai/api/v1
+LLM_API_KEY=sk-or-v1-***Your Key***
+LLM_MODEL=openai/gpt-4o-mini
 ```
-
+จุดที่ต้องใส่ Key
+`apps/agent-api/agent/llm.py`
+`cosine.py`
+`scripts/embed_devices.py`
+`solutions/day2/workshop2_agent.py`
+`test_api.py`
 ```bash
-make up
+docker compose -f docker/docker-compose.yml --env-file .env up -d 
 ```
-
+```bash
+docker compose -f docker/docker-compose.yml --env-file .env up seeder
+```
+สำรอง ***รันคำสั่งด้านล้างเพื่อปิดการทำงานและลบข้อมูลที่ค้างอยู่ในระบบ***
+```bash
+docker compose -f docker/docker-compose.yml down -v
+```
 คำสั่งนี้จะเปิดทุกบริการ รอจนพร้อม แล้ว seed ข้อมูลให้อัตโนมัติ (ประมาณ 3-5 นาทีครั้งแรก)
 
 ---
@@ -29,7 +40,7 @@ make up
 ## 2. ตรวจสอบ
 
 ```bash
-make verify
+docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python verify.py 
 ```
 
 ต้องขึ้น `ALL CHECKS PASSED` ตัวอย่างผลลัพธ์:
@@ -77,11 +88,21 @@ flowchart LR
 ```sql
 SELECT device_id, site_code, role, model FROM devices ORDER BY site_code, role;
 ```
+**pgAdmin** — Password:
+
+```sql
+mpls_dev_password
+```
 
 **Neo4j Browser** — ดูโครงสร้างที่เป็นหัวใจของโจทย์:
 
 ```cypher
 MATCH p = (l:Device {role:'LPE'})-[:UPLINK_TO]->(a:Device) RETURN p
+```
+**Neo4j Browser** — Password:
+
+```cypher
+neo4j_dev_password
 ```
 
 **OpenSearch Dashboards** — Dev Tools แล้วรัน:
@@ -98,11 +119,11 @@ GET network-logs-*/_search
 เปิด 2 terminal:
 
 ```bash
-make api
+uv run uvicorn apps.agent-api.main:app --reload --port 8080
 ```
 
 ```bash
-make ui
+uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w
 ```
 
 เปิด http://localhost:8000 แล้วลองถาม *"ticket ที่ยังไม่ปิดมีอะไรบ้าง"*
@@ -128,9 +149,30 @@ make ui
 
 | คำสั่ง | ทำอะไร |
 |---|---|
-| `make verify` | ตรวจว่าข้อมูลครบ |
-| `make reseed` | สร้างข้อมูลใหม่ให้ timestamp สดใหม่ |
-| `make api` / `make ui` | รันแอปของตัวเอง |
-| `make test` | ตรวจงานตัวเอง |
-| `make down` | ปิดระบบ (ข้อมูลยังอยู่) |
-| `make reset` | ล้างทุกอย่างเริ่มใหม่ |
+| `docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python verify.py` | ตรวจว่าข้อมูลครบ |
+| `docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python seed.py --purge` | สร้างข้อมูลใหม่ให้ timestamp สดใหม่ |
+| `uv run uvicorn apps.agent-api.main:app --reload --port 8080` / `uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w` | รันแอปของตัวเอง |
+| `uv run pytest -v` | ตรวจงานตัวเอง |
+| `docker compose -f docker/docker-compose.yml --env-file .env down` | ปิดระบบ (ข้อมูลยังอยู่) |
+| `docker compose -f docker/docker-compose.yml --env-file .env down -v` | ล้างทุกอย่างเริ่มใหม่ |
+| `docker compose -f docker/docker-compose.yml --env-file .env up -d + docker compose -f docker/docker-compose.yml --env-file .env up seeder` | เปิดระบบทั้งหมด + seed อัตโนมัติ |
+| `docker compose -f docker/docker-compose.yml --env-file .env run --rm loader python load_logs.py` | โหลด log จาก `data/logs/incoming/` เข้า OpenSearch |
+| `docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo` | เปิดแอปสำเร็จรูป (โหมดจริง) |
+| `$env:DEMO_MODE="replay"; docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo` | เปิดแอปสำเร็จรูป (โหมด replay ไม่ต้องมี LLM) |
+
+## 8. ตารางเปรียบเทียบ Make กับ Windows PowerShell สามารถรัน cat Makefile เพื่อขอดูคำสั่งต่าง ๆ ได้ หากต้องการติดตั้ง Make รัน make install
+
+---
+
+| Make | Windows PowerShell |
+|---|---|
+| `make verify` | docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python verify.py |
+| `make reseed` | docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python seed.py --purge |
+| `make api` / `make ui` | uv run uvicorn apps.agent-api.main:app --reload --port 8080 / uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w |
+| `make test` | uv run pytest -v |
+| `make down` | docker compose -f docker/docker-compose.yml --env-file .env down |
+| `make reset` | docker compose -f docker/docker-compose.yml --env-file .env down -v |
+| `make up` | docker compose -f docker/docker-compose.yml --env-file .env up -d + docker compose -f docker/docker-compose.yml --env-file .env up seeder |
+| `make load-logs` | docker compose -f docker/docker-compose.yml --env-file .env run --rm loader python load_logs.py |
+| `make demo` | docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo |
+| `make demo-offline` | $env:DEMO_MODE="replay"; docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo |

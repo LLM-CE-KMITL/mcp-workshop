@@ -19,16 +19,16 @@ from __future__ import annotations
 import functools
 import os
 
-MODEL_ID = os.getenv("TOKENIZER_MODEL_ID", "google/gemma-3-27b-it")
+MODEL_ID = os.getenv("TOKENIZER_MODEL_ID", "unsloth/gemma-2-9b-it")
 
 
 @functools.lru_cache
 def _gemma_tokenizer():
     try:
         from transformers import AutoTokenizer
-
         return AutoTokenizer.from_pretrained(MODEL_ID)
-    except Exception:  # noqa: BLE001 - offline or model not cached
+    except Exception as e:
+        print(f"\n🚨 [DEBUG Error โหลด Tokenizer]: {e}\n") # สั่งให้โชว์ Error ออกมา
         return None
 
 

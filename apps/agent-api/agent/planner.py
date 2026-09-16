@@ -117,6 +117,13 @@ def validate_plan(plan: Plan, tools: list[dict]) -> Plan:
         valid_steps.append(step)
 
     plan.steps = valid_steps
+
+    # --- ส่วนที่เพิ่มเติมเข้ามา: บังคับผูก depends_on ให้ Step หลัง ถ้ามีหลายขั้นตอนแล้วไม่ได้ใส่ ---
+    if len(plan.steps) >= 3 and not any(step.depends_on for step in plan.steps):
+        for i in range(1, len(plan.steps)):
+            # ให้ Step ที่ i พึ่งพาผลลัพธ์จาก Step ก่อนหน้า (i)
+            plan.steps[i].depends_on = [plan.steps[i - 1].step]
+
     if dropped:
         plan.reasoning += (
             f"\n\n[ระบบตัดขั้นตอนที่อ้างถึง tool ที่ไม่มีอยู่จริงออก: {', '.join(dropped)}]"

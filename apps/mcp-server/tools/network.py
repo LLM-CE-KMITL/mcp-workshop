@@ -11,10 +11,13 @@ be the only defence.
 """
 
 from __future__ import annotations
+from contextvars import Context
+
+import mcp
 
 from db import embed_query, neo4j_query
 from security import guardrails
-
+from mcp.server.fastmcp import Context
 
 def register(mcp) -> None:
 
@@ -62,32 +65,28 @@ def register(mcp) -> None:
         annotations={"title": "Find shared upstream devices", "readOnlyHint": True,
                      "idempotentHint": True, "openWorldHint": False}
     )
-    def get_upstream_devices(device_ids: list[str], max_hops: int = 4) -> dict:
-        """Trace upstream from one or more devices and report what they SHARE.
+    def get_upstream_devices(device_ids: list[str] | str, max_hops: int = 4) -> dict | str:
+        """Find the shared upstream router for a group of edge devices."""
+        
+        if isinstance(device_ids, str):
+            device_ids = [d.strip() for d in device_ids.replace(",", " ").split() if d.strip()]
 
-        This is the correlation tool. Give it the devices named in several
-        tickets and it returns the aggregation points they have in common,
-        ranked by how many of the inputs depend on each one.
-
-        When separate customers on separate access devices report the same
-        symptom, the shared upstream is the first thing to suspect - and it is
-        never mentioned in the tickets, because nobody downstream can see it.
-
-        Args:
-            device_ids: the devices to trace up from, e.g. the devices on several tickets
-            max_hops: how far up to walk. 4 covers LPE to core in this network.
-        """
         if not device_ids:
             return {"error": "device_ids ต้องมีอย่างน้อย 1 ตัว"}
 
-        rows = neo4j_query(
-            """UNWIND $ids AS start_id
-               MATCH path = (d:Device {device_id: start_id})-[:UPLINK_TO*1..%d]->(up:Device)
-               RETURN start_id, up.device_id AS upstream, up.role AS role,
-                      length(path) AS hops
-               ORDER BY start_id, hops""" % int(max_hops),
-            ids=device_ids,
-        )
+        try:
+            rows = neo4j_query(
+                """UNWIND $ids AS start_id
+                    MATCH path = (d:Device {device_id: start_id})-[:UPLINK_TO*1..%d]->(up:Device)
+                    RETURN start_id, up.device_id AS upstream, up.role AS role,
+                           length(path) AS hops
+                    ORDER BY start_id, hops""" % int(max_hops),
+                ids=device_ids,
+            )
+        except Exception as e:
+            # ปริ้นท์ error ออกมาดูใน console เวลาเทสต์
+            print(f"\n[DEBUG ERROR in get_upstream_devices]: {e}\n")
+            return f"Error querying network graph: {str(e)}"
 
         # Count how many of the inputs reach each upstream device.
         dependents: dict[str, set[str]] = {}
@@ -113,12 +112,16 @@ def register(mcp) -> None:
         shared.sort(key=lambda x: (-x["dependent_count"], x["hops"]))
 
         common = [s for s in shared if s["dependent_count"] == len(set(device_ids))]
+        
+        # ป้องกันกรณีหา common ไม่เจอ เพื่อให้ AI อ่านง่ายขึ้น
+        common_device = common[0]['device_id'] if common else "ไม่พบอุปกรณ์ที่เป็นจุดร่วม"
+
         return {
             "queried_devices": device_ids,
             "upstream_devices": shared,
             "shared_by_all": common,
             "interpretation": (
-                f"อุปกรณ์ {common[0]['device_id']} เป็นจุดร่วมที่ใกล้ที่สุด "
+                f"อุปกรณ์ {common_device} เป็นจุดร่วมที่ใกล้ที่สุด "
                 f"ของอุปกรณ์ทั้ง {len(set(device_ids))} ตัวที่ถามมา"
                 if common else
                 "ไม่พบอุปกรณ์ upstream ที่เป็นจุดร่วมของทุกตัวที่ถามมา"
@@ -126,32 +129,60 @@ def register(mcp) -> None:
         }
 
     @mcp.tool(
-        annotations={"title": "Get downstream impact", "readOnlyHint": True,
+        annotations={"title": "Find shared upstream devices", "readOnlyHint": True,
                      "idempotentHint": True, "openWorldHint": False}
     )
-    def get_downstream_devices(device_id: str, max_hops: int = 4) -> dict:
-        """Return everything that depends on this device, i.e. the blast radius.
+    def get_upstream_devices(device_ids: list[str] | str, max_hops: int = 4) -> dict | str:
+        """Find the shared upstream router for a group of edge devices."""
+        
+        if isinstance(device_ids, str):
+            device_ids = [d.strip() for d in device_ids.replace(",", " ").split() if d.strip()]
 
-        Use before planning maintenance, or to explain how widely a single
-        failure could be felt. Combine with get_circuits_by_device to convert
-        the device list into a customer count.
+        if not device_ids:
+            return {"error": "device_ids ต้องมีอย่างน้อย 1 ตัว"}
 
-        Args:
-            device_id: the device that would fail or be taken out of service
-            max_hops: how far down to walk
-        """
-        rows = neo4j_query(
-            """MATCH path = (down:Device)-[:UPLINK_TO*1..%d]->(d:Device {device_id: $id})
-               RETURN down.device_id AS device, down.role AS role, length(path) AS hops
-               ORDER BY hops, device""" % int(max_hops),
-            id=device_id,
-        )
+        try:
+            rows = neo4j_query(
+                """UNWIND $ids AS start_id
+                    MATCH path = (d:Device {device_id: start_id})-[:UPLINK_TO*1..%d]->(up:Device)
+                    RETURN start_id, up.device_id AS upstream, up.role AS role,
+                           length(path) AS hops
+                    ORDER BY start_id, hops""" % int(max_hops),
+                ids=device_ids,
+            )
+        except Exception as e:
+            # ปริ้นท์ error ออกมาดูใน console เวลาเทสต์
+            print(f"\n[DEBUG ERROR in get_upstream_devices]: {e}\n")
+            return f"Error querying network graph: {str(e)}"
+
+        # --- ส่วนที่เพิ่มเติมเข้ามาเพื่อประมวลผลข้อมูลหาตัวที่เชื่อมร่วมกัน (Shared Upstream) ---
+        # เก็บว่า upstream แต่ละตัว มี device ตัวไหนเชื่อมมาบ้าง
+        upstream_map = {}
+        for row in rows:
+            up_id = row.get("upstream")
+            start_id = row.get("start_id")
+            role = row.get("role")
+            if not up_id:
+                continue
+            if up_id not in upstream_map:
+                upstream_map[up_id] = {"role": role, "connected_devices": set()}
+            upstream_map[up_id]["connected_devices"].add(start_id)
+
+        # หาตัวที่เชื่อมครบทุก device_id ที่ส่งมาทั้งหมด
+        total_queried = len(set(device_ids))
+        shared_all = []
+        for up_id, data in upstream_map.items():
+            if len(data["connected_devices"]) >= total_queried:
+                shared_all.append({
+                    "device_id": up_id,
+                    "role": data["role"],
+                    "dependent_count": len(data["connected_devices"])
+                })
+
         return {
-            "device_id": device_id,
-            "affected_device_count": len(rows),
-            "affected_devices": rows,
-            "note": ("ใช้ get_circuits_by_device กับอุปกรณ์แต่ละตัวเพื่อแปลงเป็นจำนวนลูกค้า"
-                     if rows else "ไม่มีอุปกรณ์ใดอยู่ใต้อุปกรณ์นี้"),
+            "queried_devices": device_ids,
+            "upstream_paths": rows,
+            "shared_by_all": shared_all
         }
 
     @mcp.tool(

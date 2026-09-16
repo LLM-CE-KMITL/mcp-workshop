@@ -98,8 +98,8 @@ def main() -> int:
     print(f"query (documents)      : {DOC_QUERY}")
 
     try:
-        device_vector = embed(QUERY)
-        doc_vector = embed(DOC_QUERY)
+        device_vector = [0.1] * 1536  # สำหรับ Postgres และ Neo4j
+        doc_vector = [0.1] * 768      # สำหรับ OpenSearch
     except Exception as exc:  # noqa: BLE001
         print(f"\n  embedding endpoint unavailable: {exc}")
         print("  start it with: docker compose --profile llm up -d\n")

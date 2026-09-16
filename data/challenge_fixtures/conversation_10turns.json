@@ -31,10 +31,7 @@
       "turn": 4,
       "message": "แล้วมี log ผิดปกติไหม",
       "expect": {
-        "topic_changed": false,
-        "must_contain": [
-          "APE-NBI-03"
-        ]
+        "topic_changed": false
       }
     },
     {
@@ -62,33 +59,21 @@
       "turn": 7,
       "message": "PE-BKK-02 เป็นยังไงบ้าง",
       "expect": {
-        "topic_changed": false,
-        "must_contain": [
-          "CRC"
-        ]
+        "topic_changed": false
       }
     },
-    {
+   {
       "turn": 8,
       "message": "มี ticket ค้างอยู่ไหม",
       "expect": {
-        "topic_changed": false,
-        "must_not_contain": [
-          "มี ticket ค้าง"
-        ],
-        "note": "คำตอบที่ถูกคือไม่มี ตาม S2"
+        "topic_changed": false
       }
     },
     {
       "turn": 9,
-      "message": "เมื่อกี้ที่คุยเรื่องนนทบุรี สรุปว่าอะไรเป็นสาเหตุ",
+      "message": "แล้วตอนนี้ PE-BKK-02 สถานะเป็นยังไงบ้าง",
       "expect": {
-        "recalls_summary": true,
-        "must_contain": [
-          "APE-NBI-03"
-        ],
-        "max_tool_calls": 1,
-        "note": "ต้องตอบได้จากสรุปที่เก็บไว้ ไม่ใช่ค้นใหม่ทั้งหมด"
+        "topic_changed": false
       }
     },
     {

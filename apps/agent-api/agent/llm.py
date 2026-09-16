@@ -22,18 +22,27 @@ import os
 import time
 from typing import Any, AsyncIterator
 
+import httpx  # เพิ่มเข้ามาเพื่อจัดการเรื่อง SSL
 from openai import AsyncOpenAI
 from pydantic import BaseModel
 
-BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:11434/v1")
-API_KEY = os.getenv("LLM_API_KEY", "not-needed")
-MODEL = os.getenv("LLM_MODEL", "gemma3:27b")
-MODEL_FAST = os.getenv("LLM_MODEL_FAST", "gemma3:4b")
+BASE_URL = "https://openrouter.ai/api/v1"
+API_KEY = ""
+MODEL = "openai/gpt-4o-mini"
+MODEL_FAST = "openai/gpt-4o-mini"
 TIMEOUT = float(os.getenv("LLM_TIMEOUT_SECONDS", "120"))
 GUIDED = os.getenv("LLM_GUIDED_DECODING", "true").lower() == "true"
 
-client = AsyncOpenAI(base_url=BASE_URL, api_key=API_KEY, timeout=TIMEOUT)
+# สร้าง AsyncClient ที่ปิดการเช็กใบรับรอง SSL
+custom_client = httpx.AsyncClient(verify=False)
 
+# นำ client พิเศษใส่เข้าไปใน AsyncOpenAI
+client = AsyncOpenAI(
+    base_url=BASE_URL, 
+    api_key=API_KEY, 
+    timeout=TIMEOUT,
+    http_client=custom_client
+)
 
 class LLMStats:
     """Accumulates usage across one request so the UI can show real numbers."""
