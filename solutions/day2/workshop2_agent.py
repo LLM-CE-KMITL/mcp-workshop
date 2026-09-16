@@ -38,7 +38,7 @@ PG_DSN = os.getenv("PG_DSN",
                    "postgresql://mcp_reader:mcp_reader_password@localhost:5432/mplsdb")
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "not-needed")
-LLM_MODEL = os.getenv("LLM_MODEL", "qwen/qwen3.5-35b-a3b")
+LLM_MODEL = os.getenv("LLM_MODEL", "qwen/qwen3-30b-a3b")
 OUTPUT_DIR = Path("data/reports")
 
 MAX_STEPS = 8

@@ -142,8 +142,8 @@ sequenceDiagram
 
 | บทบาท | โมเดล | เมื่อไหร่ใช้ |
 |---|---|---|
-| Main brain | `qwen/qwen3.5-35b-a3b` | ตอนส่งงานและเดโม |
-| Iteration | `qwen/qwen3.5-35b-a3b` | ระหว่างวนแก้โค้ดใน lab (เร็วกว่ามาก) |
+| Main brain | `qwen/qwen3-30b-a3b` | ตอนส่งงานและเดโม |
+| Iteration | `qwen/qwen3-30b-a3b` | ระหว่างวนแก้โค้ดใน lab (เร็วกว่ามาก) |
 | Embedding | `baai/bge-m3` (1024 มิติ) | Lab 1 และ RAG |
 | Rerank | `mxbai-rerank` | Lab วันที่ 3 |
 

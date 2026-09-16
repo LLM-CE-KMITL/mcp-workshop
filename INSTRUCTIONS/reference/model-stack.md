@@ -19,13 +19,13 @@ flowchart LR
 
 | บทบาท | โมเดล | temperature | ทำไมเลือกแบบนี้ |
 |---|---|---|---|
-| Intent | `qwen/qwen3.5-35b-a3b` | 0.0 | การจำแนกต้องคงเส้นคงวา คำถามเดิมต้องได้ผลเดิม |
-| Planner | `qwen/qwen3.5-35b-a3b` | 0.0 | แผนที่เปลี่ยนไปมาทำให้ทดสอบไม่ได้ |
-| Synthesizer | `qwen/qwen3.5-35b-a3b` | 0.3 | ต้องการภาษาที่อ่านรื่น แต่ไม่ให้แต่งเรื่อง |
-| Grounding | `qwen/qwen3.5-35b-a3b` | 0.0 | การตรวจสอบต้องเข้มงวด |
+| Intent | `qwen/qwen3-30b-a3b` | 0.0 | การจำแนกต้องคงเส้นคงวา คำถามเดิมต้องได้ผลเดิม |
+| Planner | `qwen/qwen3-30b-a3b` | 0.0 | แผนที่เปลี่ยนไปมาทำให้ทดสอบไม่ได้ |
+| Synthesizer | `qwen/qwen3-30b-a3b` | 0.3 | ต้องการภาษาที่อ่านรื่น แต่ไม่ให้แต่งเรื่อง |
+| Grounding | `qwen/qwen3-30b-a3b` | 0.0 | การตรวจสอบต้องเข้มงวด |
 | Embedding | `baai/bge-m3` | — | 1024 มิติ · **ตรงกับ production** |
 | Rerank | `mxbai-rerank` | — | cross-encoder · ตรงกับ production |
-| ระหว่างทำ lab | `qwen/qwen3.5-35b-a3b` | ตามงาน | วนแก้โค้ดได้เร็วกว่ามาก |
+| ระหว่างทำ lab | `qwen/qwen3-30b-a3b` | ตามงาน | วนแก้โค้ดได้เร็วกว่ามาก |
 
 ---
 
@@ -52,12 +52,12 @@ flowchart LR
 
 ```bash
 # ระหว่าง lab - เร็วกว่ามาก
-LLM_MODEL=qwen/qwen3.5-35b-a3b make api
+LLM_MODEL=qwen/qwen3-30b-a3b make api
 ```
 
 ```bash
 # ตอนส่งงานและเดโม
-LLM_MODEL=qwen/qwen3.5-35b-a3b make api
+LLM_MODEL=qwen/qwen3-30b-a3b make api
 ```
 
 **ควรทดสอบด้วยทั้งสองตัว** — โมเดลเล็กพลาดในจุดที่โมเดลใหญ่ไม่พลาด ซึ่งบอกเราว่า prompt ตรงไหนยังเปราะ

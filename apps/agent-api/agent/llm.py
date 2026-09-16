@@ -28,8 +28,8 @@ from pydantic import BaseModel
 
 BASE_URL = os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
 API_KEY = os.getenv("LLM_API_KEY", "not-needed")
-MODEL = os.getenv("LLM_MODEL", "qwen/qwen3.5-35b-a3b")
-MODEL_FAST = os.getenv("LLM_MODEL_FAST", "qwen/qwen3.5-35b-a3b")
+MODEL = os.getenv("LLM_MODEL", "qwen/qwen3-30b-a3b")
+MODEL_FAST = os.getenv("LLM_MODEL_FAST", "qwen/qwen3-30b-a3b")
 TIMEOUT = float(os.getenv("LLM_TIMEOUT_SECONDS", "120"))
 GUIDED = os.getenv("LLM_GUIDED_DECODING", "true").lower() == "true"
 

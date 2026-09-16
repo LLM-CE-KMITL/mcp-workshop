@@ -33,8 +33,8 @@ docker compose -f docker/docker-compose.yml --profile llm up -d ollama
 ```
 
 ```bash
-docker exec mpls-ollama ollama pull qwen/qwen3.5-35b-a3b
-docker exec mpls-ollama ollama pull qwen/qwen3.5-35b-a3b
+docker exec mpls-ollama ollama pull qwen/qwen3-30b-a3b
+docker exec mpls-ollama ollama pull qwen/qwen3-30b-a3b
 docker exec mpls-ollama ollama pull baai/bge-m3
 ```
 
@@ -55,7 +55,7 @@ LLM_API_KEY=not-needed
 ```bash
 docker run --gpus all -p 8000:8000 \
   vllm/vllm-openai:latest \
-  --model qwen/qwen3.5-35b-a3b \
+  --model qwen/qwen3-30b-a3b \
   --max-model-len 8192 \
   --gpu-memory-utilization 0.90
 ```
@@ -100,7 +100,7 @@ curl -s $LLM_BASE_URL/models -H "Authorization: Bearer $LLM_API_KEY"
 ```bash
 curl -s $LLM_BASE_URL/chat/completions \
   -H 'Content-Type: application/json' \
-  -d '{"model":"qwen/qwen3.5-35b-a3b",
+  -d '{"model":"qwen/qwen3-30b-a3b",
        "messages":[{"role":"user","content":"severity ของเหตุการณ์ link down"}],
        "response_format":{"type":"json_schema","json_schema":{"name":"r","schema":
          {"type":"object","properties":{"severity":{"type":"string",
@@ -114,7 +114,7 @@ curl -s $LLM_BASE_URL/chat/completions \
 ```bash
 curl -s $LLM_BASE_URL/chat/completions \
   -H 'Content-Type: application/json' \
-  -d '{"model":"qwen/qwen3.5-35b-a3b","messages":[{"role":"user","content":"hi"}],
+  -d '{"model":"qwen/qwen3-30b-a3b","messages":[{"role":"user","content":"hi"}],
        "stream":true,"stream_options":{"include_usage":true}}' | tail -3
 ```
 

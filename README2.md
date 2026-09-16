@@ -98,8 +98,8 @@ flowchart LR
 
 | บทบาท | โมเดล | หมายเหตุ |
 |---|---|---|
-| Main brain | `qwen/qwen3.5-35b-a3b` | ใช้ตอนส่งงาน / เดโม |
-| Iteration | `qwen/qwen3.5-35b-a3b` | ใช้ระหว่างทำ lab ให้วนแก้เร็ว |
+| Main brain | `qwen/qwen3-30b-a3b` | ใช้ตอนส่งงาน / เดโม |
+| Iteration | `qwen/qwen3-30b-a3b` | ใช้ระหว่างทำ lab ให้วนแก้เร็ว |
 | Embedding | `baai/bge-m3` | 1024 มิติ — ตรงกับ production |
 | Rerank | `mxbai-rerank` | ลด hallucination |
 

@@ -59,7 +59,7 @@ def collect() -> list[dict]:
         base = os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
         response = httpx.get(f"{base.rstrip('/')}/models", timeout=5)
         response.raise_for_status()
-        return os.getenv("LLM_MODEL", "qwen/qwen3.5-35b-a3b")
+        return os.getenv("LLM_MODEL", "qwen/qwen3-30b-a3b")
 
     for name, fn in (("PostgreSQL", postgres), ("Neo4j", neo4j),
                      ("OpenSearch", opensearch), ("LLM", llm)):
