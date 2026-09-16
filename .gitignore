@@ -13,3 +13,4 @@ data/volumes/
 *.tar
 .DS_Store
 /.chainlit
+data/reports/report-*.md
