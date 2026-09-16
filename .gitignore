@@ -12,3 +12,4 @@ data/logs/failed/*
 data/volumes/
 *.tar
 .DS_Store
+/.chainlit

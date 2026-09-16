@@ -10,9 +10,14 @@ from __future__ import annotations
 
 import os
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Repo root .env - covers `python server.py` / `make mcp` direct runs.
+# `docker compose --env-file .env` covers the container path separately.
+_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 
 
 class Settings(BaseSettings):
@@ -63,7 +68,9 @@ class Settings(BaseSettings):
     # Empty means "derive now from the newest log timestamp". See clock.py.
     demo_now: str = Field(default="", alias="DEMO_NOW")
 
-    model_config = SettingsConfigDict(populate_by_name=True, extra="ignore")
+    model_config = SettingsConfigDict(
+        populate_by_name=True, extra="ignore", env_file=_ENV_FILE
+    )
 
 
 @lru_cache

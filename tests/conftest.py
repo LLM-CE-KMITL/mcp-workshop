@@ -13,8 +13,10 @@ import sys
 from pathlib import Path
 
 import pytest
+from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(ROOT / ".env")
 sys.path.insert(0, str(ROOT / "apps" / "agent-api"))
 sys.path.insert(0, str(ROOT / "apps" / "mcp-server"))
 sys.path.insert(0, str(ROOT / "docker" / "loader"))

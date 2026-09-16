@@ -19,6 +19,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+from dotenv import load_dotenv  # noqa: E402
+
+# Load .env before any module below reads os.getenv() at import time (agent.llm
+# resolves LLM_BASE_URL/LLM_API_KEY as module-level constants). `docker compose
+# --env-file .env` covers the container path; this covers `uv run uvicorn ...`.
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+
 import uvicorn  # noqa: E402
 from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
