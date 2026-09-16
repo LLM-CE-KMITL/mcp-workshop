@@ -247,7 +247,7 @@ GET network-docs/_search
 ## เกณฑ์ผ่าน
 
 - [ ] เอกสารใหม่ถูก index เข้า `network-docs`
-- [ ] แต่ละ chunk มี `token_count` ที่นับด้วย tokenizer ของ Gemma ไม่ใช่ตัวอักษร
+- [ ] แต่ละ chunk มี `token_count` ที่นับด้วย tokenizer ของ Qwen ไม่ใช่ตัวอักษร
 - [ ] ไม่มี chunk ไหนที่ตัดขั้นตอนขาดครึ่ง
 - [ ] ค้นเจอผ่าน `search_docs_semantic`
 - [ ] มีรายงานว่า chunk ยาวเกินเกณฑ์กี่ชิ้น

@@ -42,7 +42,7 @@ needs_opensearch = pytest.mark.skipif(
     not _service_up("http://localhost:9200"), reason="OpenSearch not running (make up)"
 )
 needs_llm = pytest.mark.skipif(
-    not _service_up(os.getenv("LLM_BASE_URL", "http://localhost:11434/v1")),
+    not _service_up(os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")),
     reason="LLM endpoint not reachable",
 )
 

@@ -12,7 +12,7 @@ client = OpenAI(
 
 def embed_batch(texts: list[str]) -> list[list[float]]:
     response = client.embeddings.create(
-        model="openai/text-embedding-3-small",
+        model="baai/bge-m3",
         input=texts
     )
     return [item.embedding for item in response.data]
@@ -21,5 +21,5 @@ def embed_batch(texts: list[str]) -> list[list[float]]:
 q = embed_batch(["ลูกค้าบ่นว่าอินเทอร์เน็ตหลุดบ่อย"])[0]
 
 print("✅ แปลง Embedding สำเร็จ!")
-print("ความยาวมิติเวกเตอร์:", len(q)) # ควรจะได้ 1536
+print("ความยาวมิติเวกเตอร์:", len(q)) # ควรจะได้ 1024
 print("ตัวอย่างข้อมูลเวกเตอร์ 5 ค่าแรก:", q[:5])

@@ -8,8 +8,8 @@
 -- Run with:  make lab1-solution
 -- ============================================================
 
--- Step 1: add the column. 768 matches EmbeddingGemma 300M.
-ALTER TABLE tickets ADD COLUMN IF NOT EXISTS embedding vector(768);
+-- Step 1: add the column. Dimension must match EMBEDDING_DIM in .env.
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS embedding vector(1024);
 
 -- Step 2: (Python) generate and backfill vectors - see scripts/embed_tickets.py
 

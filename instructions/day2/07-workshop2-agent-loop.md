@@ -129,7 +129,7 @@ flowchart TD
 
 - เริ่มจากทำให้ plan ถูกก่อน อย่าเพิ่งสนใจ executor
 - ทดสอบ executor ด้วย plan ที่เขียนมือ ก่อนต่อกับ LLM
-- ใช้ `gemma3:4b` ระหว่างพัฒนา แล้วค่อยเปลี่ยนเป็น 27b ตอนส่ง
+- ใช้ `qwen/qwen3.5-35b-a3b` ระหว่างพัฒนา แล้วค่อยเปลี่ยนเป็น 27b ตอนส่ง
 - `resolve_reference()` ใน `apps/agent-api/agent/executor.py` มีตัวอย่างการ resolve path แบบ `step.1.tickets.*.device_id`
 </details>
 

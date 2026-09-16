@@ -17,11 +17,11 @@ flowchart LR
 
 | แบบ | ตัวอย่างงาน | ตัวอย่างโมเดล |
 |---|---|---|
-| Encoder อย่างเดียว | จำแนกประเภท, **embedding** | BERT, EmbeddingGemma |
-| Decoder อย่างเดียว | สร้างข้อความ | **Gemma**, GPT |
+| Encoder อย่างเดียว | จำแนกประเภท, **embedding** | BERT, baai/bge-m3 |
+| Decoder อย่างเดียว | สร้างข้อความ | **Qwen**, GPT |
 | Encoder–Decoder | แปลภาษา, สรุปความ | T5 |
 
-**Gemma 3 เป็น decoder-only** สร้าง token ทีละตัว โดยแต่ละตัวเห็นเฉพาะสิ่งที่มาก่อนหน้า
+**Qwen3.5 เป็น decoder-only** สร้าง token ทีละตัว โดยแต่ละตัวเห็นเฉพาะสิ่งที่มาก่อนหน้า
 
 ---
 

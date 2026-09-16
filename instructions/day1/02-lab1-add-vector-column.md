@@ -47,7 +47,7 @@ $headers = @{
     "Authorization" = "Bearer ***Your Key***"
     "Content-Type" = "application/json"
 }
-$body = '{"model":"openai/text-embedding-3-small","input":["test"]}'
+$body = '{"model":"baai/bge-m3","input":["test"]}'
 (Invoke-RestMethod -Uri "https://openrouter.ai/api/v1/embeddings" -Method Post -Headers $headers -Body $body).data[0].embedding.Count
 ```
 
@@ -75,7 +75,7 @@ PG = "postgresql://mpls:mpls_dev_password@localhost:5432/mplsdb"
 
 # 1. เปลี่ยนตัวแปร EMB และ MODEL ให้เป็นของ OpenRouter (ตามที่คุณต้องการเปลี่ยน)
 EMB = "https://openrouter.ai/api/v1/embeddings"
-MODEL = "openai/text-embedding-3-small"
+MODEL = "baai/bge-m3"
 API_KEY = os.getenv("LLM_API_KEY", "")
 
 def embed_batch(texts: list[str]) -> list[list[float]]:
@@ -164,7 +164,7 @@ client = OpenAI(
 
 def embed_batch(texts: list[str]) -> list[list[float]]:
     response = client.embeddings.create(
-        model="openai/text-embedding-3-small",
+        model="baai/bge-m3",
         input=texts
     )
     return [item.embedding for item in response.data]
@@ -200,7 +200,7 @@ OPTIONS { indexConfig: {
 DROP INDEX device_embedding IF EXISTS;
 ```
 
-"สร้างใหม่" ให้รองรับ 1536 มิติ
+"สร้างใหม่" ให้รองรับ 1024 มิติ
 
 ```cypher
 CREATE VECTOR INDEX device_embedding IF NOT EXISTS

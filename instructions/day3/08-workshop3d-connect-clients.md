@@ -128,7 +128,7 @@ flowchart LR
     C --> D
 ```
 
-- Claude Desktop ใช้โมเดลคนละตัวกับ Gemma 27B → **แผนที่วางอาจต่างกัน**
+- Claude Desktop ใช้โมเดลคนละตัวกับ Qwen3.5 35B-A3B → **แผนที่วางอาจต่างกัน**
 - Claude Desktop มี native tool calling → เรียก tool แบบวนทีละขั้น ต่างจาก plan-then-execute ของเรา
 - `readOnlyHint` มีผลกับการขออนุญาต — ลองเรียก `generate_report` (ที่ `readOnlyHint: false`) แล้วดูว่า client ถามก่อนไหม
 - **Tool ชุดเดียวกัน โค้ดชุดเดียวกัน ทำงานได้กับ client ที่ต่างกันสิ้นเชิง** — นี่คือคุณค่าของ MCP

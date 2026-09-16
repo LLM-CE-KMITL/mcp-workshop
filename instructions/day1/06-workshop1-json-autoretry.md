@@ -352,7 +352,7 @@ uv run extractor.py
 ## โบนัส
 
 1. **วัดผลของ guided decoding** — รันด้วย `LLM_GUIDED_DECODING=true` และ `false` อย่างละ 20 ครั้ง เทียบอัตราสำเร็จครั้งแรกและ token ที่ใช้
-2. **เทียบโมเดล** — `gemma3:4b` กับ `gemma3:27b` ตัวเล็กพลาดบ่อยกว่ากี่เท่า
+2. **เทียบโมเดล** — `qwen/qwen3.5-35b-a3b` กับ `qwen/qwen3.5-35b-a3b` ตัวเล็กพลาดบ่อยกว่ากี่เท่า
 3. **ตรวจความสมเหตุสมผลข้ามฟิลด์** — ถ้า `affected_device = "LPE-NBI-11"` แต่ `affected_site = "BKK"` ต้องจับได้ (ใช้ Pydantic `model_validator`)
 
 ---

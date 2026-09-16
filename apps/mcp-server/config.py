@@ -40,10 +40,12 @@ class Settings(BaseSettings):
 
     # ---------- embedding ----------
     embedding_base_url: str = Field(
-        default="http://localhost:11434/v1", alias="EMBEDDING_BASE_URL"
+        default="https://openrouter.ai/api/v1", alias="EMBEDDING_BASE_URL"
     )
-    embedding_model: str = Field(default="embeddinggemma:300m", alias="EMBEDDING_MODEL")
-    embedding_dim: int = Field(default=768, alias="EMBEDDING_DIM")
+    embedding_model: str = Field(
+        default="baai/bge-m3", alias="EMBEDDING_MODEL"
+    )
+    embedding_dim: int = Field(default=1024, alias="EMBEDDING_DIM")
     llm_api_key: str = Field(default="not-needed", alias="LLM_API_KEY")
 
     # ---------- guardrails ----------

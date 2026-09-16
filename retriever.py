@@ -21,7 +21,7 @@ def search_devices(query_vector):
 print("รัน Retriever สำเร็จแล้วจ้า!")
 
 # 3. ทดสอบเรียกใช้งาน
-dummy_vector = [0.1] * 1536 
+dummy_vector = [0.1] * 1024 
 results = search_devices(dummy_vector)
 print("ผลการค้นหาจาก Neo4j:", results)
 

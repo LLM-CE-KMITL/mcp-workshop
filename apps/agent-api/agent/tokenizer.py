@@ -1,13 +1,13 @@
 """Token counting for the model actually in use.
 
 The trap this module exists to expose: tiktoken is OpenAI's BPE tokenizer.
-Using it to count tokens for Gemma produces a number that is simply wrong,
-and wrong in different ways for Thai and English text.
+Using it to count tokens for a different model family produces a number
+that is simply wrong, and wrong in different ways for Thai and English text.
 
 Module 1 has participants compare three counts of the same sentence:
 
     pythainlp.word_tokenize  words a human recognises
-    Gemma SentencePiece      tokens the model actually sees   <- the real number
+    Qwen tokenizer           tokens the model actually sees   <- the real number
     tiktoken                 what you get if you use the wrong tokenizer
 
 For Thai the three numbers are far apart, which is the whole lesson: a
@@ -19,11 +19,11 @@ from __future__ import annotations
 import functools
 import os
 
-MODEL_ID = os.getenv("TOKENIZER_MODEL_ID", "unsloth/gemma-2-9b-it")
+MODEL_ID = os.getenv("TOKENIZER_MODEL_ID", "Qwen/Qwen3.5-35B-A3B")
 
 
 @functools.lru_cache
-def _gemma_tokenizer():
+def _model_tokenizer():
     try:
         from transformers import AutoTokenizer
         return AutoTokenizer.from_pretrained(MODEL_ID)
@@ -49,7 +49,7 @@ def count(text: str) -> int:
     because a rough number keeps the UI meter working offline. The heuristic is
     tuned for mixed Thai/English: Thai characters cost noticeably more.
     """
-    tokenizer = _gemma_tokenizer()
+    tokenizer = _model_tokenizer()
     if tokenizer is not None:
         return len(tokenizer.encode(text, add_special_tokens=False))
 
@@ -62,8 +62,8 @@ def compare(text: str) -> dict:
     """Three-way comparison used by Module 1 and the token meter."""
     result: dict = {"text_length": len(text)}
 
-    tokenizer = _gemma_tokenizer()
-    result["gemma_tokens"] = (
+    tokenizer = _model_tokenizer()
+    result["model_tokens"] = (
         len(tokenizer.encode(text, add_special_tokens=False)) if tokenizer else None
     )
 
@@ -77,12 +77,12 @@ def compare(text: str) -> dict:
     except Exception:  # noqa: BLE001
         result["thai_words"] = None
 
-    if result["gemma_tokens"] and result["tiktoken_tokens"]:
+    if result["model_tokens"] and result["tiktoken_tokens"]:
         result["tiktoken_error_pct"] = round(
-            (result["tiktoken_tokens"] - result["gemma_tokens"])
-            / result["gemma_tokens"] * 100, 1
+            (result["tiktoken_tokens"] - result["model_tokens"])
+            / result["model_tokens"] * 100, 1
         )
-    if result["gemma_tokens"] and result["thai_words"]:
-        result["tokens_per_word"] = round(result["gemma_tokens"] / result["thai_words"], 2)
+    if result["model_tokens"] and result["thai_words"]:
+        result["tokens_per_word"] = round(result["model_tokens"] / result["thai_words"], 2)
 
     return result

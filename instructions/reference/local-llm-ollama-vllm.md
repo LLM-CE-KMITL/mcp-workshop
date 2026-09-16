@@ -33,9 +33,9 @@ docker compose -f docker/docker-compose.yml --profile llm up -d ollama
 ```
 
 ```bash
-docker exec mpls-ollama ollama pull gemma3:27b
-docker exec mpls-ollama ollama pull gemma3:4b
-docker exec mpls-ollama ollama pull embeddinggemma:300m
+docker exec mpls-ollama ollama pull qwen/qwen3.5-35b-a3b
+docker exec mpls-ollama ollama pull qwen/qwen3.5-35b-a3b
+docker exec mpls-ollama ollama pull baai/bge-m3
 ```
 
 ```
@@ -55,7 +55,7 @@ LLM_API_KEY=not-needed
 ```bash
 docker run --gpus all -p 8000:8000 \
   vllm/vllm-openai:latest \
-  --model google/gemma-3-27b-it \
+  --model qwen/qwen3.5-35b-a3b \
   --max-model-len 8192 \
   --gpu-memory-utilization 0.90
 ```
@@ -77,9 +77,9 @@ LLM_BASE_URL=http://localhost:8000/v1
 
 | โมเดล | FP16 | 8-bit | 4-bit |
 |---|---|---|---|
-| Gemma 3 4B | ~9 GB | ~5 GB | ~3 GB |
-| Gemma 3 12B | ~25 GB | ~13 GB | ~7 GB |
-| **Gemma 3 27B** | **~55 GB** | **~28 GB** | **~16 GB** |
+| Qwen3.5 35B-A3B | ~9 GB | ~5 GB | ~3 GB |
+| Qwen3.5 35B-A3B | ~25 GB | ~13 GB | ~7 GB |
+| **Qwen3.5 35B-A3B** | **~55 GB** | **~28 GB** | **~16 GB** |
 
 **บวก KV cache** ซึ่งโตตามความยาว context และจำนวนคำขอที่ทำพร้อมกัน
 
@@ -100,7 +100,7 @@ curl -s $LLM_BASE_URL/models -H "Authorization: Bearer $LLM_API_KEY"
 ```bash
 curl -s $LLM_BASE_URL/chat/completions \
   -H 'Content-Type: application/json' \
-  -d '{"model":"gemma3:27b",
+  -d '{"model":"qwen/qwen3.5-35b-a3b",
        "messages":[{"role":"user","content":"severity ของเหตุการณ์ link down"}],
        "response_format":{"type":"json_schema","json_schema":{"name":"r","schema":
          {"type":"object","properties":{"severity":{"type":"string",
@@ -114,7 +114,7 @@ curl -s $LLM_BASE_URL/chat/completions \
 ```bash
 curl -s $LLM_BASE_URL/chat/completions \
   -H 'Content-Type: application/json' \
-  -d '{"model":"gemma3:27b","messages":[{"role":"user","content":"hi"}],
+  -d '{"model":"qwen/qwen3.5-35b-a3b","messages":[{"role":"user","content":"hi"}],
        "stream":true,"stream_options":{"include_usage":true}}' | tail -3
 ```
 

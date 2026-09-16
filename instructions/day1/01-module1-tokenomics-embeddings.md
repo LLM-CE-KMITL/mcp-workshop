@@ -47,15 +47,15 @@ flowchart LR
 
 ## 3. กับดักที่ใหญ่ที่สุด — tokenizer ผูกกับโมเดล
 
-`tiktoken` คือ BPE ของ OpenAI **ใช้นับ token ของ Gemma ไม่ได้** จะได้ตัวเลขที่ผิด และผิดไม่เท่ากันระหว่างไทยกับอังกฤษ
+`tiktoken` คือ BPE ของ OpenAI **ใช้นับ token ของ Qwen ไม่ได้** จะได้ตัวเลขที่ผิด และผิดไม่เท่ากันระหว่างไทยกับอังกฤษ
 
 โปรเจกต์นี้จึงมี `apps/agent-api/agent/tokenizer.py` ที่เทียบให้เห็น 3 ทาง:
 
 | วิธีนับ | ได้อะไร |
 |---|---|
 | `pythainlp.word_tokenize` | จำนวน "คำ" ที่มนุษย์เข้าใจ |
-| Gemma tokenizer (SentencePiece) | **จำนวน token ที่โมเดลเห็นจริง** |
-| `tiktoken` | ตัวเลขที่ผิด ถ้าเอามาใช้กับ Gemma |
+| Qwen tokenizer | **จำนวน token ที่โมเดลเห็นจริง** |
+| `tiktoken` | ตัวเลขที่ผิด ถ้าเอามาใช้กับ Qwen |
 
 ```bash
 uv run python -c "
@@ -67,7 +67,7 @@ print(tokenizer.compare('Internet at the Nonthaburi branch keeps dropping since 
 ```
 
 > **บทเรียน**: ย้ายโมเดลเมื่อไหร่ ต้องเปลี่ยนวิธีนับ token เมื่อนั้น
-> เรื่องนี้จะเจอจริงตอนย้ายจาก Gemma ไป GPT-OSS 120B ใน production
+> เรื่องนี้จะเจอจริงตอนย้ายจาก Qwen ไป GPT-OSS 120B ใน production
 
 ---
 
@@ -95,14 +95,14 @@ flowchart LR
 
 ## 5. Embeddings — จากข้อความเป็นพิกัด
 
-Embedding แปลงข้อความทั้งก้อนเป็นเวกเตอร์เดียวในปริภูมิมิติสูง (โปรเจกต์นี้ใช้ **768 มิติ** จาก EmbeddingGemma 300M)
+Embedding แปลงข้อความทั้งก้อนเป็นเวกเตอร์เดียวในปริภูมิมิติสูง (โปรเจกต์นี้ใช้ **1024 มิติ** จาก baai/bge-m3)
 
 คุณสมบัติที่ทำให้ใช้ประโยชน์ได้: **ข้อความที่ความหมายใกล้กัน จะมีเวกเตอร์ที่ทำมุมแคบต่อกัน**
 
 ```mermaid
 flowchart LR
-    Q["เน็ตหลุดเป็นช่วงๆ"] --> E["EmbeddingGemma"] --> VQ["[0.21, -0.08, ...]"]
-    D["circuit drop ซ้ำๆ"] --> E2["EmbeddingGemma"] --> VD["[0.19, -0.11, ...]"]
+    Q["เน็ตหลุดเป็นช่วงๆ"] --> E["baai/bge-m3"] --> VQ["[0.21, -0.08, ...]"]
+    D["circuit drop ซ้ำๆ"] --> E2["baai/bge-m3"] --> VD["[0.19, -0.11, ...]"]
     VQ --> S{"cosine<br/>similarity"}
     VD --> S
     S --> R["ใกล้กัน = ความหมายใกล้กัน"]

@@ -40,7 +40,7 @@ SELECT ticket_id, title, description FROM tickets ORDER BY random() LIMIT 50;
 
 ใช้ `tokenizer.compare()` แล้วทำตารางนี้:
 
-| กลุ่ม | จำนวนตัวอักษร | คำ (pythainlp) | **token (Gemma)** | token (tiktoken) | tiktoken ผิดกี่ % |
+| กลุ่ม | จำนวนตัวอักษร | คำ (pythainlp) | **token (Qwen)** | token (tiktoken) | tiktoken ผิดกี่ % |
 |---|---|---|---|---|---|
 | ไทยล้วน | | | | | |
 | อังกฤษล้วน | | | | | |
@@ -69,7 +69,7 @@ SELECT ticket_id, title, description FROM tickets ORDER BY random() LIMIT 50;
 ## เกณฑ์ผ่าน (Definition of Done)
 
 - [ ] ตารางเปรียบเทียบครบ 3 กลุ่ม × 3 วิธีนับ
-- [ ] ระบุได้ว่า **tiktoken ให้ตัวเลขคลาดเคลื่อนกี่เปอร์เซ็นต์** เมื่อใช้กับ Gemma
+- [ ] ระบุได้ว่า **tiktoken ให้ตัวเลขคลาดเคลื่อนกี่เปอร์เซ็นต์** เมื่อใช้กับ Qwen
 - [ ] มีตัวเลข "token ไทยเป็นกี่เท่าของอังกฤษ"
 - [ ] ประมาณการ scale production พร้อมสมมติฐานที่เขียนไว้ชัดเจน
 - [ ] ข้อเสนอลดต้นทุน 1 ข้อ พร้อมตัวเลขรองรับ
@@ -88,7 +88,7 @@ SELECT ticket_id, title, description FROM tickets ORDER BY random() LIMIT 50;
 <summary>Hint (เปิดเมื่อติดเกิน 10 นาที)</summary>
 
 - แยกภาษาแบบง่าย: `sum(1 for c in text if '฀' <= c <= '๿') / len(text)` > 0.5 ถือว่าไทย
-- ถ้าโหลด Gemma tokenizer ไม่ได้ (ออฟไลน์) `tokenizer.count()` จะ fallback เป็นสูตรประมาณ ใช้ได้แต่ต้องระบุในรายงานว่าเป็นค่าประมาณ
+- ถ้าโหลด Qwen tokenizer ไม่ได้ (ออฟไลน์) `tokenizer.count()` จะ fallback เป็นสูตรประมาณ ใช้ได้แต่ต้องระบุในรายงานว่าเป็นค่าประมาณ
 - อย่าลืมว่า `description` ยาวกว่า `title` มาก ควรรวมทั้งสองฟิลด์
 </details>
 

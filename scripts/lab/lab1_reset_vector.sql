@@ -5,7 +5,7 @@
 --
 -- After this script the tickets table has no embedding column and no
 -- vector index. Semantic search will fail until the participant has:
---   1. ALTER TABLE tickets ADD COLUMN embedding vector(768);
+--   1. ALTER TABLE tickets ADD COLUMN embedding vector(1024);  -- match EMBEDDING_DIM
 --   2. generated embeddings from the internal embedding endpoint
 --   3. backfilled every row
 --   4. CREATE INDEX ... USING hnsw (embedding vector_cosine_ops);

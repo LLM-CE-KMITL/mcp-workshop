@@ -33,7 +33,7 @@ PG_DSN = os.getenv("PG_ADMIN_DSN",
                    "postgresql://mpls:mpls_dev_password@localhost:5432/mplsdb")
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "not-needed")
-LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-4o-mini")
+LLM_MODEL = os.getenv("LLM_MODEL", "qwen/qwen3.5-35b-a3b")
 GUIDED = os.getenv("LLM_GUIDED_DECODING", "true").lower() == "true"
 
 VALID_DEVICES = {

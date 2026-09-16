@@ -129,11 +129,12 @@ CREATE TABLE tickets (
 --   (participant work)   -> ALTER TABLE / generate / backfill / CREATE INDEX
 --   make embed-tickets   -> reference backfill if they get stuck
 --
--- Dimension 768 matches EmbeddingGemma 300M, the same model used in production.
-ALTER TABLE tickets ADD COLUMN embedding vector(768);
+-- Dimension 1024 matches the default embedding model (EMBEDDING_MODEL in
+-- .env) - keep this in sync with EMBEDDING_DIM if you change the model.
+ALTER TABLE tickets ADD COLUMN embedding vector(1024);
 
 COMMENT ON COLUMN tickets.embedding IS
-    'EmbeddingGemma 300M vector of title + description. Rebuilt by participants in Lab 1.';
+    'Embedding of title + description, dimension set by EMBEDDING_DIM. Rebuilt by participants in Lab 1.';
 
 CREATE INDEX idx_tickets_status   ON tickets(status);
 CREATE INDEX idx_tickets_opened   ON tickets(opened_at DESC);

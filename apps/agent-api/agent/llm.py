@@ -22,26 +22,27 @@ import os
 import time
 from typing import Any, AsyncIterator
 
-import httpx  # เพิ่มเข้ามาเพื่อจัดการเรื่อง SSL
+import httpx
 from openai import AsyncOpenAI
 from pydantic import BaseModel
 
-BASE_URL = "https://openrouter.ai/api/v1"
-API_KEY = ""
-MODEL = "openai/gpt-4o-mini"
-MODEL_FAST = "openai/gpt-4o-mini"
+BASE_URL = os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
+API_KEY = os.getenv("LLM_API_KEY", "not-needed")
+MODEL = os.getenv("LLM_MODEL", "qwen/qwen3.5-35b-a3b")
+MODEL_FAST = os.getenv("LLM_MODEL_FAST", "qwen/qwen3.5-35b-a3b")
 TIMEOUT = float(os.getenv("LLM_TIMEOUT_SECONDS", "120"))
 GUIDED = os.getenv("LLM_GUIDED_DECODING", "true").lower() == "true"
 
-# สร้าง AsyncClient ที่ปิดการเช็กใบรับรอง SSL
-custom_client = httpx.AsyncClient(verify=False)
+# Some corporate proxies terminate TLS with a self-signed certificate.
+# Off by default - only disable verification when the gateway requires it.
+INSECURE_SSL = os.getenv("LLM_INSECURE_SSL", "false").lower() == "true"
+custom_client = httpx.AsyncClient(verify=not INSECURE_SSL)
 
-# นำ client พิเศษใส่เข้าไปใน AsyncOpenAI
 client = AsyncOpenAI(
-    base_url=BASE_URL, 
-    api_key=API_KEY, 
+    base_url=BASE_URL,
+    api_key=API_KEY,
     timeout=TIMEOUT,
-    http_client=custom_client
+    http_client=custom_client,
 )
 
 class LLMStats:

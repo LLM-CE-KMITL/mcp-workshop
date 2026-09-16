@@ -4,7 +4,7 @@
 // Run with:  make lab1-reset
 //
 // After this, semantic device lookup fails until the participant has:
-//   1. CREATE VECTOR INDEX ... OPTIONS { vector.dimensions: 768, ... }
+//   1. CREATE VECTOR INDEX ... OPTIONS { vector.dimensions: 1024, ... }  // match EMBEDDING_DIM
 //   2. generated a profile text per device
 //   3. embedded it and written it back with SET d.embedding = $vec
 // ============================================================

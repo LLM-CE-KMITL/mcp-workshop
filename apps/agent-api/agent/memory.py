@@ -33,8 +33,8 @@ from agent import llm, tokenizer
 
 SIMILARITY_THRESHOLD = float(os.getenv("MEMORY_TOPIC_SHIFT_THRESHOLD", "0.55"))
 WINDOW_TURNS = int(os.getenv("MEMORY_WINDOW_TURNS", "6"))
-EMBEDDING_BASE_URL = os.getenv("EMBEDDING_BASE_URL", "http://localhost:11434/v1")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "embeddinggemma:300m")
+EMBEDDING_BASE_URL = os.getenv("EMBEDDING_BASE_URL", "https://openrouter.ai/api/v1")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "baai/bge-m3")
 
 EXPLICIT_SHIFT = re.compile(
     r"(เปลี่ยนเรื่อง|ขอถามเรื่องอื่น|ขอถามอีกเรื่อง|เรื่องใหม่|"

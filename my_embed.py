@@ -9,7 +9,7 @@ PG = "postgresql://mpls:mpls_dev_password@localhost:5432/mplsdb"
 
 # 1. เปลี่ยนตัวแปร EMB และ MODEL ให้เป็นของ OpenRouter (ตามที่คุณต้องการเปลี่ยน)
 EMB = "https://openrouter.ai/api/v1/embeddings"
-MODEL = "openai/text-embedding-3-small"
+MODEL = "baai/bge-m3"
 API_KEY = os.getenv("LLM_API_KEY", "")
 
 def embed_batch(texts: list[str]) -> list[list[float]]:
@@ -26,7 +26,7 @@ def embed_batch(texts: list[str]) -> list[list[float]]:
         json={
             "model": MODEL, 
             "input": texts,
-            "dimensions": 1536
+            "dimensions": 1024
         }, 
         headers=headers, 
         timeout=60

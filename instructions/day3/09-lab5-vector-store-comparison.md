@@ -20,8 +20,8 @@ uv run scripts/compare_vector_stores.py
 
 ```mermaid
 flowchart TB
-    Q["คำถาม: 'เน็ตหลุดเป็นช่วงๆ'"] --> E["EmbeddingGemma 300M"]
-    E --> V["vector 768 มิติ"]
+    Q["คำถาม: 'เน็ตหลุดเป็นช่วงๆ'"] --> E["baai/bge-m3"]
+    E --> V["vector 1024 มิติ"]
     V --> PG[("pgvector<br/>HNSW")]
     V --> NEO[("Neo4j<br/>vector index")]
     V --> OS[("OpenSearch<br/>knn_vector")]

@@ -14,7 +14,7 @@
 
 ```mermaid
 flowchart LR
-    Q["คำถาม"] --> E["EmbeddingGemma 300M<br/>แปลงเป็น vector"]
+    Q["คำถาม"] --> E["baai/bge-m3<br/>แปลงเป็น vector"]
     E --> R["Retrieve<br/>ดึงมา 50 ชิ้น"]
     R --> RR["mxbai-rerank<br/>เหลือ 5 ชิ้น"]
     RR --> G[["Main Brain<br/>สร้างคำตอบ"]]

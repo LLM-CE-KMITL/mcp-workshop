@@ -22,8 +22,8 @@ DOC_QUERY = os.getenv("COMPARE_DOC_QUERY", "adjacency ไม่ขึ้นเ�
 
 def embed(text: str) -> list[float]:
     response = httpx.post(
-        f"{os.getenv('EMBEDDING_BASE_URL', 'http://localhost:11434/v1').rstrip('/')}/embeddings",
-        json={"model": os.getenv("EMBEDDING_MODEL", "embeddinggemma:300m"), "input": [text]},
+        f"{os.getenv('EMBEDDING_BASE_URL', 'https://openrouter.ai/api/v1').rstrip('/')}/embeddings",
+        json={"model": os.getenv("EMBEDDING_MODEL", "baai/bge-m3"), "input": [text]},
         timeout=30,
     )
     response.raise_for_status()
@@ -98,8 +98,9 @@ def main() -> int:
     print(f"query (documents)      : {DOC_QUERY}")
 
     try:
-        device_vector = [0.1] * 1536  # สำหรับ Postgres และ Neo4j
-        doc_vector = [0.1] * 768      # สำหรับ OpenSearch
+        dim = int(os.getenv("EMBEDDING_DIM", "1024"))
+        device_vector = [0.1] * dim   # สำหรับ Postgres และ Neo4j
+        doc_vector = [0.1] * dim      # สำหรับ OpenSearch
     except Exception as exc:  # noqa: BLE001
         print(f"\n  embedding endpoint unavailable: {exc}")
         print("  start it with: docker compose --profile llm up -d\n")

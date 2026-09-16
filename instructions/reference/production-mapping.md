@@ -11,7 +11,7 @@ Workshop นี้ออกแบบเป็น **แบบจำลองย�
 flowchart TB
     subgraph W["Workshop"]
         W1["10 อุปกรณ์ 2 พื้นที่"]
-        W2["Gemma 3 27B"]
+        W2["Qwen3.5 35B-A3B"]
         W3["Chainlit"]
         W4["MailHog"]
         W5["Python log loader"]

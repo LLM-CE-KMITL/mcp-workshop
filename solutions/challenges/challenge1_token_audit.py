@@ -92,25 +92,25 @@ def main() -> int:
         n = len(items)
         chars = sum(i["chars"] for i in items) / n
         words = sum(i["thai_words"] or 0 for i in items) / n
-        gemma = sum(i["gemma_tokens"] or 0 for i in items) / n
+        model = sum(i["model_tokens"] or 0 for i in items) / n
         tik = sum(i["tiktoken_tokens"] or 0 for i in items) / n
-        error = (tik - gemma) / gemma * 100 if gemma else 0
-        summary[name] = {"n": n, "chars": chars, "gemma": gemma,
+        error = (tik - model) / model * 100 if model else 0
+        summary[name] = {"n": n, "chars": chars, "model": model,
                          "tiktoken": tik, "error": error}
         print(f"  {name:<12}{n:>4}{chars:>9.0f}{words:>10.0f}"
-              f"{gemma:>14.0f}{tik:>17.0f}{error:>8.1f}%")
+              f"{model:>14.0f}{tik:>17.0f}{error:>8.1f}%")
 
     # ---------- Task 3: ratios that support a decision ----------
     print("\n  อัตราส่วนที่ใช้ตัดสินใจได้\n")
     for name, stats in summary.items():
-        per_char = stats["gemma"] / stats["chars"] if stats["chars"] else 0
+        per_char = stats["model"] / stats["chars"] if stats["chars"] else 0
         print(f"    {name:<12} {per_char:.3f} token ต่อ 1 อักขระ")
 
     thai = summary.get("ไทยล้วน")
     english = summary.get("อังกฤษล้วน")
     if thai and english:
-        thai_rate = thai["gemma"] / thai["chars"]
-        eng_rate = english["gemma"] / english["chars"]
+        thai_rate = thai["model"] / thai["chars"]
+        eng_rate = english["model"] / english["chars"]
         multiplier = thai_rate / eng_rate
         print(f"\n    ที่จำนวนอักขระเท่ากัน ภาษาไทยใช้ token "
               f"มากกว่าอังกฤษ {multiplier:.2f} เท่า")

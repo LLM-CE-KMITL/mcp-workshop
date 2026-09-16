@@ -15,7 +15,7 @@ cp .env.example .env
 ```
 LLM_BASE_URL=https://openrouter.ai/api/v1
 LLM_API_KEY=sk-or-v1-***Your Key***
-LLM_MODEL=openai/gpt-4o-mini
+LLM_MODEL=qwen/qwen3.5-35b-a3b
 ```
 จุดที่ต้องใส่ Key
 `apps/agent-api/agent/llm.py`

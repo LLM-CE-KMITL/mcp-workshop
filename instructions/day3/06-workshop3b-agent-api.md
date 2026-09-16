@@ -13,7 +13,7 @@ flowchart LR
     UI["Chainlit / NEX"] -->|HTTP + SSE| API["Agent API"]
     API --> AG["Agent Core"]
     AG -->|MCP| MCP["MCP Server"]
-    AG -->|OpenAI protocol| LLM[["Gemma 3 27B"]]
+    AG -->|OpenAI protocol| LLM[["Qwen3.5 35B-A3B"]]
 ```
 
 ---

@@ -63,7 +63,7 @@ flowchart LR
     end
 
     API --> AGENT
-    AGENT -->|OpenAI protocol| LLM[[Local LLM<br/>Gemma 3 27B]]
+    AGENT -->|OpenAI protocol| LLM[[Local LLM<br/>Qwen3.5 35B-A3B]]
     AGENT -->|MCP / JSON-RPC 2.0| MCP[MCP Server]
 
     MCP --> PG[(PostgreSQL<br/>Ticket + Config)]
@@ -89,18 +89,18 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    Q([คำถาม]) --> EMB[EmbeddingGemma 300M<br/>768 มิติ]
+    Q([คำถาม]) --> EMB[baai/bge-m3<br/>1024 มิติ]
     EMB --> RET[Retrieve<br/>top 50]
     RET --> RR[mxbai-rerank<br/>เหลือ top 5]
-    RR --> BRAIN[[Gemma 3 27B<br/>Main Brain]]
+    RR --> BRAIN[[Qwen3.5 35B-A3B<br/>Main Brain]]
     BRAIN --> A([คำตอบ + citation])
 ```
 
 | บทบาท | โมเดล | หมายเหตุ |
 |---|---|---|
-| Main brain | `openai/gpt-4o-mini` | ใช้ตอนส่งงาน / เดโม |
-| Iteration | `openai/gpt-4o-mini` | ใช้ระหว่างทำ lab ให้วนแก้เร็ว |
-| Embedding | `openai/text-embedding-3-small` | 1536 มิติ — ตรงกับ production |
+| Main brain | `qwen/qwen3.5-35b-a3b` | ใช้ตอนส่งงาน / เดโม |
+| Iteration | `qwen/qwen3.5-35b-a3b` | ใช้ระหว่างทำ lab ให้วนแก้เร็ว |
+| Embedding | `baai/bge-m3` | 1024 มิติ — ตรงกับ production |
 | Rerank | `mxbai-rerank` | ลด hallucination |
 
 ทุกตัวคุยผ่าน **OpenAI-compatible protocol** (Ollama หรือ vLLM) → เปลี่ยนโมเดลได้โดยไม่แก้โค้ด
@@ -200,7 +200,7 @@ Workshop นี้เป็น **แบบจำลองย่อส่วน�
 |---|---|
 | 10 อุปกรณ์ 2 พื้นที่ | 2,600+ อุปกรณ์ทั่วประเทศ |
 | Log 2,000 บรรทัด | 29 GB/วัน |
-| Gemma 3 27B | GPT-OSS 120B |
+| Qwen3.5 35B-A3B | GPT-OSS 120B |
 | Chainlit | NMS NEX Integration |
 | MailHog | Telegram Alert |
 | `docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python verify.py` | Health Check ทั้ง 3 ฐาน |

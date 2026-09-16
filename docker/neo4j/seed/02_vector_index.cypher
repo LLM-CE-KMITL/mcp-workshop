@@ -10,7 +10,7 @@
 // The workshop compares all three stores side by side - see
 // instructions/day3/09-lab5-vector-store-comparison.md
 //
-// Vectors are written by docker/seeder/seed.py, this file only declares
+// Vectors are written by docker/seeder/seed.py; this file only declares
 // the index so the property has somewhere to live.
 // ============================================================
 
@@ -18,7 +18,7 @@ CREATE VECTOR INDEX device_embedding IF NOT EXISTS
 FOR (d:Device) ON (d.embedding)
 OPTIONS {
   indexConfig: {
-    `vector.dimensions`: 768,
+    `vector.dimensions`: 1024,
     `vector.similarity_function`: 'cosine'
   }
 };
@@ -27,7 +27,7 @@ CREATE VECTOR INDEX circuit_embedding IF NOT EXISTS
 FOR (c:Circuit) ON (c.embedding)
 OPTIONS {
   indexConfig: {
-    `vector.dimensions`: 768,
+    `vector.dimensions`: 1024,
     `vector.similarity_function`: 'cosine'
   }
 };

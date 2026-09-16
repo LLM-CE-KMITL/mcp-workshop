@@ -48,7 +48,7 @@ flowchart TB
     end
 
     API --> CORE
-    CORE -->|OpenAI protocol| LLM[["Gemma 3 27B<br/>(Ollama / vLLM)"]]
+    CORE -->|OpenAI protocol| LLM[["Qwen3.5 35B-A3B<br/>(Ollama / vLLM)"]]
     CORE -->|MCP JSON-RPC 2.0| MCP["MCP Server<br/>nt-network"]
 
     MCP --> PG[("PostgreSQL<br/>+ pgvector")]
@@ -142,9 +142,9 @@ sequenceDiagram
 
 | บทบาท | โมเดล | เมื่อไหร่ใช้ |
 |---|---|---|
-| Main brain | `openai/gpt-4o-mini` | ตอนส่งงานและเดโม |
-| Iteration | `openai/gpt-4o-mini` | ระหว่างวนแก้โค้ดใน lab (เร็วกว่ามาก) |
-| Embedding | `openai/text-embedding-3-small` (1536 มิติ) | Lab 1 และ RAG |
+| Main brain | `qwen/qwen3.5-35b-a3b` | ตอนส่งงานและเดโม |
+| Iteration | `qwen/qwen3.5-35b-a3b` | ระหว่างวนแก้โค้ดใน lab (เร็วกว่ามาก) |
+| Embedding | `baai/bge-m3` (1024 มิติ) | Lab 1 และ RAG |
 | Rerank | `mxbai-rerank` | Lab วันที่ 3 |
 
 สลับโมเดลเร็วระหว่าง lab: ตั้ง `LLM_MODEL=$LLM_MODEL_FAST` ใน `.env` แล้วรีสตาร์ต `make api`
