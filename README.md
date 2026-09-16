@@ -73,7 +73,7 @@
 | 15:30–16:30 | [day3/14-wrap-up-mpls-llm.md](instructions/day3/14-wrap-up-mpls-llm.md) — สรุปผลการอบรม และแบ่งงานสำหรับ MPLS LLM |
 
 **เฉลยวันที่ 3**: ไม่มีไฟล์แยก — โค้ดจริงใน [apps/mcp-server/](apps/mcp-server/) และ [apps/agent-api/](apps/agent-api/)
-**คือ**เฉลย อ่านเหตุผลที่ [solutions/day3/README.md](solutions/day3/README.md)
+**คือ**เฉลย อ่านเหตุผลที่ [solutions/day3/README2.md](solutions/day3/README2.md)
 
 ---
 
