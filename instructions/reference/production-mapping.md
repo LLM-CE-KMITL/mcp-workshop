@@ -95,7 +95,7 @@ flowchart TB
 |---|---|
 | สถิติเวลาที่ลดลง | **ต้องเก็บ baseline ตั้งแต่วันนี้** — วิธีอยู่ใน wrap-up |
 | ผลด้าน security | audit log จาก guardrails เป็นหลักฐาน |
-| diagram สำหรับรายงาน | `00-architecture.md` ยกไปใช้ได้เลย |
+| diagram สำหรับรายงาน | `day0/03-architecture.md` ยกไปใช้ได้เลย |
 | ข้อจำกัดด้าน hardware | [day3/13-scale-notes.md](../day3/13-scale-notes.md) |
 
 ---

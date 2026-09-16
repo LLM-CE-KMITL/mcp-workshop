@@ -6,7 +6,7 @@
 
 ## T-7 วัน
 
-- [ ] ส่ง [instructions/00-prerequisites.md](instructions/00-prerequisites.md) ให้ผู้เรียน
+- [ ] ส่ง [INSTRUCTIONS/day0/01-prerequisites.md](INSTRUCTIONS/day0/01-prerequisites.md) ให้ผู้เรียน
 - [ ] ส่งแบบสอบถามก่อนอบรม
 - [ ] แจ้ง URL และ API key ของ LLM ภายใน
 - [ ] แจ้งวิธีต่อ VPN (ถ้าต้องใช้)
@@ -22,7 +22,7 @@
   ```bash
   curl -s $LLM_BASE_URL/models -H "Authorization: Bearer $LLM_API_KEY"
   ```
-- [ ] **รองรับ guided decoding** — ดู [reference/local-llm-ollama-vllm.md](instructions/reference/local-llm-ollama-vllm.md) หัวข้อ 5.2
+- [ ] **รองรับ guided decoding** — ดู [reference/local-llm-ollama-vllm.md](INSTRUCTIONS/reference/local-llm-ollama-vllm.md) หัวข้อ 5.2
   ถ้าไม่รองรับ ต้องแจ้งผู้เรียนให้ตั้ง `LLM_GUIDED_DECODING=false`
 - [ ] **คืน usage ตอน stream** — ถ้าไม่ ระบบจะนับ token เองด้วย tokenizer
 - [ ] **ทดสอบ embedding endpoint** และยืนยันว่าได้ 768 มิติ
@@ -41,7 +41,7 @@
 - [ ] `make demo-offline` ทดสอบว่าเล่นได้โดยไม่ต้องมี LLM
 - [ ] `make demo-export` เตรียมไฟล์ `.tar` เผื่อเครื่องหน้างานไม่มีเน็ต
 - [ ] เตรียม USB มี image ทั้งหมด เผื่อเน็ตห้องอบรมช้า
-- [ ] พิมพ์ [reference/cheatsheet.md](instructions/reference/cheatsheet.md) แจกผู้เรียน
+- [ ] พิมพ์ [reference/cheatsheet.md](INSTRUCTIONS/reference/cheatsheet.md) แจกผู้เรียน
 
 ---
 
@@ -87,7 +87,7 @@
 
 - [ ] รวบรวมผลงานโจทย์ทั้ง 6 ข้อ
 - [ ] สรุปว่าใครติดตรงไหน เพื่อปรับรอบถัดไป
-- [ ] **เก็บ baseline metric** ตามที่ระบุใน [day3/wrap-up](instructions/day3/14-wrap-up-mpls-llm.md)
+- [ ] **เก็บ baseline metric** ตามที่ระบุใน [day3/wrap-up](INSTRUCTIONS/day3/14-wrap-up-mpls-llm.md)
 - [ ] แบ่งงานสำหรับ MPLS LLM ตามตารางในไฟล์เดียวกัน
 - [ ] นัดหมายติดตามผลครั้งที่ 1
 

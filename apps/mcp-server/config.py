@@ -3,7 +3,7 @@
 Everything is read from the environment. Nothing is hardcoded, and no secret
 ever leaves this process: the MCP client sees tool results, never credentials.
 That separation is the point of running a server at all - see
-instructions/day3/03-module8-security-sdk.md
+INSTRUCTIONS/day3/03-module8-security-sdk.md
 """
 
 from __future__ import annotations

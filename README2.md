@@ -154,7 +154,7 @@ flowchart TD
 
 ```
 .
-├── instructions/       เอกสารการสอนทั้งหมด (.md)  ← เริ่มอ่านที่นี่
+├── INSTRUCTIONS/       เอกสารการสอนทั้งหมด (.md)  ← เริ่มอ่านที่นี่
 ├── data/               ชุดคำถาม, เหตุการณ์จำลอง, log ตัวอย่าง
 ├── docker/             infra ทั้งหมด (compose + seed + loader)
 ├── apps/
@@ -205,4 +205,4 @@ Workshop นี้เป็น **แบบจำลองย่อส่วน�
 | MailHog | Telegram Alert |
 | `docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python verify.py` | Health Check ทั้ง 3 ฐาน |
 
-อ่านรายละเอียดที่ [instructions/reference/production-mapping.md](instructions/reference/production-mapping.md)
+อ่านรายละเอียดที่ [INSTRUCTIONS/reference/production-mapping.md](INSTRUCTIONS/reference/production-mapping.md)

@@ -141,7 +141,7 @@ uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w
 | Port ชนกัน | มีบริการอื่นใช้ port อยู่ → แก้ที่ `docker/docker-compose.yml` |
 | ข้อมูลดูเก่า | `make reseed` เพื่อสร้าง timestamp ใหม่ |
 
-รายละเอียดเพิ่มเติมที่ [reference/troubleshooting.md](reference/troubleshooting.md)
+รายละเอียดเพิ่มเติมที่ [reference/troubleshooting.md](../reference/troubleshooting.md)
 
 ---
 

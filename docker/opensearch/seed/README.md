@@ -15,7 +15,7 @@
 | ของจริงที่ NT | 29 GB/วัน → ต้องทำ ILM | runbook + config |
 
 > การ embed log ทุกบรรทัดเป็นความคิดที่แพงและไม่ได้ผลดี — อธิบายเหตุผลไว้ใน
-> `instructions/day3/13-scale-notes.md`
+> `INSTRUCTIONS/day3/13-scale-notes.md`
 
 ## ตรวจผลด้วยตนเอง
 

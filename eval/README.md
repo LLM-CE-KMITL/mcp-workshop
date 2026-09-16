@@ -46,4 +46,4 @@ DEMO_NOW=2026-01-15T10:00:00+07:00 SEED_RANDOM_SEED=42 make reseed
 
 1. เขียนคำตอบอ้างอิงในฟิลด์ `reference_answer` ของแต่ละคำถาม
 2. เพิ่มการคำนวณด้วย `sacrebleu` และ `rouge-score`
-3. **อ่านข้อจำกัดของ BLEU/ROUGE ก่อน** ที่ [../instructions/reference/evaluation-metrics.md](../instructions/reference/evaluation-metrics.md)
+3. **อ่านข้อจำกัดของ BLEU/ROUGE ก่อน** ที่ [../INSTRUCTIONS/reference/evaluation-metrics.md](../INSTRUCTIONS/reference/evaluation-metrics.md)
