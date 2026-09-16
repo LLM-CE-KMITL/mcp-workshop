@@ -69,6 +69,9 @@ print(tokenizer.compare('Internet at the Nonthaburi branch keeps dropping since 
 > **บทเรียน**: ย้ายโมเดลเมื่อไหร่ ต้องเปลี่ยนวิธีนับ token เมื่อนั้น
 > เรื่องนี้จะเจอจริงตอนย้ายจาก Qwen ไป GPT-OSS 120B ใน production
 
+> **อีกทางเลือก (ไม่ต้องรันโค้ด)**: [The Tokenizer Playground](https://huggingface.co/spaces/Xenova/the-tokenizer-playground)
+> เว็บที่เลือก tokenizer ของโมเดลต่างๆ แล้ววางข้อความเทียบ token ได้ทันที ใช้ตอนไม่สะดวกติดตั้ง `transformers`/โหลดโมเดลลงเครื่อง
+
 ---
 
 ## 4. "Cost Optimization" เมื่อ LLM อยู่ในองค์กร

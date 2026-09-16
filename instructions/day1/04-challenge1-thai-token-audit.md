@@ -89,6 +89,7 @@ SELECT ticket_id, title, description FROM tickets ORDER BY random() LIMIT 50;
 
 - แยกภาษาแบบง่าย: `sum(1 for c in text if '฀' <= c <= '๿') / len(text)` > 0.5 ถือว่าไทย
 - ถ้าโหลด Qwen tokenizer ไม่ได้ (ออฟไลน์) `tokenizer.count()` จะ fallback เป็นสูตรประมาณ ใช้ได้แต่ต้องระบุในรายงานว่าเป็นค่าประมาณ
+  อีกทางเลือกคือเช็คจำนวน token จริงผ่านเว็บ (ไม่ต้องติดตั้งอะไร): https://huggingface.co/spaces/Xenova/the-tokenizer-playground — เลือก tokenizer ของโมเดลที่ตรงกัน แล้ววางข้อความเทียบได้เลย
 - อย่าลืมว่า `description` ยาวกว่า `title` มาก ควรรวมทั้งสองฟิลด์
 </details>
 
