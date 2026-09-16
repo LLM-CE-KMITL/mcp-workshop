@@ -1,208 +1,97 @@
-# AI × IP-MPLS Workshop — 3 วัน (Developer Focused)
+# แผนที่หลักสูตร — AI × IP-MPLS Workshop (3 วัน)
 
-Workshop สอนพัฒนา **AI Agent + MCP Server** สำหรับงานดูแลโครงข่าย IP-MPLS
-โดยเน้นการเขียนโค้ดเองตั้งแต่ระดับกลไก ไม่พึ่ง framework สำเร็จรูป
+หน้านี้คือ**จุดเริ่มต้นเดียว**ของหลักสูตร ไล่ลิงก์ตามลำดับนี้ตั้งแต่บนลงล่างแล้วจะไม่หลง
+แต่ละบรรทัดมีเวลาเรียนกำกับไว้ตรงกับตารางจริง ถ้าหลุดตาราง ให้กลับมาเปิดหน้านี้เพื่อดูว่าอยู่จุดไหน
 
-> **เป้าหมายปลายทาง**: ภายในบ่ายวันที่ 3 ผู้เรียนจะมี MCP Server ของตัวเองที่ต่อกับ
-> PostgreSQL + Neo4j + OpenSearch และมี AI Agent ที่วางแผนเองว่าจะดึงข้อมูลจากที่ไหนบ้าง
-> พร้อม UI ที่ใช้งานได้จริง และต่อเข้ากับ Claude Desktop / Claude Code / Cursor ได้
+> ภาพรวมสถาปัตยกรรม, model stack และการ map กับ production อยู่ที่ [README.md](README.md) —
+> เปิดที่นั่นก่อนถ้ายังไม่เคยเห็นภาพรวมทั้งระบบ
 
 ---
 
-## 1. Quick Start
+## ก่อนวันอบรม
 
-```bash
-cp .env.example .env
-```
-
-```bash
-docker compose -f docker/docker-compose.yml --env-file .env up -d
-```
-
-```bash
-docker compose -f docker/docker-compose.yml --env-file .env up seeder
-```
-
-```bash
-docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python verify.py 
-```
-
-เปิดใช้งาน:
-
-| บริการ | URL | ใช้ทำอะไร |
+| ลำดับ | เอกสาร | ใช้ทำอะไร |
 |---|---|---|
-| Chainlit (ของผู้เรียน) | http://localhost:8000 | UI ที่ผู้เรียนสร้างเอง |
-| Agent API (ของผู้เรียน) | http://localhost:8080/docs | REST API ของ agent |
-| **Demo (แอปสำเร็จรูป)** | http://localhost:8100 | ตัวอย่างปลายทาง ใช้เปิดคอร์ส |
-| **pgAdmin** | http://localhost:5050 | ดูข้อมูลใน PostgreSQL |
-| OpenSearch Dashboards | http://localhost:5601 | ดู log |
-| Neo4j Browser | http://localhost:7474 | ดู topology |
-| MailHog | http://localhost:8025 | ดูอีเมลที่ agent ส่ง |
-
-> **pgAdmin**: ล็อกอินด้วย `workshop@example.local` / `workshop` (ตั้งค่าได้ใน `.env`)
-> มี server ลงทะเบียนไว้แล้ว 2 ตัว — ตัวเต็มสิทธิ์ (`mpls`) และ **ตัวอ่านอย่างเดียวที่ MCP ใช้จริง** (`mcp_reader`)
-> ลองรัน `UPDATE` ด้วยบัญชี `mcp_reader` เพื่อเห็นว่า guardrail ระดับสิทธิ์ทำงานอย่างไร (ใช้ใน Module 8)
+| 1 | [00-prerequisites.md](instructions/00-prerequisites.md) | สิ่งที่ต้องเตรียมตัวก่อนมาเรียน |
+| 2 | [00-setup.md](instructions/00-setup.md) | ติดตั้งและตรวจสอบระบบด้วยตัวเอง |
+| 3 | [00-architecture.md](instructions/00-architecture.md) | ภาพรวมสถาปัตยกรรม + ตารางเวลาเต็ม 3 วัน |
 
 ---
 
-## 2. สถาปัตยกรรมระบบ
+## วันที่ 1 — ควบคุม LLM ผ่านโค้ด
 
-```mermaid
-flowchart LR
-    U([ผู้ใช้]) --> UI[Chainlit UI<br/>:8000]
-    UI -->|HTTP + SSE| API[Agent API<br/>FastAPI :8080]
-
-    subgraph AGENT["Agent Core"]
-        direction TB
-        I[Intent Gate] --> P[Planner]
-        P --> E[Executor]
-        E --> S[Synthesizer]
-        M[(Memory<br/>short + long)] -.-> I
-        M -.-> P
-        G[Grounding] -.-> S
-    end
-
-    API --> AGENT
-    AGENT -->|OpenAI protocol| LLM[[Local LLM<br/>Gemma 3 27B]]
-    AGENT -->|MCP / JSON-RPC 2.0| MCP[MCP Server]
-
-    MCP --> PG[(PostgreSQL<br/>Ticket + Config)]
-    MCP --> NEO[(Neo4j<br/>Topology)]
-    MCP --> OS[(OpenSearch<br/>Log + Vector)]
-
-    CD[Claude Desktop /<br/>Claude Code / Cursor] -->|MCP stdio| MCP
-```
-
-### บทบาทของฐานข้อมูลทั้ง 3
-
-| ระบบ | เก็บอะไร | ตอบคำถามแนวไหน |
-|---|---|---|
-| **PostgreSQL** | Ticket, Config อุปกรณ์, Circuit, Customer | "มี ticket อะไรค้างอยู่" / "MTU ตั้งไว้เท่าไหร่" |
-| **Neo4j** | Topology, ISIS/CDP neighbor, Interface | "อุปกรณ์นี้ต่อกับอะไร" / "ถ้าล่มกระทบใคร" |
-| **OpenSearch** | Log อุปกรณ์ + Vector (semantic search) | "มี error อะไร" / "เคยเจอปัญหาแบบนี้ไหม" |
-
-**คำถามที่ดีที่สุดคือคำถามที่ตอบด้วยแหล่งเดียวไม่ได้** — นั่นคือเหตุผลที่ต้องมี Agent วางแผน
-
----
-
-## 3. Model Stack
-
-```mermaid
-flowchart LR
-    Q([คำถาม]) --> EMB[EmbeddingGemma 300M<br/>768 มิติ]
-    EMB --> RET[Retrieve<br/>top 50]
-    RET --> RR[mxbai-rerank<br/>เหลือ top 5]
-    RR --> BRAIN[[Gemma 3 27B<br/>Main Brain]]
-    BRAIN --> A([คำตอบ + citation])
-```
-
-| บทบาท | โมเดล | หมายเหตุ |
-|---|---|---|
-| Main brain | `openai/gpt-4o-mini` | ใช้ตอนส่งงาน / เดโม |
-| Iteration | `openai/gpt-4o-mini` | ใช้ระหว่างทำ lab ให้วนแก้เร็ว |
-| Embedding | `openai/text-embedding-3-small` | 1536 มิติ — ตรงกับ production |
-| Rerank | `mxbai-rerank` | ลด hallucination |
-
-ทุกตัวคุยผ่าน **OpenAI-compatible protocol** (Ollama หรือ vLLM) → เปลี่ยนโมเดลได้โดยไม่แก้โค้ด
-
----
-
-## 4. โครงสร้างหลักสูตร
-
-```mermaid
-flowchart TD
-    subgraph D1["วันที่ 1 — ควบคุม LLM ผ่านโค้ด"]
-        M1[M1 Tokenomics<br/>+ Embeddings] --> M2[M2 Transformer]
-        M2 --> C1{{โจทย์ 1<br/>Thai Token Audit}}
-        C1 --> M3[M3 Structured Output]
-        M3 --> W1[Workshop 1<br/>JSON + Auto-retry]
-        W1 --> C2{{โจทย์ 2<br/>Schema Under Pressure}}
-    end
-
-    subgraph D2["วันที่ 2 — Agent Loop เขียนเอง"]
-        M4[M4 ReAct + Memory] --> M5[M5 Function Calling]
-        M5 --> C3{{โจทย์ 3<br/>Tool Description Battle}}
-        C3 --> M6[M6 Multi-Agent]
-        M6 --> W2[Workshop 2<br/>Agent Loop]
-        W2 --> C4{{โจทย์ 4<br/>Topic Shift Survival}}
-    end
-
-    subgraph D3["วันที่ 3 — MCP Production"]
-        M7[M7 MCP Architecture] --> M8[M8 Security + SDK]
-        M8 --> C5{{โจทย์ 5<br/>Guardrail Red-team}}
-        C5 --> W3[Workshop 3<br/>MCP Server จริง]
-        W3 --> C6{{โจทย์ 6<br/>Cross-Service Diagnosis}}
-    end
-
-    D1 --> D2 --> D3
-```
-
-### โจทย์ 6 ข้อ
-
-| โจทย์ | เมื่อไหร่ | เรื่อง | เวลา |
-|---|---|---|---|
-| 1 | วันที่ 1 ปิดช่วงเช้า | Thai Token Audit | 20 นาที |
-| 2 | วันที่ 1 ปิดท้ายวัน | Schema Under Pressure | 30 นาที |
-| 3 | วันที่ 2 ปิดช่วงเช้า | Tool Description Battle | 25 นาที |
-| 4 | วันที่ 2 ปิดท้ายวัน | Topic Shift Survival | 30 นาที |
-| 5 | วันที่ 3 ปิดช่วงเช้า | Guardrail Red-team | 25 นาที |
-| 6 | วันที่ 3 ปิดท้าย WS3 | Cross-Service Diagnosis | 30 นาที |
-
----
-
-## 5. โครงสร้างโฟลเดอร์
-
-```
-.
-├── instructions/       เอกสารการสอนทั้งหมด (.md)  ← เริ่มอ่านที่นี่
-├── data/               ชุดคำถาม, เหตุการณ์จำลอง, log ตัวอย่าง
-├── docker/             infra ทั้งหมด (compose + seed + loader)
-├── apps/
-│   ├── mcp-server/     MCP Server (แกนของวันที่ 3)
-│   ├── agent-api/      Agent เป็น REST API
-│   ├── chainlit-ui/    UI
-│   └── demo-app/       แอปสำเร็จรูปสำหรับเดโม
-├── tests/              ตรวจงานตัวเองได้ทันที
-├── eval/               วัดผลคุณภาพคำตอบ (BLEU/ROUGE/LLM-judge)
-└── solutions/          เฉลย ⚠️ อ่านก่อนลอง = เสียโอกาสเรียนรู้
-```
-
----
-
-## 6. เริ่มเรียนที่ไหน
-
-**เปิด [index.md](index.md)** — หน้าแผนที่หลักสูตรฉบับเต็ม
-มีลิงก์ไปทุกเอกสารเรียงตามเวลาจริง ตั้งแต่ก่อนอบรมจนถึงวันที่ 3 รวมเฉลยและเอกสารอ้างอิง
-
----
-
-## 7. คำสั่งที่ใช้บ่อย
-
-| คำสั่ง | ทำอะไร |
+| เวลา | เอกสาร |
 |---|---|
-| `docker compose -f docker/docker-compose.yml --env-file .env up -d ต่อด้วย docker compose -f docker/docker-compose.yml --env-file .env up seeder` | เปิดระบบทั้งหมด + seed อัตโนมัติ |
-| `docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python verify.py` | ตรวจว่าข้อมูลครบทั้ง 3 ฐาน |
-| `docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python seed.py --purge` | สร้างข้อมูลใหม่ให้ timestamp สดใหม่ (**ทำเช้าวันเดโม**) |
-| `docker compose -f docker/docker-compose.yml --env-file .env run --rm loader python load_logs.py` | โหลด log จาก `data/logs/incoming/` เข้า OpenSearch |
-| `uv run uvicorn apps.agent-api.main:app --reload --port 8080` / `uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w` | รัน Agent API / Chainlit ของผู้เรียน |
-| `docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo` | เปิดแอปสำเร็จรูป (โหมดจริง) |
-| `$env:DEMO_MODE="replay"; docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo` | เปิดแอปสำเร็จรูป (โหมด replay ไม่ต้องมี LLM) |
-| `docker compose -f docker/docker-compose.yml --env-file .env down` / `docker compose -f docker/docker-compose.yml --env-file .env down -v` | ปิดระบบ / ล้างข้อมูลทั้งหมด |
+| 09:00–10:30 | [day1/01-module1-tokenomics-embeddings.md](instructions/day1/01-module1-tokenomics-embeddings.md) — Tokenomics & Vector Embeddings |
+| 09:50–10:30 | [day1/02-lab1-add-vector-column.md](instructions/day1/02-lab1-add-vector-column.md) — Lab 1: สร้าง Vector Column ด้วยตัวเอง |
+| 10:45–11:35 | [day1/03-module2-transformer.md](instructions/day1/03-module2-transformer.md) — โครงสร้างการทำงานของ Transformer |
+| 11:35–12:00 | [day1/04-challenge1-thai-token-audit.md](instructions/day1/04-challenge1-thai-token-audit.md) — โจทย์ 1: Thai Token Audit |
+| 13:00–14:30 | [day1/05-module3-structured-output.md](instructions/day1/05-module3-structured-output.md) — API ขั้นสูงและ Structured Output |
+| 14:45–16:00 | [day1/06-workshop1-json-autoretry.md](instructions/day1/06-workshop1-json-autoretry.md) — Workshop 1: บังคับ JSON พร้อม Auto-retry |
+| 16:00–16:30 | [day1/07-challenge2-schema-under-pressure.md](instructions/day1/07-challenge2-schema-under-pressure.md) — โจทย์ 2: Schema Under Pressure |
+| เสริม/การบ้าน | [day1/08-lab-ingestion-markdown.md](instructions/day1/08-lab-ingestion-markdown.md) — Lab เสริม: Ingestion Pipeline (ต่อจาก Lab 1) |
+
+**เฉลยวันที่ 1**: [solutions/day1/](solutions/day1/) และ [solutions/challenges/](solutions/challenges/) — เปิดหลังจากลองเองแล้วเท่านั้น
 
 ---
 
-## 8. ความสัมพันธ์กับโครงการ MPLS LLM
+## วันที่ 2 — เขียน Agent Loop เอง
 
-Workshop นี้เป็น **แบบจำลองย่อส่วนของสถาปัตยกรรม production จริง** — ทุกชิ้นที่สร้างในห้อง
-มีคู่ของมันในระบบจริง เพื่อให้การติดตามผลวันที่ 30/60/90 มีของให้ตรวจ
-
-| Workshop | Production |
+| เวลา | เอกสาร |
 |---|---|
-| 10 อุปกรณ์ 2 พื้นที่ | 2,600+ อุปกรณ์ทั่วประเทศ |
-| Log 2,000 บรรทัด | 29 GB/วัน |
-| Gemma 3 27B | GPT-OSS 120B |
-| Chainlit | NMS NEX Integration |
-| MailHog | Telegram Alert |
-| `docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python verify.py` | Health Check ทั้ง 3 ฐาน |
+| 09:00–10:30 | [day2/01-module4-react-memory.md](instructions/day2/01-module4-react-memory.md) — วิธีคิดของ Agent (ReAct Pattern) |
+| 10:45–11:35 | [day2/02-module5-function-calling.md](instructions/day2/02-module5-function-calling.md) — Function Calling & Tool Definition |
+| 11:35–12:00 | [day2/03-challenge3-tool-description-battle.md](instructions/day2/03-challenge3-tool-description-battle.md) — โจทย์ 3: Tool Description Battle |
+| 13:00–13:45 | [day2/04-module6-multi-agent.md](instructions/day2/04-module6-multi-agent.md) — Multi-Agent & Orchestration Patterns |
+| 13:45–14:10 | [day2/05-lab2-intent-gate.md](instructions/day2/05-lab2-intent-gate.md) — Lab 2: Intent Gate |
+| 14:10–14:30 | [day2/06-lab3-context-memory.md](instructions/day2/06-lab3-context-memory.md) — Lab 3: Context Memory และการตรวจจับเปลี่ยนเรื่อง |
+| 14:45–16:00 | [day2/07-workshop2-agent-loop.md](instructions/day2/07-workshop2-agent-loop.md) — Workshop 2: เขียน Agent Loop ด้วยตัวเอง |
+| 16:00–16:30 | [day2/08-challenge4-topic-shift-survival.md](instructions/day2/08-challenge4-topic-shift-survival.md) — โจทย์ 4: Topic Shift Survival |
+| เสริม | [day2/09-lab-grounding-verification.md](instructions/day2/09-lab-grounding-verification.md) — Lab เสริม: Grounding ตรวจคำตอบก่อนส่งออก |
 
-อ่านรายละเอียดที่ [instructions/reference/production-mapping.md](instructions/reference/production-mapping.md)
+**เฉลยวันที่ 2**: [solutions/day2/](solutions/day2/) และ [solutions/challenges/](solutions/challenges/) — เปิดหลังจากลองเองแล้วเท่านั้น
+
+---
+
+## วันที่ 3 — MCP Production
+
+| เวลา | เอกสาร |
+|---|---|
+| 09:00–10:15 | [day3/01-module7-mcp-architecture.md](instructions/day3/01-module7-mcp-architecture.md) — สถาปัตยกรรมเชิงลึกของ MCP |
+| 10:15–10:30 | [day3/02-lab4-jsonrpc-inspect.md](instructions/day3/02-lab4-jsonrpc-inspect.md) — Lab 4: ดู JSON-RPC ที่วิ่งจริง |
+| 10:45–11:35 | [day3/03-module8-security-sdk.md](instructions/day3/03-module8-security-sdk.md) — ความปลอดภัยและการเลือก SDK |
+| 11:35–12:00 | [day3/04-challenge5-guardrail-redteam.md](instructions/day3/04-challenge5-guardrail-redteam.md) — โจทย์ 5: Guardrail Red-team (ทำเป็นคู่) |
+| 13:00–14:00 | [day3/05-workshop3a-mcp-server.md](instructions/day3/05-workshop3a-mcp-server.md) — Workshop 3A: สร้าง MCP Server ของตัวเอง |
+| 14:00–14:30 | [day3/06-workshop3b-agent-api.md](instructions/day3/06-workshop3b-agent-api.md) — Workshop 3B: ห่อ Agent เป็น API |
+| 14:30–14:45 | [day3/07-workshop3c-chainlit.md](instructions/day3/07-workshop3c-chainlit.md) — Workshop 3C: ต่อ Chainlit เข้ากับ Agent API |
+| 14:45–15:00 | [day3/08-workshop3d-connect-clients.md](instructions/day3/08-workshop3d-connect-clients.md) — Workshop 3D: ต่อกับ Claude Desktop / Claude Code / Cursor |
+| แทรกช่วง WS3/สรุป | [day3/09-lab5-vector-store-comparison.md](instructions/day3/09-lab5-vector-store-comparison.md) — Lab 5: เทียบ Vector Store ทั้ง 3 ตัว |
+| แทรกช่วง WS3/สรุป | [day3/10-lab6-rerank-pipeline.md](instructions/day3/10-lab6-rerank-pipeline.md) — Lab 6: Retrieve → Rerank → Generate |
+| เสริม | [day3/11-lab-elicitation.md](instructions/day3/11-lab-elicitation.md) — Lab: Elicitation (ฟีเจอร์ MCP spec 2025-06-18) |
+| 15:00–15:30 | [day3/12-challenge6-cross-service-diagnosis.md](instructions/day3/12-challenge6-cross-service-diagnosis.md) — โจทย์ 6: Cross-Service Diagnosis (โจทย์ใหญ่สุด) |
+| ช่วงสรุป (15 นาที) | [day3/13-scale-notes.md](instructions/day3/13-scale-notes.md) — บันทึกเรื่อง Scale: 10 อุปกรณ์ vs 2,600 อุปกรณ์ |
+| 15:30–16:30 | [day3/14-wrap-up-mpls-llm.md](instructions/day3/14-wrap-up-mpls-llm.md) — สรุปผลการอบรม และแบ่งงานสำหรับ MPLS LLM |
+
+**เฉลยวันที่ 3**: ไม่มีไฟล์แยก — โค้ดจริงใน [apps/mcp-server/](apps/mcp-server/) และ [apps/agent-api/](apps/agent-api/)
+**คือ**เฉลย อ่านเหตุผลที่ [solutions/day3/README.md](solutions/day3/README.md)
+
+---
+
+## หลังอบรม — เอกสารอ้างอิง (เปิดใช้เมื่อจำเป็น ไม่ต้องอ่านตามลำดับ)
+
+| เอกสาร | ใช้เมื่อไหร่ |
+|---|---|
+| [reference/cheatsheet.md](instructions/reference/cheatsheet.md) | สรุปคำสั่ง/โค้ดที่ใช้บ่อยทั้งหลักสูตร |
+| [reference/troubleshooting.md](instructions/reference/troubleshooting.md) | ระบบรันไม่ผ่าน / error ที่เจอบ่อย |
+| [reference/model-stack.md](instructions/reference/model-stack.md) | รายละเอียดโมเดลแต่ละตัวและบทบาท |
+| [reference/local-llm-ollama-vllm.md](instructions/reference/local-llm-ollama-vllm.md) | ตั้งค่า Ollama/vLLM เอง หรือย้ายไป production |
+| [reference/sdk-comparison.md](instructions/reference/sdk-comparison.md) | ทำไมเลือกเขียนเองแทน LangChain/ADK |
+| [reference/evaluation-metrics.md](instructions/reference/evaluation-metrics.md) | วัดผลคุณภาพคำตอบ agent |
+| [reference/prompt-examples.md](instructions/reference/prompt-examples.md) | ตัวอย่าง prompt ที่ใช้สาธิตในห้อง |
+| [reference/production-mapping.md](instructions/reference/production-mapping.md) | เทียบ workshop กับระบบ production จริง (ใช้ตอนติดตามผล 30/60/90 วัน) |
+
+---
+
+## สำหรับวิทยากร/ทีมสนับสนุน
+
+- [CHECKLIST.md](CHECKLIST.md) — เช็คลิสต์เตรียมงานตั้งแต่ T-7 วันถึงวันจริง
