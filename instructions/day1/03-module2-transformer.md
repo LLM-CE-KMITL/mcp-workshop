@@ -121,4 +121,4 @@ print('tokens:', tokenizer.count(text))
 
 ## 6. ต่อไป
 
-→ [โจทย์ที่ 1: Thai Token Audit](challenge1-thai-token-audit.md)
+→ [โจทย์ที่ 1: Thai Token Audit](04-challenge1-thai-token-audit.md)

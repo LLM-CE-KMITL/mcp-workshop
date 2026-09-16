@@ -4,7 +4,7 @@
 -- NOTE FOR THE WORKSHOP:
 -- The `vector` extension is installed here, but NO embedding column
 -- is created anywhere in the schema. Participants add it themselves
--- in Lab 1 (day1/lab1-add-vector-column.md) so they experience the
+-- in Lab 1 (day1/02-lab1-add-vector-column.md) so they experience the
 -- full path: ALTER TABLE -> generate embeddings -> backfill -> index.
 -- ============================================================
 

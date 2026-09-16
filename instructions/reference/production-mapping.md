@@ -81,7 +81,7 @@ flowchart TB
 
 | หัวข้อตรวจ | สิ่งที่ workshop เตรียมให้ |
 |---|---|
-| RAG ขั้นสูง | [day3/lab6-rerank-pipeline.md](../day3/lab6-rerank-pipeline.md) |
+| RAG ขั้นสูง | [day3/10-lab6-rerank-pipeline.md](../day3/10-lab6-rerank-pipeline.md) |
 | embed → rerank → generate | `agent/rerank.py` |
 | ลด hallucination ด้วย grounding | `agent/grounding.py` + scenario S4, S5 |
 | Real-time Log Alert (Telegram) | `tools/notifier.py` เปลี่ยน backend ได้ |
@@ -96,7 +96,7 @@ flowchart TB
 | สถิติเวลาที่ลดลง | **ต้องเก็บ baseline ตั้งแต่วันนี้** — วิธีอยู่ใน wrap-up |
 | ผลด้าน security | audit log จาก guardrails เป็นหลักฐาน |
 | diagram สำหรับรายงาน | `00-architecture.md` ยกไปใช้ได้เลย |
-| ข้อจำกัดด้าน hardware | [day3/scale-notes.md](../day3/scale-notes.md) |
+| ข้อจำกัดด้าน hardware | [day3/13-scale-notes.md](../day3/13-scale-notes.md) |
 
 ---
 

@@ -6,7 +6,7 @@
 -- the database itself refuses. Guardrails in prompts are advisory;
 -- guardrails in the permission layer are enforced.
 --
--- Discussed in day3/module8-security-sdk.md and exercised in challenge5.
+-- Discussed in day3/03-module8-security-sdk.md and exercised in challenge5.
 -- ============================================================
 
 DO $$

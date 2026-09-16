@@ -124,4 +124,4 @@ flowchart TD
 
 ## ต่อไป
 
-→ [Workshop 3C: ต่อ Chainlit](workshop3c-chainlit.md)
+→ [Workshop 3C: ต่อ Chainlit](07-workshop3c-chainlit.md)

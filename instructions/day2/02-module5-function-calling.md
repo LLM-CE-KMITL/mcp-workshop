@@ -131,4 +131,4 @@ flowchart LR
 
 ## 7. ต่อไป
 
-→ [โจทย์ที่ 3: Tool Description Battle](challenge3-tool-description-battle.md)
+→ [โจทย์ที่ 3: Tool Description Battle](03-challenge3-tool-description-battle.md)

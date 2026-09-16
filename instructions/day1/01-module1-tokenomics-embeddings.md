@@ -134,10 +134,10 @@ flowchart LR
 | Neo4j | vector index (5.x) | เจอด้วย semantic แล้ว **เดินกราฟต่อได้ทันที** ใน query เดียว |
 | OpenSearch | `knn_vector` | ทน scale + ผสม BM25 ได้ ← **production เลือกตัวนี้** |
 
-เปรียบเทียบจริงในวันที่ 3: [day3/lab5-vector-store-comparison.md](../day3/lab5-vector-store-comparison.md)
+เปรียบเทียบจริงในวันที่ 3: [day3/09-lab5-vector-store-comparison.md](../day3/09-lab5-vector-store-comparison.md)
 
 ---
 
 ## 7. ต่อไป
 
-→ [Lab 1: สร้าง vector column ด้วยตัวเอง](lab1-add-vector-column.md)
+→ [Lab 1: สร้าง vector column ด้วยตัวเอง](02-lab1-add-vector-column.md)

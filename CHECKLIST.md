@@ -87,7 +87,7 @@
 
 - [ ] รวบรวมผลงานโจทย์ทั้ง 6 ข้อ
 - [ ] สรุปว่าใครติดตรงไหน เพื่อปรับรอบถัดไป
-- [ ] **เก็บ baseline metric** ตามที่ระบุใน [day3/wrap-up](instructions/day3/wrap-up-mpls-llm.md)
+- [ ] **เก็บ baseline metric** ตามที่ระบุใน [day3/wrap-up](instructions/day3/14-wrap-up-mpls-llm.md)
 - [ ] แบ่งงานสำหรับ MPLS LLM ตามตารางในไฟล์เดียวกัน
 - [ ] นัดหมายติดตามผลครั้งที่ 1
 

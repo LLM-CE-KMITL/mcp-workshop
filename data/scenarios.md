@@ -28,7 +28,7 @@
 | Ticket | ประวัติจริง | **120 ใบ / 90 วัน** | |
 | Circuit | หลายหมื่น | **35** | ลูกค้าเยอะกว่าอุปกรณ์ — เหมือนของจริง |
 
-> ความต่างเมื่อขึ้น scale จริงอยู่ใน [instructions/day3/scale-notes.md](../instructions/day3/scale-notes.md)
+> ความต่างเมื่อขึ้น scale จริงอยู่ใน [instructions/day3/13-scale-notes.md](../instructions/day3/13-scale-notes.md)
 
 ### 2.2 อุปกรณ์ทั้ง 10 ตัว
 

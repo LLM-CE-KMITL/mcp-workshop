@@ -149,4 +149,4 @@ flowchart LR
 
 ## ต่อไป
 
-→ [โจทย์ที่ 6: Cross-Service Diagnosis](challenge6-cross-service-diagnosis.md)
+→ [โจทย์ที่ 6: Cross-Service Diagnosis](12-challenge6-cross-service-diagnosis.md)

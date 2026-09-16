@@ -113,7 +113,7 @@ def main() -> int:
         except Exception as exc:  # noqa: BLE001
             print(f"  unavailable: {type(exc).__name__}: {exc}")
 
-    print("\nSee instructions/day3/lab5-vector-store-comparison.md for the discussion.\n")
+    print("\nSee instructions/day3/09-lab5-vector-store-comparison.md for the discussion.\n")
     return 0
 
 

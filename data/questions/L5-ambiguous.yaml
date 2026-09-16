@@ -4,7 +4,7 @@ meta:
   purpose: >
     ทดสอบว่า Agent กล้าถามกลับแทนที่จะเดา
     การเดาแล้วตอบผิดเสียหายกว่าการถามกลับหนึ่งครั้ง โดยเฉพาะในงาน network operations
-    หมวดนี้จับคู่กับฟีเจอร์ Elicitation ของ MCP spec รุ่นใหม่ (ดู day3/lab-elicitation.md)
+    หมวดนี้จับคู่กับฟีเจอร์ Elicitation ของ MCP spec รุ่นใหม่ (ดู day3/11-lab-elicitation.md)
   pass_criteria:
     - ต้องถามกลับก่อนเรียก tool ที่ต้องใช้ argument ที่ยังไม่รู้
     - คำถามที่ถามกลับต้องเจาะจง ไม่ใช่ "ช่วยอธิบายเพิ่มเติม"

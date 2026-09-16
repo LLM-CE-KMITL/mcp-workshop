@@ -4,9 +4,9 @@
 
 | โจทย์ | เฉลยอยู่ที่ |
 |---|---|
-| [Lab 2: Intent Gate](../../instructions/day2/lab2-intent-gate.md) | **`apps/agent-api/agent/intent.py`** |
-| [Lab 3: Context Memory](../../instructions/day2/lab3-context-memory.md) | **`apps/agent-api/agent/memory.py`** |
-| [Workshop 2: Agent Loop](../../instructions/day2/workshop2-agent-loop.md) | `workshop2_agent.py` (ในโฟลเดอร์นี้) |
+| [Lab 2: Intent Gate](../../instructions/day2/05-lab2-intent-gate.md) | **`apps/agent-api/agent/intent.py`** |
+| [Lab 3: Context Memory](../../instructions/day2/06-lab3-context-memory.md) | **`apps/agent-api/agent/memory.py`** |
+| [Workshop 2: Agent Loop](../../instructions/day2/07-workshop2-agent-loop.md) | `workshop2_agent.py` (ในโฟลเดอร์นี้) |
 | โจทย์ที่ 3 และ 4 | [../challenges/](../challenges/) |
 
 ---

@@ -185,4 +185,4 @@ flowchart TB
 
 ## 7. ต่อไป
 
-→ [Lab 4: ดู JSON-RPC ที่วิ่งจริง](lab4-jsonrpc-inspect.md)
+→ [Lab 4: ดู JSON-RPC ที่วิ่งจริง](02-lab4-jsonrpc-inspect.md)

@@ -578,4 +578,4 @@ spec รุ่นใหม่กำหนดให้ MCP server ที่เป
 
 ## 7. ต่อไป
 
-→ [โจทย์ที่ 5: Guardrail Red-team](challenge5-guardrail-redteam.md)
+→ [โจทย์ที่ 5: Guardrail Red-team](04-challenge5-guardrail-redteam.md)

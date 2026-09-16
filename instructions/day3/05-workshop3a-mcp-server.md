@@ -166,4 +166,4 @@ def generate_report(title: str, format: str = "markdown", range: str = "last_7d"
 
 ## ต่อไป
 
-→ [Workshop 3B: ต่อ Agent API](workshop3b-agent-api.md)
+→ [Workshop 3B: ต่อ Agent API](06-workshop3b-agent-api.md)

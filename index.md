@@ -22,14 +22,14 @@
 
 | เวลา | เอกสาร |
 |---|---|
-| 09:00–10:30 | [day1/module1-tokenomics-embeddings.md](instructions/day1/module1-tokenomics-embeddings.md) — Tokenomics & Vector Embeddings |
-| 09:50–10:30 | [day1/lab1-add-vector-column.md](instructions/day1/lab1-add-vector-column.md) — Lab 1: สร้าง Vector Column ด้วยตัวเอง |
-| 10:45–11:35 | [day1/module2-transformer.md](instructions/day1/module2-transformer.md) — โครงสร้างการทำงานของ Transformer |
-| 11:35–12:00 | [day1/challenge1-thai-token-audit.md](instructions/day1/challenge1-thai-token-audit.md) — โจทย์ 1: Thai Token Audit |
-| 13:00–14:30 | [day1/module3-structured-output.md](instructions/day1/module3-structured-output.md) — API ขั้นสูงและ Structured Output |
-| 14:45–16:00 | [day1/workshop1-json-autoretry.md](instructions/day1/workshop1-json-autoretry.md) — Workshop 1: บังคับ JSON พร้อม Auto-retry |
-| 16:00–16:30 | [day1/challenge2-schema-under-pressure.md](instructions/day1/challenge2-schema-under-pressure.md) — โจทย์ 2: Schema Under Pressure |
-| เสริม/การบ้าน | [day1/lab-ingestion-markdown.md](instructions/day1/lab-ingestion-markdown.md) — Lab เสริม: Ingestion Pipeline (ต่อจาก Lab 1) |
+| 09:00–10:30 | [day1/01-module1-tokenomics-embeddings.md](instructions/day1/01-module1-tokenomics-embeddings.md) — Tokenomics & Vector Embeddings |
+| 09:50–10:30 | [day1/02-lab1-add-vector-column.md](instructions/day1/02-lab1-add-vector-column.md) — Lab 1: สร้าง Vector Column ด้วยตัวเอง |
+| 10:45–11:35 | [day1/03-module2-transformer.md](instructions/day1/03-module2-transformer.md) — โครงสร้างการทำงานของ Transformer |
+| 11:35–12:00 | [day1/04-challenge1-thai-token-audit.md](instructions/day1/04-challenge1-thai-token-audit.md) — โจทย์ 1: Thai Token Audit |
+| 13:00–14:30 | [day1/05-module3-structured-output.md](instructions/day1/05-module3-structured-output.md) — API ขั้นสูงและ Structured Output |
+| 14:45–16:00 | [day1/06-workshop1-json-autoretry.md](instructions/day1/06-workshop1-json-autoretry.md) — Workshop 1: บังคับ JSON พร้อม Auto-retry |
+| 16:00–16:30 | [day1/07-challenge2-schema-under-pressure.md](instructions/day1/07-challenge2-schema-under-pressure.md) — โจทย์ 2: Schema Under Pressure |
+| เสริม/การบ้าน | [day1/08-lab-ingestion-markdown.md](instructions/day1/08-lab-ingestion-markdown.md) — Lab เสริม: Ingestion Pipeline (ต่อจาก Lab 1) |
 
 **เฉลยวันที่ 1**: [solutions/day1/](solutions/day1/) และ [solutions/challenges/](solutions/challenges/) — เปิดหลังจากลองเองแล้วเท่านั้น
 
@@ -39,15 +39,15 @@
 
 | เวลา | เอกสาร |
 |---|---|
-| 09:00–10:30 | [day2/module4-react-memory.md](instructions/day2/module4-react-memory.md) — วิธีคิดของ Agent (ReAct Pattern) |
-| 10:45–11:35 | [day2/module5-function-calling.md](instructions/day2/module5-function-calling.md) — Function Calling & Tool Definition |
-| 11:35–12:00 | [day2/challenge3-tool-description-battle.md](instructions/day2/challenge3-tool-description-battle.md) — โจทย์ 3: Tool Description Battle |
-| 13:00–13:45 | [day2/module6-multi-agent.md](instructions/day2/module6-multi-agent.md) — Multi-Agent & Orchestration Patterns |
-| 13:45–14:10 | [day2/lab2-intent-gate.md](instructions/day2/lab2-intent-gate.md) — Lab 2: Intent Gate |
-| 14:10–14:30 | [day2/lab3-context-memory.md](instructions/day2/lab3-context-memory.md) — Lab 3: Context Memory และการตรวจจับเปลี่ยนเรื่อง |
-| 14:45–16:00 | [day2/workshop2-agent-loop.md](instructions/day2/workshop2-agent-loop.md) — Workshop 2: เขียน Agent Loop ด้วยตัวเอง |
-| 16:00–16:30 | [day2/challenge4-topic-shift-survival.md](instructions/day2/challenge4-topic-shift-survival.md) — โจทย์ 4: Topic Shift Survival |
-| เสริม | [day2/lab-grounding-verification.md](instructions/day2/lab-grounding-verification.md) — Lab เสริม: Grounding ตรวจคำตอบก่อนส่งออก |
+| 09:00–10:30 | [day2/01-module4-react-memory.md](instructions/day2/01-module4-react-memory.md) — วิธีคิดของ Agent (ReAct Pattern) |
+| 10:45–11:35 | [day2/02-module5-function-calling.md](instructions/day2/02-module5-function-calling.md) — Function Calling & Tool Definition |
+| 11:35–12:00 | [day2/03-challenge3-tool-description-battle.md](instructions/day2/03-challenge3-tool-description-battle.md) — โจทย์ 3: Tool Description Battle |
+| 13:00–13:45 | [day2/04-module6-multi-agent.md](instructions/day2/04-module6-multi-agent.md) — Multi-Agent & Orchestration Patterns |
+| 13:45–14:10 | [day2/05-lab2-intent-gate.md](instructions/day2/05-lab2-intent-gate.md) — Lab 2: Intent Gate |
+| 14:10–14:30 | [day2/06-lab3-context-memory.md](instructions/day2/06-lab3-context-memory.md) — Lab 3: Context Memory และการตรวจจับเปลี่ยนเรื่อง |
+| 14:45–16:00 | [day2/07-workshop2-agent-loop.md](instructions/day2/07-workshop2-agent-loop.md) — Workshop 2: เขียน Agent Loop ด้วยตัวเอง |
+| 16:00–16:30 | [day2/08-challenge4-topic-shift-survival.md](instructions/day2/08-challenge4-topic-shift-survival.md) — โจทย์ 4: Topic Shift Survival |
+| เสริม | [day2/09-lab-grounding-verification.md](instructions/day2/09-lab-grounding-verification.md) — Lab เสริม: Grounding ตรวจคำตอบก่อนส่งออก |
 
 **เฉลยวันที่ 2**: [solutions/day2/](solutions/day2/) และ [solutions/challenges/](solutions/challenges/) — เปิดหลังจากลองเองแล้วเท่านั้น
 
@@ -57,20 +57,20 @@
 
 | เวลา | เอกสาร |
 |---|---|
-| 09:00–10:15 | [day3/module7-mcp-architecture.md](instructions/day3/module7-mcp-architecture.md) — สถาปัตยกรรมเชิงลึกของ MCP |
-| 10:15–10:30 | [day3/lab4-jsonrpc-inspect.md](instructions/day3/lab4-jsonrpc-inspect.md) — Lab 4: ดู JSON-RPC ที่วิ่งจริง |
-| 10:45–11:35 | [day3/module8-security-sdk.md](instructions/day3/module8-security-sdk.md) — ความปลอดภัยและการเลือก SDK |
-| 11:35–12:00 | [day3/challenge5-guardrail-redteam.md](instructions/day3/challenge5-guardrail-redteam.md) — โจทย์ 5: Guardrail Red-team (ทำเป็นคู่) |
-| 13:00–14:00 | [day3/workshop3a-mcp-server.md](instructions/day3/workshop3a-mcp-server.md) — Workshop 3A: สร้าง MCP Server ของตัวเอง |
-| 14:00–14:30 | [day3/workshop3b-agent-api.md](instructions/day3/workshop3b-agent-api.md) — Workshop 3B: ห่อ Agent เป็น API |
-| 14:30–14:45 | [day3/workshop3c-chainlit.md](instructions/day3/workshop3c-chainlit.md) — Workshop 3C: ต่อ Chainlit เข้ากับ Agent API |
-| 14:45–15:00 | [day3/workshop3d-connect-clients.md](instructions/day3/workshop3d-connect-clients.md) — Workshop 3D: ต่อกับ Claude Desktop / Claude Code / Cursor |
-| แทรกช่วง WS3/สรุป | [day3/lab5-vector-store-comparison.md](instructions/day3/lab5-vector-store-comparison.md) — Lab 5: เทียบ Vector Store ทั้ง 3 ตัว |
-| แทรกช่วง WS3/สรุป | [day3/lab6-rerank-pipeline.md](instructions/day3/lab6-rerank-pipeline.md) — Lab 6: Retrieve → Rerank → Generate |
-| เสริม | [day3/lab-elicitation.md](instructions/day3/lab-elicitation.md) — Lab: Elicitation (ฟีเจอร์ MCP spec 2025-06-18) |
-| 15:00–15:30 | [day3/challenge6-cross-service-diagnosis.md](instructions/day3/challenge6-cross-service-diagnosis.md) — โจทย์ 6: Cross-Service Diagnosis (โจทย์ใหญ่สุด) |
-| ช่วงสรุป (15 นาที) | [day3/scale-notes.md](instructions/day3/scale-notes.md) — บันทึกเรื่อง Scale: 10 อุปกรณ์ vs 2,600 อุปกรณ์ |
-| 15:30–16:30 | [day3/wrap-up-mpls-llm.md](instructions/day3/wrap-up-mpls-llm.md) — สรุปผลการอบรม และแบ่งงานสำหรับ MPLS LLM |
+| 09:00–10:15 | [day3/01-module7-mcp-architecture.md](instructions/day3/01-module7-mcp-architecture.md) — สถาปัตยกรรมเชิงลึกของ MCP |
+| 10:15–10:30 | [day3/02-lab4-jsonrpc-inspect.md](instructions/day3/02-lab4-jsonrpc-inspect.md) — Lab 4: ดู JSON-RPC ที่วิ่งจริง |
+| 10:45–11:35 | [day3/03-module8-security-sdk.md](instructions/day3/03-module8-security-sdk.md) — ความปลอดภัยและการเลือก SDK |
+| 11:35–12:00 | [day3/04-challenge5-guardrail-redteam.md](instructions/day3/04-challenge5-guardrail-redteam.md) — โจทย์ 5: Guardrail Red-team (ทำเป็นคู่) |
+| 13:00–14:00 | [day3/05-workshop3a-mcp-server.md](instructions/day3/05-workshop3a-mcp-server.md) — Workshop 3A: สร้าง MCP Server ของตัวเอง |
+| 14:00–14:30 | [day3/06-workshop3b-agent-api.md](instructions/day3/06-workshop3b-agent-api.md) — Workshop 3B: ห่อ Agent เป็น API |
+| 14:30–14:45 | [day3/07-workshop3c-chainlit.md](instructions/day3/07-workshop3c-chainlit.md) — Workshop 3C: ต่อ Chainlit เข้ากับ Agent API |
+| 14:45–15:00 | [day3/08-workshop3d-connect-clients.md](instructions/day3/08-workshop3d-connect-clients.md) — Workshop 3D: ต่อกับ Claude Desktop / Claude Code / Cursor |
+| แทรกช่วง WS3/สรุป | [day3/09-lab5-vector-store-comparison.md](instructions/day3/09-lab5-vector-store-comparison.md) — Lab 5: เทียบ Vector Store ทั้ง 3 ตัว |
+| แทรกช่วง WS3/สรุป | [day3/10-lab6-rerank-pipeline.md](instructions/day3/10-lab6-rerank-pipeline.md) — Lab 6: Retrieve → Rerank → Generate |
+| เสริม | [day3/11-lab-elicitation.md](instructions/day3/11-lab-elicitation.md) — Lab: Elicitation (ฟีเจอร์ MCP spec 2025-06-18) |
+| 15:00–15:30 | [day3/12-challenge6-cross-service-diagnosis.md](instructions/day3/12-challenge6-cross-service-diagnosis.md) — โจทย์ 6: Cross-Service Diagnosis (โจทย์ใหญ่สุด) |
+| ช่วงสรุป (15 นาที) | [day3/13-scale-notes.md](instructions/day3/13-scale-notes.md) — บันทึกเรื่อง Scale: 10 อุปกรณ์ vs 2,600 อุปกรณ์ |
+| 15:30–16:30 | [day3/14-wrap-up-mpls-llm.md](instructions/day3/14-wrap-up-mpls-llm.md) — สรุปผลการอบรม และแบ่งงานสำหรับ MPLS LLM |
 
 **เฉลยวันที่ 3**: ไม่มีไฟล์แยก — โค้ดจริงใน [apps/mcp-server/](apps/mcp-server/) และ [apps/agent-api/](apps/agent-api/)
 **คือ**เฉลย อ่านเหตุผลที่ [solutions/day3/README.md](solutions/day3/README.md)

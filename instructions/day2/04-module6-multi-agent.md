@@ -248,4 +248,4 @@ uv run compare_q21.py
 
 ## 6. ต่อไป
 
-→ [Lab 2: Intent Gate](lab2-intent-gate.md) และ [Lab 3: Context Memory](lab3-context-memory.md)
+→ [Lab 2: Intent Gate](05-lab2-intent-gate.md) และ [Lab 3: Context Memory](06-lab3-context-memory.md)

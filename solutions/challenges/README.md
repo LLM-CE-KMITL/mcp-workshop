@@ -4,10 +4,10 @@
 
 | โจทย์ | ไฟล์ | คำสั่ง |
 |---|---|---|
-| [1 · Thai Token Audit](../../instructions/day1/challenge1-thai-token-audit.md) | `challenge1_token_audit.py` | `uv run solutions/challenges/challenge1_token_audit.py` |
-| [2 · Schema Under Pressure](../../instructions/day1/challenge2-schema-under-pressure.md) | `challenge2_robust_extractor.py` | `uv run solutions/challenges/challenge2_robust_extractor.py` |
-| [3 · Tool Description Battle](../../instructions/day2/challenge3-tool-description-battle.md) | `challenge3_descriptions.json` | ดูวิธีใช้ด้านล่าง |
-| [4 · Topic Shift Survival](../../instructions/day2/challenge4-topic-shift-survival.md) | `challenge4_topic_shift.py` | `uv run solutions/challenges/challenge4_topic_shift.py` |
+| [1 · Thai Token Audit](../../instructions/day1/04-challenge1-thai-token-audit.md) | `challenge1_token_audit.py` | `uv run solutions/challenges/challenge1_token_audit.py` |
+| [2 · Schema Under Pressure](../../instructions/day1/07-challenge2-schema-under-pressure.md) | `challenge2_robust_extractor.py` | `uv run solutions/challenges/challenge2_robust_extractor.py` |
+| [3 · Tool Description Battle](../../instructions/day2/03-challenge3-tool-description-battle.md) | `challenge3_descriptions.json` | ดูวิธีใช้ด้านล่าง |
+| [4 · Topic Shift Survival](../../instructions/day2/08-challenge4-topic-shift-survival.md) | `challenge4_topic_shift.py` | `uv run solutions/challenges/challenge4_topic_shift.py` |
 | 5 · Guardrail Red-team | `tests/test_guardrails.py` | `uv run pytest tests/test_guardrails.py` |
 | 6 · Cross-Service Diagnosis | `make eval` | ดู `eval/results/latest.json` |
 

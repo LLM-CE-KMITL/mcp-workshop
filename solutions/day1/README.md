@@ -4,8 +4,8 @@
 
 | ไฟล์ | เฉลยของ |
 |---|---|
-| `lab1_embed.py` | [Lab 1: สร้าง vector column](../../instructions/day1/lab1-add-vector-column.md) |
-| `workshop1_extractor.py` | [Workshop 1: JSON + Auto-retry](../../instructions/day1/workshop1-json-autoretry.md) |
+| `lab1_embed.py` | [Lab 1: สร้าง vector column](../../instructions/day1/02-lab1-add-vector-column.md) |
+| `workshop1_extractor.py` | [Workshop 1: JSON + Auto-retry](../../instructions/day1/06-workshop1-json-autoretry.md) |
 
 โจทย์ที่ 1 และ 2 อยู่ที่ [../challenges/](../challenges/)
 

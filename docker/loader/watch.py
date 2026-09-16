@@ -7,7 +7,7 @@ Useful while teaching ingestion: drop a file on the host and the class sees
 it appear in OpenSearch Dashboards a second later. Not intended for
 production - real deployments use Filebeat or Fluent Bit, which handle
 back-pressure, retries and file rotation. That comparison is covered in
-instructions/day3/scale-notes.md
+instructions/day3/13-scale-notes.md
 """
 
 from __future__ import annotations

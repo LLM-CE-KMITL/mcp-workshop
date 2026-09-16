@@ -110,7 +110,7 @@ flowchart TB
 
 | เรื่อง | ไฟล์ |
 |---|---|
-| ความต่างเมื่อขึ้น scale | [scale-notes.md](scale-notes.md) |
+| ความต่างเมื่อขึ้น scale | [13-scale-notes.md](13-scale-notes.md) |
 | เทียบกับ production | [../reference/production-mapping.md](../reference/production-mapping.md) |
 | ตัวอย่าง prompt และผลการวางแผน | [../reference/prompt-examples.md](../reference/prompt-examples.md) |
 | การวัดผล | [../reference/evaluation-metrics.md](../reference/evaluation-metrics.md) |

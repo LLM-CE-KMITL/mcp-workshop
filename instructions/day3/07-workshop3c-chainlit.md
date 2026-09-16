@@ -109,4 +109,4 @@ async def starters():
 
 ## ต่อไป
 
-→ [Workshop 3D: ต่อกับ Claude Desktop / Cursor](workshop3d-connect-clients.md)
+→ [Workshop 3D: ต่อกับ Claude Desktop / Cursor](08-workshop3d-connect-clients.md)

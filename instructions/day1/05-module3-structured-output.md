@@ -179,4 +179,4 @@ asyncio.run(go())
 
 ## 8. ต่อไป
 
-→ [Workshop 1: JSON + Auto-retry](workshop1-json-autoretry.md)
+→ [Workshop 1: JSON + Auto-retry](06-workshop1-json-autoretry.md)
