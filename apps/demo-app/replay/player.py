@@ -22,7 +22,7 @@ TRACE_DIR = Path(__file__).parent / "traces"
 # once looks fake and gives the audience no time to read.
 TOKEN_DELAY = 0.018
 STEP_DELAY = 0.45
-PLAN_DELAY = 1.2
+THOUGHT_DELAY = 1.0
 
 
 def load_traces() -> list[dict]:
@@ -63,8 +63,8 @@ async def replay(question: str) -> AsyncIterator[tuple[str, object]]:
         if kind == "token":
             # Tokens were recorded individually; replay them one at a time.
             await asyncio.sleep(TOKEN_DELAY)
-        elif kind == "plan_created":
-            await asyncio.sleep(PLAN_DELAY)
+        elif kind == "thought":
+            await asyncio.sleep(THOUGHT_DELAY)
         elif kind in ("step_started", "step_result"):
             await asyncio.sleep(STEP_DELAY)
         else:

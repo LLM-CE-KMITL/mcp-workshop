@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "chainlit-ui"))
 import chainlit as cl  # noqa: E402
 import httpx  # noqa: E402
 import health_page  # noqa: E402
-from elements import cost_meter, plan_view, topic_banner  # noqa: E402
+from elements import cost_meter, thought_view, topic_banner  # noqa: E402
 from replay.player import replay  # noqa: E402
 from starters import DEMO_STARTERS  # noqa: E402
 
@@ -88,10 +88,10 @@ async def on_message(message: cl.Message):
         elif kind == "topic_changed":
             await topic_banner(data)
 
-        elif kind == "plan_created":
-            step = cl.Step(name=f"วางแผน {len(data['steps'])} ขั้นตอน", type="llm")
+        elif kind == "thought":
+            step = cl.Step(name=f"คิด [{data['step']}]", type="llm")
             await step.__aenter__()
-            step.output = plan_view(data)
+            step.output = thought_view(data)
             await step.__aexit__(None, None, None)
 
         elif kind == "step_started":
