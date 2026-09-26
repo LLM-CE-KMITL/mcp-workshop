@@ -89,11 +89,15 @@ flowchart LR
 
 ---
 
-## 4. Gemma ไม่มี native function calling — แล้วทำ Agent ยังไง
+## 4. ทำไมเราไม่ใช้ native function calling (แม้ Qwen จะรองรับ)
 
-Gemma ไม่ได้ออกแบบมาพร้อม function-calling API แบบบางโมเดล
+`qwen/qwen3-30b-a3b` มี native tool-calling API ในตัวจริง (`tools`/`tool_choice` แบบเดียวกับโมเดลใหญ่ทั่วไป) แต่ workshop นี้**เลือกไม่ใช้โดยตั้งใจ**
 
-**แต่ไม่เป็นปัญหา** เพราะ tool call ที่แท้จริงก็คือ JSON ที่บอกว่า *"เรียกฟังก์ชันชื่ออะไร ด้วย argument อะไร"*
+**เหตุผล**: tool call ที่แท้จริงก็คือ JSON ที่บอกว่า *"เรียกฟังก์ชันชื่ออะไร ด้วย argument อะไร"* ไม่ว่าจะมาจาก native API หรือบังคับด้วย JSON Schema เอง กลไกข้างในเหมือนกัน — แต่บังคับ JSON Schema เองให้ข้อดี 3 อย่าง:
+
+1. **สลับ LLM provider ได้** โดยไม่ต้องเขียน agent loop ใหม่ (native tool-calling แต่ละเจ้า schema ไม่เหมือนกัน)
+2. **ควบคุม validation/retry เองได้เต็มที่** (โยงไปหัวข้อ 5 — Auto-retry)
+3. **เข้าใจกลไกจริง**ที่ซ่อนอยู่หลัง native API ด้วย เพราะสุดท้ายมันคือ JSON + parser เหมือนกัน
 
 ```mermaid
 flowchart LR

@@ -31,16 +31,16 @@ sequenceDiagram
 
 ---
 
-## 2. เมื่อโมเดลไม่มี native tool API
+## 2. ทำไมเราไม่ใช้ native tool API (แม้ Qwen จะรองรับ)
 
-Gemma ไม่มี function-calling API ในตัว แต่ไม่เป็นอุปสรรค เพราะ tool call = JSON
+`qwen/qwen3-30b-a3b` มี native tool-calling API ในตัว แต่ workshop นี้เลือกไม่ใช้ เพราะ tool call จริง ๆ ก็คือ JSON เหมือนกันทั้งคู่
 
 | แบบ | ที่มาของ JSON |
 |---|---|
 | Native tool API | โมเดลคืน `tool_calls` มาให้ |
 | **Structured output (ที่ใช้)** | บังคับ schema แล้ว parse เอง |
 
-ทั้งสองแบบ **โค้ดเราเป็นคนเรียกฟังก์ชันเหมือนกัน** ต่างแค่รูปแบบที่ JSON เดินทางมา
+ทั้งสองแบบ **โค้ดเราเป็นคนเรียกฟังก์ชันเหมือนกัน** ต่างแค่รูปแบบที่ JSON เดินทางมา — ข้อดีของแบบที่ใช้คือสลับ LLM provider ได้โดยไม่ต้องเขียน agent loop ใหม่
 
 ---
 
