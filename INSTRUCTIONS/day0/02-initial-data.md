@@ -84,7 +84,7 @@ graph TB
 ```
 
 สี = role: แดง `CR` (core), ส้ม `PE` (provider edge), น้ำเงิน `APE` (aggregation), เขียว `LPE` (local/access)
-สังเกต: `LPE-NBI-11/12/13` ทั้ง 3 ตัว uplink ไปที่ `APE-NBI-03` **ตัวเดียวกัน** — นี่คือจุดร่วมที่ scenario S1 (interface flapping) ใช้สอนเรื่อง cross-service diagnosis ดู [00-full-demo.md](00-full-demo.md) ข้อ 2
+สังเกต: `LPE-NBI-11/12/13` ทั้ง 3 ตัว uplink ไปที่ `APE-NBI-03` **ตัวเดียวกัน** — นี่คือจุดร่วมที่ scenario S1 (interface flapping) ใช้สอนเรื่อง cross-service diagnosis ดู [04-full-demo.md](04-full-demo.md) ข้อ 2
 
 ดึงมาด้วย:
 ```cypher

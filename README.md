@@ -12,11 +12,11 @@
 
 | ลำดับ | เอกสาร | ใช้ทำอะไร |
 |---|---|---|
-| 0 | [day0/00-full-demo.md](INSTRUCTIONS/day0/00-full-demo.md) | ลองรันทั้งระบบให้จบใน 10 นาที ก่อนเริ่มเรียนจริง (ไม่บังคับ) |
-| 1 | [day0/01-prerequisites.md](INSTRUCTIONS/day0/01-prerequisites.md) | สิ่งที่ต้องเตรียมตัวก่อนมาเรียน |
-| 2 | [day0/02-setup.md](INSTRUCTIONS/day0/02-setup.md) | ติดตั้งและตรวจสอบระบบด้วยตัวเอง |
-| 3 | [day0/03-architecture.md](INSTRUCTIONS/day0/03-architecture.md) | ภาพรวมสถาปัตยกรรม + ตารางเวลาเต็ม 3 วัน |
-| 4 | [day0/04-initial-data.md](INSTRUCTIONS/day0/04-initial-data.md) | ตัวอย่างข้อมูลจริงใน 3 ฐานข้อมูลหลัง seed (PostgreSQL/Neo4j/OpenSearch) |
+| 1 | [day0/01-architecture.md](INSTRUCTIONS/day0/01-architecture.md) | ภาพรวมสถาปัตยกรรม + ตารางเวลาเต็ม 3 วัน |
+| 2 | [day0/02-initial-data.md](INSTRUCTIONS/day0/02-initial-data.md) | ตัวอย่างข้อมูลจริงใน 3 ฐานข้อมูลหลัง seed (PostgreSQL/Neo4j/OpenSearch) |
+| 3 | [day0/03-prerequisites.md](INSTRUCTIONS/day0/03-prerequisites.md) | สิ่งที่ต้องเตรียมตัวก่อนมาเรียน |
+| 4 | [day0/04-full-demo.md](INSTRUCTIONS/day0/04-full-demo.md) | ลองรันทั้งระบบให้จบใน 10 นาที ก่อนเริ่มเรียนจริง (ไม่บังคับ) |
+| 5 | [day0/05-setup.md](INSTRUCTIONS/day0/05-setup.md) | ติดตั้งและตรวจสอบระบบด้วยตัวเอง |
 
 ---
 

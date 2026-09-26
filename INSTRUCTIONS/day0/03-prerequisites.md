@@ -77,7 +77,7 @@ git clone https://github.com/LLM-CE-KMITL/mcp-workshop.git && cd mcp-workshop
 ```
 
 ```bash
-cd mcp-workshop-kmitl
+cd mcp-workshop
 ```
 
 ```bash

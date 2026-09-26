@@ -6,7 +6,7 @@
 
 ## T-7 วัน
 
-- [ ] ส่ง [INSTRUCTIONS/day0/01-prerequisites.md](INSTRUCTIONS/day0/01-prerequisites.md) ให้ผู้เรียน
+- [ ] ส่ง [INSTRUCTIONS/day0/03-prerequisites.md](INSTRUCTIONS/day0/03-prerequisites.md) ให้ผู้เรียน
 - [ ] ส่งแบบสอบถามก่อนอบรม
 - [ ] แจ้ง URL และ API key ของ LLM ภายใน
 - [ ] แจ้งวิธีต่อ VPN (ถ้าต้องใช้)

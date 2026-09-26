@@ -1,7 +1,7 @@
 # Full Demo — ลองระบบให้จบภายใน 10 นาที ก่อนเริ่มเรียนจริง
 
 หน้านี้ไม่ใช่บทเรียน — เป็น**ทางลัดให้เห็นของจริงก่อน** ว่าตลอด 3 วันจะสร้างอะไรขึ้นมา
-รันตามนี้ครั้งเดียวจบ แล้วค่อยย้อนกลับไปเริ่ม [01-prerequisites.md](01-prerequisites.md) ตามลำดับปกติ
+รันตามนี้ครั้งเดียวจบ แล้วค่อยย้อนกลับไปเริ่ม [03-prerequisites.md](03-prerequisites.md) ตามลำดับปกติ
 
 ---
 
@@ -28,7 +28,7 @@ flowchart TB
 ```
 
 **Agent API** ประมวลผลคำถามผ่าน 6 ขั้นตอนเรียงกัน: Intent Gate → Memory → Planner → Executor (+ Loop Guard) → Synthesizer → Grounding
-รายละเอียดแต่ละขั้นตอน + เหตุผลเชิงสถาปัตยกรรม อยู่ที่ [03-architecture.md](03-architecture.md)
+รายละเอียดแต่ละขั้นตอน + เหตุผลเชิงสถาปัตยกรรม อยู่ที่ [01-architecture.md](01-architecture.md)
 
 ---
 
@@ -140,4 +140,4 @@ docker compose -f docker/docker-compose.yml --env-file .env --profile demo down 
 
 ## ถัดไป
 
-เริ่มหลักสูตรจริงที่ [01-prerequisites.md](01-prerequisites.md)
+เริ่มหลักสูตรจริงที่ [03-prerequisites.md](03-prerequisites.md)
