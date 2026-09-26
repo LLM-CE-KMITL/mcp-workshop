@@ -26,21 +26,36 @@ SELECT count(*) AS total, count(embedding) AS embedded FROM tickets;
 
 ## ขั้นที่ 1 · ลบทิ้ง
 
-```bash
-cmd /c "docker exec -i mpls-postgres psql -U mpls -d mplsdb < scripts/lab/lab1_reset_vector.sql"
+**pgAdmin** — รัน:
+```sql
+DROP INDEX IF EXISTS idx_tickets_embedding;
+ALTER TABLE tickets DROP COLUMN IF EXISTS embedding;
+
+-- ยืนยันผล ควรได้ 0 แถว
+SELECT column_name
+FROM information_schema.columns
+WHERE table_name = 'tickets' AND column_name = 'embedding';
 ```
 
-```bash
-cmd /c "docker exec -i mpls-neo4j cypher-shell -u neo4j -p neo4j_dev_password < scripts/lab/lab1_reset_vector.cypher"
+**Neo4j Browser** — รัน:
+```cypher
+DROP INDEX device_embedding IF EXISTS;
+DROP INDEX circuit_embedding IF EXISTS;
+
+MATCH (d:Device)  REMOVE d.embedding;
+MATCH (c:Circuit) REMOVE c.embedding;
+
+// ยืนยันผล ควรได้ 0
+MATCH (n) WHERE n.embedding IS NOT NULL RETURN count(n) AS nodes_with_embedding;
 ```
 
-คำสั่งนี้ลบ vector ทั้งใน **PostgreSQL และ Neo4j**
+คำสั่งข้างบนนี้ลบ vector ทั้งใน **PostgreSQL และ Neo4j** (ตรงกับที่ `make lab1-reset` ทำให้อัตโนมัติ ถ้าอยากรันทีเดียวแทนการเปิด 2 หน้าต่างก็ใช้คำสั่งนั้นได้เลย)
 
 ลองถามคำถามเดิมอีกครั้ง — ระบบจะตอบว่ายังไม่มี embedding
 
 ---
 
-**ทำไมต้อง 1536** — ต้องตรงกับมิติของโมเดล ถ้าใส่ผิด `INSERT` จะ error ทุกแถว
+**ทำไมต้อง 1024** — ต้องตรงกับมิติของโมเดล ถ้าใส่ผิด `INSERT` จะ error ทุกแถว
 
 ```bash
 $headers = @{
@@ -54,7 +69,7 @@ $body = '{"model":"baai/bge-m3","input":["test"]}'
 ## ขั้นที่ 2 · เพิ่ม column
 
 ```sql
-ALTER TABLE tickets ADD COLUMN embedding vector(1536);
+ALTER TABLE tickets ADD COLUMN embedding vector(1024);
 ```
 
 ---
@@ -86,14 +101,9 @@ def embed_batch(texts: list[str]) -> list[list[float]]:
         "X-Title": "MCP Workshop"
     }
     
-    # 3. ส่ง dimensions: 768 ไปด้วย เพื่อให้ขนาดตรงกับตารางเดิม
     r = httpx.post(
         EMB, 
-        json={
-            "model": MODEL, 
-            "input": texts,
-            "dimensions": 1536
-        }, 
+        json={"model": MODEL, "input": texts},
         headers=headers, 
         timeout=60
     )
@@ -173,7 +183,7 @@ def embed_batch(texts: list[str]) -> list[list[float]]:
 q = embed_batch(["ลูกค้าบ่นว่าอินเทอร์เน็ตหลุดบ่อย"])[0]
 
 print("✅ แปลง Embedding สำเร็จ!")
-print("ความยาวมิติเวกเตอร์:", len(q)) # ควรจะได้ 1536
+print("ความยาวมิติเวกเตอร์:", len(q)) # ควรจะได้ 1024
 print("ตัวอย่างข้อมูลเวกเตอร์ 5 ค่าแรก:", q[:5])
 ```
 
@@ -183,39 +193,22 @@ print("ตัวอย่างข้อมูลเวกเตอร์ 5 ค�
 
 ## ขั้นที่ 6 · ทำ Neo4j ด้วย
 
-```cypher
-CREATE VECTOR INDEX device_embedding IF NOT EXISTS
-FOR (d:Device) ON (d.embedding)
-OPTIONS { indexConfig: {
-  `vector.dimensions`: 1536,
-  `vector.similarity_function`: 'cosine'
-}};
-```
-
-แล้ว backfill `d.profile_text` เข้าไป (ดูตัวอย่างใน `docker/seeder/seed_neo4j.py`)
-
-ลบ Vector ขนาด 768
-
-```cypher
-DROP INDEX device_embedding IF EXISTS;
-```
-
-"สร้างใหม่" ให้รองรับ 1024 มิติ
+index เดิมถูกลบไปแล้วตั้งแต่ขั้นที่ 1 — สร้างใหม่ให้รองรับ 1024 มิติ:
 
 ```cypher
 CREATE VECTOR INDEX device_embedding IF NOT EXISTS
 FOR (d:Device) ON (d.embedding)
 OPTIONS {
   indexConfig: {
-    `vector.dimensions`: 1536,
+    `vector.dimensions`: 1024,
     `vector.similarity_function`: 'cosine'
   }
 };
 ```
 
-รันไฟล์ embed_devices.py
+แล้ว backfill `d.profile_text` เข้าไปด้วยสคริปต์อ้างอิง (โค้ดตัวอย่างอยู่ใน `docker/seeder/seed_neo4j.py`):
 
-```cypher
+```bash
 uv run python scripts/embed_devices.py
 ```
 
