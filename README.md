@@ -16,6 +16,7 @@
 | 1 | [day0/01-prerequisites.md](INSTRUCTIONS/day0/01-prerequisites.md) | สิ่งที่ต้องเตรียมตัวก่อนมาเรียน |
 | 2 | [day0/02-setup.md](INSTRUCTIONS/day0/02-setup.md) | ติดตั้งและตรวจสอบระบบด้วยตัวเอง |
 | 3 | [day0/03-architecture.md](INSTRUCTIONS/day0/03-architecture.md) | ภาพรวมสถาปัตยกรรม + ตารางเวลาเต็ม 3 วัน |
+| 4 | [day0/04-initial-data.md](INSTRUCTIONS/day0/04-initial-data.md) | ตัวอย่างข้อมูลจริงใน 3 ฐานข้อมูลหลัง seed (PostgreSQL/Neo4j/OpenSearch) |
 
 ---
 
