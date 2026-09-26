@@ -32,7 +32,85 @@
 | TK-25-00083 | APE-NBI-03 | slow | high | closed | ความเร็วไม่เต็มตามแพ็กเกจ | 1024 |
 | TK-25-00019 | LPE-NBI-12 | slow | low | closed | latency สูงผิดปกติช่วงเย็น | 1024 |
 
-ดึงมาด้วย:
+### ER Diagram (รวม vector column แล้ว)
+
+9 ตารางทั้งหมด — `tickets.embedding` คือคอลัมน์ vector ที่ Lab 1 ให้สร้างเอง (ในนี้แสดงแบบที่มีอยู่แล้ว):
+
+```mermaid
+erDiagram
+    SITES ||--o{ DEVICES : "อยู่ที่"
+    DEVICES ||--o{ INTERFACES : มี
+    DEVICES ||--|| DEVICE_CONFIGS : ตั้งค่าโดย
+    DEVICES ||--o{ CIRCUITS : terminate
+    CUSTOMERS ||--o{ CIRCUITS : เป็นเจ้าของ
+    SITES ||--o{ TICKETS : "อาจเกี่ยวข้อง"
+    DEVICES ||--o{ TICKETS : "อาจเกี่ยวข้อง"
+    CIRCUITS ||--o{ TICKETS : "อาจเกี่ยวข้อง"
+    TICKET_CATEGORIES ||--o{ TICKETS : จัดหมวด
+    TICKETS ||--o{ TICKET_MESSAGES : มี
+
+    SITES {
+        varchar site_code PK
+        text name_th
+        text region
+    }
+    DEVICES {
+        varchar device_id PK
+        varchar site_code FK
+        varchar role
+        text vendor
+        text model
+        inet mgmt_ip
+    }
+    INTERFACES {
+        serial id PK
+        varchar device_id FK
+        text if_name
+        text if_type
+        int mtu
+    }
+    DEVICE_CONFIGS {
+        varchar device_id PK
+        varchar isis_level
+        int default_mtu
+        text config_markdown
+    }
+    CUSTOMERS {
+        varchar customer_id PK
+        text name
+        varchar segment
+    }
+    CIRCUITS {
+        varchar circuit_id PK
+        varchar customer_id FK
+        varchar device_id FK
+        text service_type
+        int bandwidth_mbps
+    }
+    TICKET_CATEGORIES {
+        varchar code PK
+        text name_th
+    }
+    TICKETS {
+        varchar ticket_id PK
+        varchar category FK
+        varchar severity
+        varchar status
+        varchar site_code FK
+        varchar device_id FK
+        varchar circuit_id FK
+        text title
+        vector embedding "1024 มิติ - EMBEDDING_DIM"
+    }
+    TICKET_MESSAGES {
+        serial id PK
+        varchar ticket_id FK
+        text author
+        text message
+    }
+```
+
+ดึงตัวอย่างข้อมูลด้วย:
 ```sql
 SELECT ticket_id, device_id, category, severity, status, left(title, 30),
        vector_dims(embedding) AS emb_dim
@@ -94,7 +172,19 @@ RETURN a.device_id, b.device_id, r.bandwidth_mbps ORDER BY a.device_id;
 
 ---
 
-## 3. OpenSearch — ตัวอย่าง log (`network-logs-*`)
+## 3. OpenSearch — index ที่มี
+
+```
+green  open   network-docs           56 docs    1.3mb
+green  open   network-logs-000001    2000 docs  279.9kb
+```
+
+- **`network-logs-000001`** — matched โดย index template `network-logs` (pattern `network-logs-*`) เก็บ log อุปกรณ์ทั้งหมด ดูตัวอย่างด้านล่าง
+- **`network-docs`** — matched โดย index template `network-docs` (pattern `network-docs*`) เก็บ runbook/config ที่ chunk + embed แล้ว (ดูตัวอย่างที่ [scripts/ingest_docs.py](../../scripts/ingest_docs.py))
+
+(index อื่นที่ขึ้นต้นด้วย `.` เช่น `.kibana_1`, `.opensearch-observability` เป็น index ภายในของตัว OpenSearch เอง ไม่เกี่ยวกับ workshop)
+
+### ตัวอย่าง log (`network-logs-*`)
 
 log ปกติ (BASELINE — เหตุการณ์ทั่วไป ไม่มีอะไรผิดปกติ):
 ```json

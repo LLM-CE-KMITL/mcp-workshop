@@ -87,9 +87,38 @@ flowchart LR
 mpls_dev_password
 ```
 
-แล้วลองรัน:
+แล้วลองรันดูให้เห็น "หัวข้อ" ของข้อมูลแต่ละก้อน (9 ตารางทั้งหมด ดูโครงสร้างเต็มได้ที่ `docker/postgres/init/02_schema.sql.template`):
+
+ดูตัวอย่าง ticket ดิบ ๆ ก่อน (รวม `embedding` ที่ seed ไว้ให้แล้ว):
+```sql
+SELECT * FROM public.tickets LIMIT 10;
+```
+
+อุปกรณ์ในเครือข่าย:
 ```sql
 SELECT device_id, site_code, role, model FROM devices ORDER BY site_code, role;
+```
+
+ticket แบ่งตามหมวด (ภาพรวมว่าลูกค้าแจ้งเรื่องอะไรเข้ามาบ้าง):
+```sql
+SELECT category, count(*) FROM tickets GROUP BY category ORDER BY count(*) DESC;
+```
+
+ลูกค้าแบ่งตามกลุ่มธุรกิจ:
+```sql
+SELECT segment, count(*) FROM customers GROUP BY segment;
+```
+
+วงจร (circuit) ผูกกับลูกค้าและอุปกรณ์อย่างไร:
+```sql
+SELECT c.circuit_id, cu.name, c.service_type, c.bandwidth_mbps, c.device_id
+FROM circuits c JOIN customers cu ON cu.customer_id = c.customer_id
+LIMIT 10;
+```
+
+มุมมองสรุปที่ MCP tools ใช้จริง (join ticket + device + customer ให้แล้ว):
+```sql
+SELECT * FROM v_ticket_overview ORDER BY opened_at DESC LIMIT 10;
 ```
 
 **Neo4j Browser** — Password (ใส่ตอน connect, username คือ `neo4j`):
