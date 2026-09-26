@@ -8,7 +8,52 @@
 
 สร้างคลาสที่รับ input จากผู้ใช้ ส่งไปประมวลผลกับ LLM โดย **บังคับโครงสร้าง output ที่แน่นอน** และถ้าได้ JSON ที่ไม่ถูกต้อง ให้ **แก้ไขและลองใหม่อัตโนมัติ**
 
-ผลงานชิ้นนี้จะถูกใช้ต่อในวันที่ 2 (สร้าง plan) และวันที่ 3 (structured output ของ MCP tool) จึงควรเขียนให้ใช้ซ้ำได้
+ผลงานชิ้นนี้จะถูกใช้ต่อในวันที่ 2 (บังคับ `ReactDecision` ในทุกรอบของ ReAct loop) และวันที่ 3 (structured output ของ MCP tool) จึงควรเขียนให้ใช้ซ้ำได้
+
+---
+
+## ภาพรวม Flow ก่อนลงมือเขียน
+
+หัวใจของโจทย์นี้มีแค่ 3 สถานะที่ต้องจัดการให้ครบ: **สำเร็จตั้งแต่รอบแรก**, **พังแล้วแก้ตัวจนสำเร็จ**, และ **พังจนครบทุกรอบแล้วต้องมี fallback ไม่ crash**
+
+```mermaid
+flowchart TD
+    A["ข้อความดิบจากลูกค้า"] --> B["ส่งให้ LLM<br/>พร้อม JSON Schema"]
+    B --> C{"parse ผ่าน<br/>Pydantic ไหม"}
+    C -->|ผ่าน| D["คืน ExtractionResult<br/>ok=true"]
+    C -->|ไม่ผ่าน| E["เก็บ error ลง errors[]"]
+    E --> F["ต่อ error กลับเข้า conversation<br/>บอกโมเดลว่าผิดตรงไหน"]
+    F --> G{"attempt < max_retries?"}
+    G -->|ใช่| B
+    G -->|ครบแล้ว| H["คืน ExtractionResult<br/>ok=false + fallback"]
+    style D fill:#e0ffe0,stroke:#0a0
+    style H fill:#fff4e0,stroke:#c90
+```
+
+**จุดที่มักพลาด**:
+
+| จุด | พลาดยังไง | แก้ยังไง |
+|---|---|---|
+| ขั้น F | ลองใหม่ด้วย prompt เดิมทุกคำ | ต้องส่ง **ข้อความ error จริง** กลับไปให้โมเดลเห็นว่าผิดตรงไหน ไม่งั้นมันจะพังแบบเดิมซ้ำ |
+| ขั้น G | ลืมมีเพดาน จึงวนไม่จบ | `max_retries` ต้องบังคับจริง นับ `attempt` ทุกรอบ |
+| ขั้น H | โยน exception ออกไปตรงๆ | ต้อง**คืนค่า** เสมอ (`ok=false` + ข้อมูล fallback) ผู้เรียกโค้ดจะได้ไม่ต้อง try/except เอง |
+| ทุกขั้น | ลืมนับ token สะสม | ใช้ `LLMStats` ตัวเดียวกันสะสมไปตลอดทุก attempt ไม่สร้างใหม่ทุกรอบ |
+
+ลำดับเวลาของ "รอบที่พังแล้วแก้ตัวสำเร็จ" หน้าตาแบบนี้ (เทียบกับ Module 3 หัวข้อ 5 ที่เป็นกลไกเดียวกัน แต่ที่นี่ให้เขียนเอง):
+
+```mermaid
+sequenceDiagram
+    participant E as StructuredExtractor
+    participant L as LLM
+
+    E->>L: attempt 1: ข้อความ + schema
+    L-->>E: JSON ที่ severity="วิกฤต" (ไม่อยู่ใน enum)
+    E->>E: validate ล้มเหลว → เก็บ error, attempt += 1
+    E->>L: attempt 2: ข้อความเดิม + "ผิดตรงนี้: severity ต้องเป็น low/medium/high/critical"
+    L-->>E: JSON ที่ severity="critical" (ถูกต้อง)
+    E->>E: validate ผ่าน
+    E-->>E: คืน ok=true, attempts=2, errors=[รายการที่ 1]
+```
 
 ---
 
@@ -21,6 +66,15 @@
 ```python
 import asyncio
 import sys
+from pathlib import Path
+from dotenv import load_dotenv
+
+# ต้องโหลด .env ก่อน import agent.llm เสมอ เพราะ agent/llm.py อ่าน
+# LLM_BASE_URL/LLM_API_KEY เป็นค่าคงที่ระดับโมดูลตอน import - ถ้าโหลดทีหลัง
+# มันจะได้ default "not-needed" ไปแล้ว แล้วยิง request ไปเจอ 401 Missing
+# Authentication header ที่ OpenRouter (เจอบ่อยที่สุดตอนรันสคริปต์นี้ตรงๆ)
+load_dotenv(Path(__file__).resolve().parent / ".env")
+
 sys.path.insert(0, 'apps/agent-api')
 
 from pydantic import BaseModel, Field
@@ -83,7 +137,11 @@ uv run test_parser.py
 
 ## สิ่งที่ต้องสร้าง
 
-### 1. Schema
+จากนี้คือโจทย์จริงที่ต้องส่ง (ต่างจาก `test_parser.py`/`TicketSummary` ในหัวข้อ "บริบทงานจริง" ด้านบน ซึ่งเป็นแค่ตัวอย่าง demo ที่เรียก `complete_structured()` สำเร็จรูป — ที่นี่ต้องเขียน retry loop **เอง**)
+
+### 1. Schema — กำหนดโครงสร้าง `TicketExtraction`
+
+ต่างจาก `TicketSummary` ตรงที่ทุกฟิลด์ต้อง **บังคับด้วย type ที่เข้มกว่า** (enum ปิด, ตัวเลขมีขอบเขต) ไม่ใช่ `str` เปิดกว้างเหมือนตัวอย่าง demo:
 
 ```python
 from enum import Enum
@@ -109,6 +167,46 @@ class TicketExtraction(BaseModel):
     customer_impact: str = Field(description="ผลกระทบต่อการใช้งานของลูกค้า")
     confidence: float = Field(ge=0.0, le=1.0)
 ```
+
+**ตัวอย่าง output ที่ต้องการ** — จากข้อความ *"ลูกค้าสาขา NBI โทรมาโวยวายว่าเน็ตหลุดเป็นช่วงๆ ตั้งแต่เช้า ใช้งาน video conference ไม่ต่อเนื่องเลย แจ้งให้เช็คเร้าเตอร์ LPE-NBI-11 ด่วนๆ"* ควรได้ JSON แบบนี้กลับมา:
+
+```json
+{
+  "category": "intermittent",
+  "severity": "high",
+  "affected_device": "LPE-NBI-11",
+  "affected_site": "NBI",
+  "summary_th": "เน็ตหลุดเป็นช่วงๆ ตั้งแต่เช้า กระทบการใช้งาน video conference",
+  "customer_impact": "วิดีโอคอนเฟอเรนซ์ใช้งานไม่ต่อเนื่อง ลูกค้าแจ้งด่วน",
+  "confidence": 0.9
+}
+```
+
+ข้อความที่ไม่มีอุปกรณ์หรือสาขาเจาะจง (เช่นถามข้อมูลทั่วไป) ก็ต้องได้ JSON ที่ valid เหมือนกัน — แค่ฟิลด์ optional เป็น `null`:
+
+```json
+{
+  "category": "inquiry",
+  "severity": "low",
+  "affected_device": null,
+  "affected_site": null,
+  "summary_th": "ลูกค้าสอบถามขั้นตอนการขอใบเสร็จรับเงิน",
+  "customer_impact": "ไม่กระทบการใช้งาน เป็นคำถามเชิงธุรการ",
+  "confidence": 0.75
+}
+```
+
+**JSON ที่ validate ไม่ผ่าน** (ตัวอย่างสิ่งที่โมเดลชอบทำพัง แล้ว `StructuredExtractor` ต้องจับได้และส่งกลับไปแก้):
+
+```json
+{
+  "category": "สายหลุด",
+  "severity": "วิกฤต",
+  "affected_device": "เร้าเตอร์ LPE-NBI-11",
+  "confidence": "สูงมาก"
+}
+```
+ผิด 4 จุดพร้อมกัน: `category`/`severity` ไม่อยู่ใน enum ที่กำหนด (เป็นคำไทยอิสระ), `affected_device` ใส่คำฟุ่มเฟือยปนมาแทนที่จะเป็นรหัสล้วนๆ, `confidence` ควรเป็นตัวเลข 0.0-1.0 แต่ได้ string มา, และขาดฟิลด์บังคับ `summary_th`/`customer_impact`/`affected_site` ไปเลย — ข้อความ error ที่ Pydantic โยนออกมาตรงนี้แหละคือสิ่งที่ต้องส่งกลับให้โมเดลเห็นในรอบถัดไป
 
 ### 2. คลาส `StructuredExtractor`
 
@@ -157,6 +255,41 @@ GROUP BY t.ticket_id LIMIT 20;
 
 ## สร้างไฟล์ extractor.py
 
+### Flow ของ extractor.py จริง (รันแล้วจะเห็นตามนี้ทุก print)
+
+```mermaid
+flowchart TD
+    S["main(): ดึง ticket 3 ใบจาก PostgreSQL<br/>(ticket_id, conversation)"] --> L{"วนทีละ ticket"}
+    L --> P1["📥 print บทสนทนาดิบ (raw_text)"]
+    P1 --> EX["extractor.extract(conversation)"]
+
+    subgraph LOOP["StructuredExtractor.extract() — วนสูงสุด max_retries รอบ"]
+        direction TB
+        A["🔄 print รอบที่ N"] --> B["llm.complete()<br/>ส่ง messages + schema ไปให้ LLM"]
+        B --> C["print raw response ดิบ"]
+        C --> D["ตัด markdown fence ออก"]
+        D --> E{"model_validate_json<br/>ผ่านไหม"}
+        E -->|ผ่าน| F["✅ print structure ที่ parse ได้<br/>return ExtractionResult(ok=true)"]
+        E -->|ไม่ผ่าน| G["❌ print error message<br/>เก็บลง errors_log"]
+        G --> H["ต่อ error เข้า messages<br/>ให้โมเดลเห็นว่าผิดตรงไหน"]
+        H --> I{"attempt < max_retries?"}
+        I -->|ใช่| A
+        I -->|ครบแล้ว| J["return ExtractionResult(ok=false)<br/>ไม่ crash"]
+    end
+
+    EX --> LOOP
+    F --> R["print ผลลัพธ์สุดท้าย + attempts/tokens/latency"]
+    J --> R
+    R --> L
+    L -->|ครบทุก ticket| Z["จบ"]
+
+    style F fill:#e0ffe0,stroke:#0a0
+    style J fill:#fff4e0,stroke:#c90
+    style G fill:#ffe0e0,stroke:#c00
+```
+
+**สังเกต**: กล่อง `LOOP` คือ `extract()` ที่เขียนเอง ส่วนกล่อง `main()` ข้างนอกแค่วนเรียกทีละ ticket แล้วพิมพ์สรุป — ทุก print ในแผนภาพนี้ตรงกับสิ่งที่เห็นจริงตอนรัน `uv run extractor.py`
+
 ```python
 import asyncio
 import os
@@ -166,6 +299,13 @@ from pathlib import Path
 from typing import Any
 from pydantic import BaseModel, Field
 import psycopg
+from dotenv import load_dotenv
+
+# ต้องโหลด .env ก่อน import agent.llm เสมอ เพราะ agent/llm.py อ่าน
+# LLM_BASE_URL/LLM_API_KEY เป็นค่าคงที่ระดับโมดูลตอน import - ถ้าโหลดทีหลัง
+# มันจะได้ default "not-needed" ไปแล้ว แล้วยิง request ไปเจอ 401 Missing
+# Authentication header ที่ OpenRouter (เจอบ่อยที่สุดตอนรันสคริปต์นี้ตรงๆ)
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 # เพิ่ม Path ไปยังโฟลเดอร์ agent-api
 sys.path.insert(0, str(Path(__file__).resolve().parent / "apps" / "agent-api"))
@@ -240,6 +380,7 @@ class StructuredExtractor:
         fallback_used = False
 
         for attempt in range(1, self.max_retries + 1):
+            print(f"\n  🔄 รอบที่ {attempt}")
             try:
                 # เรียกใช้ LLM ผ่านโมดูลกลางพร้อมเก็บ Stats (Token & Latency)
                 raw_response = await llm.complete(
@@ -248,7 +389,8 @@ class StructuredExtractor:
                     model=self.model,
                     temperature=self.temperature
                 )
-                
+                print(f"     raw response: {raw_response.strip()[:300]}")
+
                 # ทำความสะอาด Markdown Fence ถ้ามี
                 clean_raw = raw_response.strip()
                 if clean_raw.startswith("```"):
@@ -259,7 +401,8 @@ class StructuredExtractor:
 
                 # ตรวจสอบความถูกต้องด้วย Pydantic Schema
                 parsed_data = self.schema.model_validate_json(clean_raw)
-                
+                print(f"     ✅ parse ผ่าน: {parsed_data.model_dump()}")
+
                 stats_dict = stats.as_dict()
                 return ExtractionResult(
                     ok=True,
@@ -274,7 +417,8 @@ class StructuredExtractor:
             except Exception as exc:
                 error_msg = str(exc)
                 errors_log.append(error_msg)
-                
+                print(f"     ❌ parse ไม่ผ่าน: {error_msg[:300]}")
+
                 # ส่งประวัติที่ผิดพลาดกลับไปให้ LLM แก้ตัวเองในรอบถัดไป
                 messages.append({"role": "assistant", "content": raw_response[:1000] if 'raw_response' in locals() else ""})
                 messages.append({
@@ -316,7 +460,8 @@ async def main():
     for ticket_id, conversation in rows:
         print(f"\n----------------------------------------")
         print(f"📌 กำลังประมวลผล Ticket ID: {ticket_id}")
-        
+        print(f"📥 บทสนทนาดิบ (raw_text):\n{conversation}")
+
         result = await extractor.extract(conversation)
         
         print(f"สถานะ (OK): {result.ok}")

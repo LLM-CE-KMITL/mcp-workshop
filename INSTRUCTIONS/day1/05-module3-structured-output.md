@@ -55,6 +55,12 @@ flowchart LR
 - ใส่ค่าที่ไม่มีใน enum
 - ตอบเป็นภาษาไทยในฟิลด์ที่ต้องเป็น enum ภาษาอังกฤษ
 
+### ทำไมเรื่องนี้ไม่ใช่แค่ "ทำให้เสียเวลา"
+
+ไม่มี schema บังคับ = โค้ดที่ดึงค่าไปใช้ต่อพังแบบสุ่ม เพราะโมเดลตอบไม่เหมือนเดิมทุกครั้ง วันนี้ได้ `"severity": "สูง"` พรุ่งนี้ได้ `"severity": "high (ด่วน)"` — โค้ดที่กรองตาม severity ใช้ค่าไหนก็ไม่แน่ เพราะไม่รู้ล่วงหน้าว่าจะเจอรูปแบบไหน
+
+ตัวอย่างที่ชัดที่สุดในระบบนี้คือ `ReactDecision` ของวันที่ 2 (`agent/react.py`): ทุกรอบของ ReAct loop โมเดลต้องตอบ `tool` เป็น**ชื่อ tool ที่มีอยู่จริงเป๊ะๆ** ถ้าไม่บังคับ schema แล้วโมเดลตอบข้อความอิสระเช่น *"ผมจะไปค้น ticket ให้ครับ"* โค้ดไม่มีทางรู้ว่าต้องเรียกฟังก์ชันไหนด้วย argument อะไร — **schema คือสิ่งที่แปลง "คำพูด" ให้กลายเป็น "คำสั่งที่โปรแกรมรันได้จริง"** ไม่ใช่แค่ความเป็นระเบียบเฉยๆ
+
 ---
 
 ## 3. สามระดับของการบังคับ (จากอ่อนไปแข็ง)
@@ -151,7 +157,7 @@ conversation += [
 | หลักการ | ตัวอย่างจากโปรเจกต์นี้ |
 |---|---|
 | ใช้ `Enum` แทน string อิสระ | `IntentLabel` มี 4 ค่า ไม่ใช่ string ว่างเปล่า |
-| ใส่ `description` ทุกฟิลด์ | `PlanStep.depends_on` อธิบายว่าเมื่อไหร่ควรใส่ |
+| ใส่ `description` ทุกฟิลด์ | `ReactDecision.tool` อธิบายว่า null หมายถึงพร้อมตอบแล้ว |
 | กำหนดขอบเขตตัวเลข | `confidence: float = Field(ge=0, le=1)` |
 | ฟิลด์ที่ไม่บังคับต้องมี default | `missing_information: list = Field(default_factory=list)` |
 | **หลีกเลี่ยง nested ลึกเกิน 3 ชั้น** | โมเดลพลาดมากขึ้นตามความลึก |
@@ -162,9 +168,18 @@ conversation += [
 
 ## 7. ทดลอง (15 นาที)
 
+> ต้องใช้ `uv run python` เสมอ **ห้ามใช้ `python`/`python3` เฉยๆ** — ถ้า python บนเครื่อง (เช่น Anaconda) เป็นรุ่นเก่ากว่า 3.10
+> โค้ดทั้งโปรเจกต์ที่ใช้ syntax `X | Y` (เช่น `dict | list | str | None` ใน `schemas.py`) จะพังทันทีตอน import ด้วย
+> `TypeError: unsupported operand type(s) for |: 'type' and 'type'` — `uv run` การันตีว่าใช้ Python 3.12 ของโปรเจกต์เสมอ ไม่ว่า PATH จะชี้ไปที่ไหน
+>
+> ต้อง `load_dotenv()` เองด้วยก่อน import `agent.llm` เสมอ เพราะรันแบบ `-c` ตรงๆ แบบนี้ไม่มีใครโหลด `.env` ให้ —
+> `agent/llm.py` อ่าน `LLM_API_KEY` เป็นค่าคงที่ตอน import ถ้ายังไม่โหลด `.env` จะได้ default `"not-needed"` ไปแทน
+> แล้วไปเจอ `401 - Missing Authentication header` ที่ OpenRouter (คนละสาเหตุกับ error `unsupported operand` ข้างบน แต่เจอบ่อยพอกัน)
+
 ```bash
-python -c "
+uv run python -c "
 import asyncio, sys; sys.path.insert(0,'apps/agent-api')
+from dotenv import load_dotenv; load_dotenv('.env')
 from agent import llm
 from schemas import IntentResult
 async def go():
