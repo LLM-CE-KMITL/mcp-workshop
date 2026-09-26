@@ -11,9 +11,15 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 
 import httpx
 import psycopg
+from dotenv import load_dotenv
+
+# Loaded before reading any env var below - running this script directly with
+# `uv run` (not through docker compose --env-file) never sees .env otherwise.
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 PG_DSN = os.getenv("PG_ADMIN_DSN",
                    "postgresql://mpls:mpls_dev_password@localhost:5432/mplsdb")

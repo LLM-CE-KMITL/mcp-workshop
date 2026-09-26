@@ -139,7 +139,9 @@ async def run_turn(request: ChatRequest):
         from agent import executor  # imported here to keep startup fast
 
         results = []
-        async for event_type, payload in executor.execute(plan):
+        async for event_type, payload in executor.execute(
+            plan, stats=stats, model=request.model
+        ):
             if event_type == EventType.STEP_RESULT:
                 tool_calls += 1
                 from schemas import StepResult

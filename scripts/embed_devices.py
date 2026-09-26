@@ -11,9 +11,15 @@ the same query.
 
 import os
 import sys
+from pathlib import Path
 
 import httpx
+from dotenv import load_dotenv
 from neo4j import GraphDatabase
+
+# Loaded before reading any env var below - running this script directly with
+# `uv run` (not through docker compose --env-file) never sees .env otherwise.
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 EMBEDDING_BASE_URL = os.getenv("EMBEDDING_BASE_URL", "https://openrouter.ai/api/v1")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "baai/bge-m3")

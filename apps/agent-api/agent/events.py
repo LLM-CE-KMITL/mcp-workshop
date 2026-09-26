@@ -8,8 +8,11 @@ event stream.
 Event order for a normal in-scope question:
 
     intent_checked -> memory_updated -> plan_created
-    -> step_started -> step_result   (repeated)
+    -> step_started -> [step_retry] -> step_result   (repeated)
     -> grounding_checked -> token ... -> usage -> done
+
+step_retry is optional and only appears when a step's first attempt failed
+and the executor asked the model to correct its arguments once.
 """
 
 from __future__ import annotations
@@ -25,6 +28,7 @@ class EventType(str, Enum):
     TOPIC_CHANGED = "topic_changed"
     PLAN_CREATED = "plan_created"
     STEP_STARTED = "step_started"
+    STEP_RETRY = "step_retry"
     STEP_RESULT = "step_result"
     GROUNDING_CHECKED = "grounding_checked"
     TOKEN = "token"

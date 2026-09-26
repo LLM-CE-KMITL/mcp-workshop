@@ -129,63 +129,6 @@ def register(mcp) -> None:
         }
 
     @mcp.tool(
-        annotations={"title": "Find shared upstream devices", "readOnlyHint": True,
-                     "idempotentHint": True, "openWorldHint": False}
-    )
-    def get_upstream_devices(device_ids: list[str] | str, max_hops: int = 4) -> dict | str:
-        """Find the shared upstream router for a group of edge devices."""
-        
-        if isinstance(device_ids, str):
-            device_ids = [d.strip() for d in device_ids.replace(",", " ").split() if d.strip()]
-
-        if not device_ids:
-            return {"error": "device_ids ต้องมีอย่างน้อย 1 ตัว"}
-
-        try:
-            rows = neo4j_query(
-                """UNWIND $ids AS start_id
-                    MATCH path = (d:Device {device_id: start_id})-[:UPLINK_TO*1..%d]->(up:Device)
-                    RETURN start_id, up.device_id AS upstream, up.role AS role,
-                           length(path) AS hops
-                    ORDER BY start_id, hops""" % int(max_hops),
-                ids=device_ids,
-            )
-        except Exception as e:
-            # ปริ้นท์ error ออกมาดูใน console เวลาเทสต์
-            print(f"\n[DEBUG ERROR in get_upstream_devices]: {e}\n")
-            return f"Error querying network graph: {str(e)}"
-
-        # --- ส่วนที่เพิ่มเติมเข้ามาเพื่อประมวลผลข้อมูลหาตัวที่เชื่อมร่วมกัน (Shared Upstream) ---
-        # เก็บว่า upstream แต่ละตัว มี device ตัวไหนเชื่อมมาบ้าง
-        upstream_map = {}
-        for row in rows:
-            up_id = row.get("upstream")
-            start_id = row.get("start_id")
-            role = row.get("role")
-            if not up_id:
-                continue
-            if up_id not in upstream_map:
-                upstream_map[up_id] = {"role": role, "connected_devices": set()}
-            upstream_map[up_id]["connected_devices"].add(start_id)
-
-        # หาตัวที่เชื่อมครบทุก device_id ที่ส่งมาทั้งหมด
-        total_queried = len(set(device_ids))
-        shared_all = []
-        for up_id, data in upstream_map.items():
-            if len(data["connected_devices"]) >= total_queried:
-                shared_all.append({
-                    "device_id": up_id,
-                    "role": data["role"],
-                    "dependent_count": len(data["connected_devices"])
-                })
-
-        return {
-            "queried_devices": device_ids,
-            "upstream_paths": rows,
-            "shared_by_all": shared_all
-        }
-
-    @mcp.tool(
         annotations={"title": "Find path between devices", "readOnlyHint": True,
                      "idempotentHint": True, "openWorldHint": False}
     )

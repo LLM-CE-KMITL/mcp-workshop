@@ -13,8 +13,14 @@ from __future__ import annotations
 import os
 import sys
 import time
+from pathlib import Path
 
 import httpx
+from dotenv import load_dotenv
+
+# Loaded before reading any env var below - running this script directly with
+# `uv run` (not through docker compose --env-file) never sees .env otherwise.
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 QUERY = os.getenv("COMPARE_QUERY", "อุปกรณ์ที่รวบรวม traffic จากอุปกรณ์ปลายทางของลูกค้า")
 DOC_QUERY = os.getenv("COMPARE_DOC_QUERY", "adjacency ไม่ขึ้นเพราะค่าไม่ตรงกันสองฝั่ง")

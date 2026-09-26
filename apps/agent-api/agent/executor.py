@@ -3,29 +3,84 @@
 Responsibilities:
   - run steps in dependency order, concurrently where the plan allows
   - resolve arguments that depend on earlier results
+  - repair and retry a failed step's arguments, once
   - stop the agent from running forever
 
 Loop protection is not a nicety. An agent that can re-plan will, given the
 chance, call the same tool with the same arguments indefinitely - especially
 when a tool keeps returning "not found" and the model keeps deciding to look
 again. Module 6 covers this; the guards below are what actually stop it.
+
+The one exception is deliberately narrow: when a step fails (a bad range name,
+a typo'd enum value), the model is shown the error and asked to correct just
+that step's arguments, once. This is not a re-plan - the goal, the tool and
+the rest of the plan are unchanged - so it cannot produce the unbounded loops
+the guards above exist to prevent, and it still passes through the same
+LoopGuard before running.
 """
 
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import time
 from typing import Any, AsyncIterator
 
+from pydantic import BaseModel, Field
 from schemas import Plan, StepResult
 
-from . import mcp_client
+from . import llm, mcp_client
 from .events import EventType
 
 MAX_STEPS = int(os.getenv("AGENT_MAX_STEPS", "8"))
 MAX_SAME_TOOL_CALLS = int(os.getenv("AGENT_MAX_SAME_TOOL_CALLS", "3"))
 STEP_TIMEOUT_SECONDS = float(os.getenv("AGENT_STEP_TIMEOUT_SECONDS", "45"))
+STEP_MAX_RETRIES = int(os.getenv("AGENT_STEP_MAX_RETRIES", "1"))
+
+
+class RepairedArguments(BaseModel):
+    arguments: dict = Field(description="Corrected arguments for the same tool call")
+    reasoning: str = Field(description="What was wrong and how this fixes it, in one sentence")
+
+
+REPAIR_SYSTEM_PROMPT = """\
+A tool call just failed. Produce corrected arguments for the SAME tool that
+fix the error, without changing what the step is trying to establish.
+
+If the error message lists valid values, you MUST pick one of those exactly -
+never invent a new spelling or abbreviation.
+"""
+
+
+async def _repair_arguments(
+    tool: str, purpose: str, arguments: dict, error: str,
+    tools: list[dict], stats: "llm.LLMStats | None", model: str | None,
+) -> dict | None:
+    """Ask the model to fix one failed step's arguments. One shot only."""
+    tool_info = next((t for t in tools if t["name"] == tool), None)
+    if tool_info is None:
+        return None
+
+    messages = [
+        {"role": "system", "content": REPAIR_SYSTEM_PROMPT},
+        {"role": "user", "content": (
+            f"Tool: {tool}\n"
+            f"Description: {tool_info['description'].strip()}\n"
+            f"Argument schema: "
+            f"{json.dumps(tool_info['input_schema'].get('properties', {}), ensure_ascii=False)}\n"
+            f"Purpose of this step: {purpose}\n"
+            f"Original arguments: {json.dumps(arguments, ensure_ascii=False)}\n"
+            f"Error: {error}"
+        )},
+    ]
+    try:
+        repaired = await llm.complete_structured(
+            messages, RepairedArguments, stats=stats, model=model,
+        )
+    except Exception:  # noqa: BLE001 - a failed repair just means no retry
+        return None
+    return repaired.arguments
 
 
 class LoopGuard:
@@ -107,7 +162,9 @@ def resolve_reference(path: str, results: dict[int, StepResult]) -> Any:
     return value
 
 
-async def execute(plan: Plan) -> AsyncIterator[tuple[EventType, dict]]:
+async def execute(
+    plan: Plan, stats: "llm.LLMStats | None" = None, model: str | None = None,
+) -> AsyncIterator[tuple[EventType, dict]]:
     """Run a plan, yielding events as steps start and finish.
 
     Steps whose dependencies are satisfied run concurrently. For a plan where
@@ -116,9 +173,34 @@ async def execute(plan: Plan) -> AsyncIterator[tuple[EventType, dict]]:
     that it is safe.
     """
     client = mcp_client.get()
+    tools = await client.list_tools()
     guard = LoopGuard()
     results: dict[int, StepResult] = {}
     pending = {step.step: step for step in plan.steps}
+
+    async def call_once(tool: str, step_num: int, arguments: dict) -> StepResult:
+        started = time.time()
+        try:
+            result = await asyncio.wait_for(
+                client.call_tool(tool, arguments),
+                timeout=STEP_TIMEOUT_SECONDS,
+            )
+            elapsed = int((time.time() - started) * 1000)
+            if isinstance(result, dict) and "error" in result:
+                return StepResult(step=step_num, tool=tool, ok=False,
+                                  duration_ms=elapsed, error=str(result["error"]))
+            return StepResult(step=step_num, tool=tool, ok=True,
+                              duration_ms=elapsed, result=result)
+        except asyncio.TimeoutError:
+            return StepResult(
+                step=step_num, tool=tool, ok=False,
+                duration_ms=int(STEP_TIMEOUT_SECONDS * 1000),
+                error=f"หมดเวลา ({STEP_TIMEOUT_SECONDS} วินาที)",
+            )
+        except Exception as exc:  # noqa: BLE001
+            return StepResult(step=step_num, tool=tool, ok=False,
+                              duration_ms=int((time.time() - started) * 1000),
+                              error=f"{type(exc).__name__}: {exc}")
 
     while pending:
         runnable = [
@@ -135,7 +217,7 @@ async def execute(plan: Plan) -> AsyncIterator[tuple[EventType, dict]]:
                 yield EventType.STEP_RESULT, results[step.step].model_dump()
             break
 
-        async def run_one(step) -> StepResult:
+        async def run_one(step) -> tuple[StepResult, list[tuple[EventType, dict]]]:
             arguments = dict(step.arguments)
             for name, reference in step.argument_from.items():
                 resolved = resolve_reference(reference, results)
@@ -145,30 +227,29 @@ async def execute(plan: Plan) -> AsyncIterator[tuple[EventType, dict]]:
             refusal = guard.check(step.tool, arguments)
             if refusal:
                 return StepResult(step=step.step, tool=step.tool, ok=False,
-                                  duration_ms=0, skipped_reason=refusal)
+                                  duration_ms=0, skipped_reason=refusal), []
 
-            started = time.time()
-            try:
-                result = await asyncio.wait_for(
-                    client.call_tool(step.tool, arguments),
-                    timeout=STEP_TIMEOUT_SECONDS,
-                )
-                elapsed = int((time.time() - started) * 1000)
-                if isinstance(result, dict) and "error" in result:
-                    return StepResult(step=step.step, tool=step.tool, ok=False,
-                                      duration_ms=elapsed, error=str(result["error"]))
-                return StepResult(step=step.step, tool=step.tool, ok=True,
-                                  duration_ms=elapsed, result=result)
-            except asyncio.TimeoutError:
-                return StepResult(
-                    step=step.step, tool=step.tool, ok=False,
-                    duration_ms=int(STEP_TIMEOUT_SECONDS * 1000),
-                    error=f"หมดเวลา ({STEP_TIMEOUT_SECONDS} วินาที)",
-                )
-            except Exception as exc:  # noqa: BLE001
-                return StepResult(step=step.step, tool=step.tool, ok=False,
-                                  duration_ms=int((time.time() - started) * 1000),
-                                  error=f"{type(exc).__name__}: {exc}")
+            result = await call_once(step.tool, step.step, arguments)
+            if result.ok or not result.error or STEP_MAX_RETRIES < 1:
+                return result, []
+
+            repaired = await _repair_arguments(
+                step.tool, step.purpose, arguments, result.error, tools, stats, model,
+            )
+            if not repaired or repaired == arguments:
+                return result, []
+
+            refusal = guard.check(step.tool, repaired)
+            if refusal:
+                return result, []
+
+            extra_events = [(EventType.STEP_RETRY, {
+                "step": step.step, "tool": step.tool,
+                "previous_error": result.error,
+                "arguments": repaired,
+            })]
+            retried = await call_once(step.tool, step.step, repaired)
+            return retried, extra_events
 
         for step in runnable:
             yield EventType.STEP_STARTED, {
@@ -177,7 +258,9 @@ async def execute(plan: Plan) -> AsyncIterator[tuple[EventType, dict]]:
             }
 
         completed = await asyncio.gather(*(run_one(step) for step in runnable))
-        for result in completed:
+        for result, extra_events in completed:
+            for event_type, payload in extra_events:
+                yield event_type, payload
             results[result.step] = result
             pending.pop(result.step, None)
             yield EventType.STEP_RESULT, result.model_dump()
