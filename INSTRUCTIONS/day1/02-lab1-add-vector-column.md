@@ -188,6 +188,14 @@ SELECT count(*) AS total, count(embedding) AS embedded FROM tickets;
 
 เขียน `cosine.py` เองเพื่อทดสอบ semantic search ครบวงจร (embed คำถาม → ค้นด้วย `<=>` ใน Postgres โดยตรง) — **อ่านค่าจาก `.env` เหมือน `my_embed.py`** ไม่ hardcode key:
 
+```mermaid
+flowchart LR
+    A["คำถามภาษาไทย<br/>'ลูกค้าบ่นว่าอินเทอร์เน็ตหลุดบ่อย'"] --> B["OpenRouter<br/>/embeddings API<br/>(baai/bge-m3)"]
+    B --> C["query vector<br/>1024 มิติ"]
+    C --> D["PostgreSQL<br/>ORDER BY embedding &lt;=&gt; query_vec"]
+    D --> E["ticket 5 อันดับแรก<br/>เรียงตาม distance (น้อย = ใกล้)"]
+```
+
 ```python
 import os
 import psycopg
