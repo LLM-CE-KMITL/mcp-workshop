@@ -72,6 +72,19 @@ $body = '{"model":"baai/bge-m3","input":["test"]}'
 ALTER TABLE tickets ADD COLUMN embedding vector(1024);
 ```
 
+ตรวจสอบว่า column ถูกสร้างจริง (ควรเห็น 1 แถว, `udt_name` เป็น `vector`):
+```sql
+SELECT column_name, data_type, udt_name
+FROM information_schema.columns
+WHERE table_name = 'tickets' AND column_name = 'embedding';
+```
+
+ตอนนี้ column ยังว่างเปล่า (ยังไม่ backfill) — ยืนยันด้วย:
+```sql
+SELECT count(*) AS total, count(embedding) AS embedded FROM tickets;
+```
+ควรได้ `embedded = 0` (ถ้าไม่ใช่ 0 แปลว่า ขั้นที่ 1 ลบไม่หมด ย้อนกลับไปเช็คก่อน)
+
 ---
 
 ## ขั้นที่ 3 · สร้าง embedding และ backfill
@@ -158,45 +171,72 @@ CREATE INDEX idx_tickets_embedding ON tickets
 
 **สร้าง index หลัง backfill เสมอ** — HNSW ที่สร้างบนตารางว่างแล้วค่อยเติมทีละแถวจะได้กราฟที่คุณภาพแย่กว่าและช้ากว่า
 
+ตรวจสอบว่า index ถูกสร้างจริง (ควรเห็น 1 แถว, `indexdef` มีคำว่า `hnsw`):
+```sql
+SELECT indexname, indexdef FROM pg_indexes
+WHERE tablename = 'tickets' AND indexname = 'idx_tickets_embedding';
+```
+
 ---
 
 ## ขั้นที่ 5 · ทดสอบ
 
+ตอนนี้ backfill เสร็จแล้ว ตัวเลขนี้ควรเปลี่ยนจาก `embedded = 0` (ที่เห็นในขั้นที่ 2) เป็น **`embedded = total`**:
 ```sql
 SELECT count(*) AS total, count(embedding) AS embedded FROM tickets;
 ```
 
-ค้นด้วย Python เขียน `cosine.py` เอง โครงประมาณนี้:
+เขียน `cosine.py` เองเพื่อทดสอบ semantic search ครบวงจร (embed คำถาม → ค้นด้วย `<=>` ใน Postgres โดยตรง) — **อ่านค่าจาก `.env` เหมือน `my_embed.py`** ไม่ hardcode key:
 
 ```python
-import httpx
+import os
+import psycopg
+from dotenv import load_dotenv
 from openai import OpenAI
 
-print("กำลังเชื่อมต่อ OpenRouter เพื่อสร้าง Embedding...")
+load_dotenv()
 
-# 1. ตั้งค่าเชื่อมต่อ OpenRouter (ใช้คีย์ที่ถูกต้อง)
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key="sk-or-v1-***Your Key***",  # คีย์ที่ใช้งานได้จริง
-    http_client=httpx.Client(verify=False)
-)
+EMB_BASE_URL = os.getenv("EMBEDDING_BASE_URL", "https://openrouter.ai/api/v1")
+EMB_MODEL = os.getenv("EMBEDDING_MODEL", "baai/bge-m3")
+PG = os.getenv("PG_ADMIN_DSN", "postgresql://mpls:mpls_dev_password@localhost:5432/mplsdb")
+
+client = OpenAI(base_url=EMB_BASE_URL, api_key=os.getenv("LLM_API_KEY", ""))
 
 def embed_batch(texts: list[str]) -> list[list[float]]:
-    response = client.embeddings.create(
-        model="baai/bge-m3",
-        input=texts
-    )
+    response = client.embeddings.create(model=EMB_MODEL, input=texts)
     return [item.embedding for item in response.data]
 
-# 2. ทดสอบแปลงข้อความ
-q = embed_batch(["ลูกค้าบ่นว่าอินเทอร์เน็ตหลุดบ่อย"])[0]
+# ดูค่าที่ดึงมาจาก .env จริง ๆ ก่อนรัน - ช่วยดีบั๊กเวลาผลลัพธ์ไม่ตรงที่คิดไว้
+print(f"EMBEDDING_BASE_URL = {EMB_BASE_URL}")
+print(f"EMBEDDING_MODEL    = {EMB_MODEL}")
+print(f"PG_ADMIN_DSN       = {PG}")
+print(f"LLM_API_KEY        = {'(ตั้งค่าแล้ว)' if os.getenv('LLM_API_KEY') else '(ว่างเปล่า! เช็ค .env)'}")
 
-print("✅ แปลง Embedding สำเร็จ!")
-print("ความยาวมิติเวกเตอร์:", len(q)) # ควรจะได้ 1024
-print("ตัวอย่างข้อมูลเวกเตอร์ 5 ค่าแรก:", q[:5])
+print("กำลังแปลงคำถามเป็น embedding...")
+q = embed_batch(["ลูกค้าบ่นว่าอินเทอร์เน็ตหลุดบ่อย"])[0]
+print("ความยาวมิติเวกเตอร์:", len(q))  # ควรจะได้ 1024
+
+# `<=>` คือ cosine distance ใน pgvector - ยิ่งน้อยยิ่งใกล้
+query_vec = "[" + ",".join(map(str, q)) + "]"
+with psycopg.connect(PG) as conn:
+    cur = conn.cursor()
+    cur.execute(
+        """SELECT ticket_id, title, embedding <=> %s::vector AS distance
+           FROM tickets
+           ORDER BY embedding <=> %s::vector
+           LIMIT 5""",
+        (query_vec, query_vec),
+    )
+    for ticket_id, title, distance in cur.fetchall():
+        print(f"{distance:.4f}  {ticket_id}  {title}")
 ```
 
-`<=>` คือ cosine distance — **ยิ่งน้อยยิ่งใกล้**
+รัน:
+```bash
+uv run python cosine.py
+```
+
+ticket แถวบนสุดควรเป็นหมวด `intermittent`/`link_down` ที่พูดถึงเน็ตหลุดจริง ๆ ถ้าได้ผลลัพธ์ที่ไม่เกี่ยวข้องเลย ให้เช็คว่า backfill เสร็จสมบูรณ์จริงหรือยัง (ดู query แรกของขั้นนี้)
 
 ---
 
