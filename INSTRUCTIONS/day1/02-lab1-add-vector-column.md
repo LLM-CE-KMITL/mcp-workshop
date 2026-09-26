@@ -76,7 +76,7 @@ ALTER TABLE tickets ADD COLUMN embedding vector(1024);
 
 ## ขั้นที่ 3 · สร้าง embedding และ backfill
 
-เขียน `my_embed.py` เอง โครงประมาณนี้:
+เขียน `my_embed.py` เอง (วางไว้ที่ root ของโปรเจกต์) โครงประมาณนี้ — **ทุกค่าตั้งต้นอ่านจาก `.env`** ไม่ hardcode:
 
 ```python
 import os
@@ -84,17 +84,18 @@ import httpx
 import psycopg
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv()  # อ่าน .env จาก working directory ปัจจุบัน
 
-PG = "postgresql://mpls:mpls_dev_password@localhost:5432/mplsdb"
-
-# 1. เปลี่ยนตัวแปร EMB และ MODEL ให้เป็นของ OpenRouter (ตามที่คุณต้องการเปลี่ยน)
-EMB = "https://openrouter.ai/api/v1/embeddings"
-MODEL = "baai/bge-m3"
+# ทุกตัวแปรอ่านจาก .env เป็นค่าเริ่มต้น - ใช้ค่าเดียวกับที่ MCP server/seeder ใช้จริง
+# PG_ADMIN_DSN ไม่มีใน .env.example เพราะเป็น user เต็มสิทธิ์ (เขียนได้) ต่างจาก
+# PG_DSN ปกติที่เป็น mcp_reader (read-only) - ใส่เพิ่มเองใน .env ถ้าต้องการ หรือปล่อย
+# เป็น default นี้ก็ได้เพราะ mpls คือ user เต็มสิทธิ์อยู่แล้วตาม docker-compose.yml
+PG = os.getenv("PG_ADMIN_DSN", "postgresql://mpls:mpls_dev_password@localhost:5432/mplsdb")
+EMB = os.getenv("EMBEDDING_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/") + "/embeddings"
+MODEL = os.getenv("EMBEDDING_MODEL", "baai/bge-m3")
 API_KEY = os.getenv("LLM_API_KEY", "")
 
 def embed_batch(texts: list[str]) -> list[list[float]]:
-    # 2. เพิ่ม headers สำหรับยืนยันตัวตนของ OpenRouter
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "HTTP-Referer": "http://localhost",
@@ -128,6 +129,14 @@ with psycopg.connect(PG) as conn:
         conn.commit()
         print(f"{i+len(chunk)}/{len(rows)}")
 ```
+
+### วิธีรัน
+
+```bash
+uv run python my_embed.py
+```
+
+ต้องรันจาก root ของโปรเจกต์ (ที่มีไฟล์ `.env` อยู่) ไม่งั้น `load_dotenv()` จะหา `.env` ไม่เจอ และ `API_KEY` จะว่างเปล่า ทำให้ OpenRouter ตอบ `401 Unauthorized`
 
 ### 3 จุดที่คนพลาดบ่อย
 
