@@ -12,13 +12,17 @@
 //
 // Vectors are written by docker/seeder/seed.py - this file only declares
 // the index so the property has somewhere to live.
+//
+// __EMBEDDING_DIM__ is substituted with EMBEDDING_DIM (from .env) by
+// seed_neo4j.py before this file is executed - keep the placeholder
+// literal, do not hardcode a number here.
 // ============================================================
 
 CREATE VECTOR INDEX device_embedding IF NOT EXISTS
 FOR (d:Device) ON (d.embedding)
 OPTIONS {
   indexConfig: {
-    `vector.dimensions`: 1024,
+    `vector.dimensions`: __EMBEDDING_DIM__,
     `vector.similarity_function`: 'cosine'
   }
 };
@@ -27,7 +31,7 @@ CREATE VECTOR INDEX circuit_embedding IF NOT EXISTS
 FOR (c:Circuit) ON (c.embedding)
 OPTIONS {
   indexConfig: {
-    `vector.dimensions`: 1024,
+    `vector.dimensions`: __EMBEDDING_DIM__,
     `vector.similarity_function`: 'cosine'
   }
 };

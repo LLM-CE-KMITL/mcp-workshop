@@ -8,8 +8,10 @@
 -- Run with:  make lab1-solution
 -- ============================================================
 
--- Step 1: add the column. Dimension must match EMBEDDING_DIM in .env.
-ALTER TABLE tickets ADD COLUMN IF NOT EXISTS embedding vector(1024);
+-- Step 1: add the column. __EMBEDDING_DIM__ is substituted with
+-- EMBEDDING_DIM (from .env) by `make lab1-solution` - keep the placeholder
+-- literal, do not hardcode a number here.
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS embedding vector(__EMBEDDING_DIM__);
 
 -- Step 2: (Python) generate and backfill vectors - see scripts/embed_tickets.py
 

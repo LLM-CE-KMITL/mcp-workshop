@@ -12,6 +12,7 @@
 
 | ลำดับ | เอกสาร | ใช้ทำอะไร |
 |---|---|---|
+| 0 | [day0/00-full-demo.md](INSTRUCTIONS/day0/00-full-demo.md) | ลองรันทั้งระบบให้จบใน 10 นาที ก่อนเริ่มเรียนจริง (ไม่บังคับ) |
 | 1 | [day0/01-prerequisites.md](INSTRUCTIONS/day0/01-prerequisites.md) | สิ่งที่ต้องเตรียมตัวก่อนมาเรียน |
 | 2 | [day0/02-setup.md](INSTRUCTIONS/day0/02-setup.md) | ติดตั้งและตรวจสอบระบบด้วยตัวเอง |
 | 3 | [day0/03-architecture.md](INSTRUCTIONS/day0/03-architecture.md) | ภาพรวมสถาปัตยกรรม + ตารางเวลาเต็ม 3 วัน |

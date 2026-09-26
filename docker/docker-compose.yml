@@ -36,6 +36,8 @@ services:
       POSTGRES_PASSWORD: ${PG_PASSWORD:-mpls_dev_password}
       MCP_READONLY_USER: ${PG_READONLY_USER:-mcp_reader}
       MCP_READONLY_PASSWORD: ${PG_READONLY_PASSWORD:-mcp_reader_password}
+      # Read by docker/postgres/init/02_schema.sh to size the vector column.
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-1024}
     ports:
       - "5432:5432"
     volumes:

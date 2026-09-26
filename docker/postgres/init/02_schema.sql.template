@@ -129,9 +129,10 @@ CREATE TABLE tickets (
 --   (participant work)   -> ALTER TABLE / generate / backfill / CREATE INDEX
 --   make embed-tickets   -> reference backfill if they get stuck
 --
--- Dimension 1024 matches the default embedding model (EMBEDDING_MODEL in
--- .env) - keep this in sync with EMBEDDING_DIM if you change the model.
-ALTER TABLE tickets ADD COLUMN embedding vector(1024);
+-- __EMBEDDING_DIM__ is substituted with EMBEDDING_DIM (from .env) by
+-- 02_schema.sh before this template is run - keep the placeholder literal,
+-- do not hardcode a number here.
+ALTER TABLE tickets ADD COLUMN embedding vector(__EMBEDDING_DIM__);
 
 COMMENT ON COLUMN tickets.embedding IS
     'Embedding of title + description, dimension set by EMBEDDING_DIM. Rebuilt by participants in Lab 1.';

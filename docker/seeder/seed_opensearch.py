@@ -26,6 +26,7 @@ import loggen
 TEMPLATE_DIR = Path("/seed/opensearch")
 LOG_INDEX = os.getenv("OPENSEARCH_LOG_INDEX", "network-logs")
 DOC_INDEX = os.getenv("OPENSEARCH_DOC_INDEX", "network-docs")
+EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "1024"))
 
 # Runbooks shipped with the workshop. Deliberately written the way real
 # operational documentation is written, so semantic search has to bridge
@@ -200,6 +201,10 @@ def seed(scenarios: list[dict], purge: bool = False) -> dict:
         ("doc_index_template.json", "network-docs"),
     ):
         body = json.loads((TEMPLATE_DIR / template_file).read_text(encoding="utf-8"))
+        if template_file == "doc_index_template.json":
+            # The JSON file ships with a default dimension; override it here
+            # so the live EMBEDDING_DIM from .env always wins.
+            body["template"]["mappings"]["properties"]["embedding"]["dimension"] = EMBEDDING_DIM
         client.indices.put_index_template(name=name, body=body)
         step(f"index template applied: {name}")
 

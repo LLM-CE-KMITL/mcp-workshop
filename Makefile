@@ -5,6 +5,11 @@
 COMPOSE := docker compose -f docker/docker-compose.yml --env-file .env
 PY      := uv run
 
+# Loaded so lab1-solution can substitute EMBEDDING_DIM into plain SQL (which
+# cannot read environment variables on its own). Silent if .env is missing.
+-include .env
+EMBEDDING_DIM ?= 1024
+
 .DEFAULT_GOAL := help
 .PHONY: help install up down reset verify seed reseed logs-tail \
         load-logs load-logs-watch api ui mcp demo demo-offline demo-record \
@@ -12,7 +17,7 @@ PY      := uv run
         lab1-reset lab1-solution embed-tickets embed-devices vector-compare
 
 help: ## List all available targets
-	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
+	@grep -hE '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
 # ---------- Install ----------
 install: ## Install all dependencies (requires uv)
@@ -85,7 +90,7 @@ lab1-reset: ## Remove vectors from Postgres AND Neo4j so Lab 1 can rebuild them
 	@echo "Vectors removed from Postgres and Neo4j. Semantic search fails until Lab 1 is complete."
 
 lab1-solution: ## Apply the reference DDL for Lab 1 (spoiler)
-	docker exec -i mpls-postgres psql -U $${PG_USER:-mpls} -d $${PG_DATABASE:-mplsdb} < scripts/lab/lab1_solution_vector.sql
+	sed "s/__EMBEDDING_DIM__/$(EMBEDDING_DIM)/g" scripts/lab/lab1_solution_vector.sql | docker exec -i mpls-postgres psql -U $${PG_USER:-mpls} -d $${PG_DATABASE:-mplsdb}
 
 embed-tickets: ## Generate and backfill ticket embeddings (Postgres)
 	$(PY) python scripts/embed_tickets.py

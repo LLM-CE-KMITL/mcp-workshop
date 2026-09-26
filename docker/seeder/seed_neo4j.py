@@ -16,6 +16,7 @@ from neo4j import GraphDatabase
 import embed
 
 SEED_DIR = Path("/seed/neo4j")
+EMBEDDING_DIM = os.getenv("EMBEDDING_DIM", "1024")
 
 
 def _driver():
@@ -60,6 +61,7 @@ def seed(purge: bool = False) -> dict:
         for path in sorted(SEED_DIR.glob("*.cypher")):
             step(f"running {path.name}")
             for statement in _split_statements(path.read_text(encoding="utf-8")):
+                statement = statement.replace("__EMBEDDING_DIM__", EMBEDDING_DIM)
                 session.run(statement)
 
         # ---------- customers and circuits ----------
