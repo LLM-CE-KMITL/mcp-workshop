@@ -38,13 +38,26 @@ flowchart TB
 cp .env.example .env
 ```
 
-เปิด `.env` แล้วแก้อย่างน้อย 1 บรรทัด — ใส่ API key ของ OpenRouter (สมัครฟรีที่ https://openrouter.ai/keys):
+เปิด `.env` แล้วแก้อย่างน้อย 1 บรรทัด — ใส่ API key ของ OpenRouter (สมัครฟรีที่ https://openrouter.ai/keys) ใน**ส่วน LLM**:
 
 ```dotenv
+# ---------- LLM (OpenAI-compatible endpoint) ----------
+LLM_BASE_URL=https://openrouter.ai/api/v1
 LLM_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+LLM_MODEL=qwen/qwen3-30b-a3b
+```
+ต้องแก้แค่ `LLM_API_KEY` บรรทัดเดียว ที่เหลือปล่อยเป็นค่า default
+
+ใน**ส่วน Embedding** ปล่อยเป็นค่า default ได้เลย ไม่ต้องแก้อะไร (ใช้ API key เดียวกันกับ LLM เพราะเรียกผ่าน OpenRouter เหมือนกัน):
+
+```dotenv
+# ---------- Embedding ----------
+EMBEDDING_BASE_URL=https://openrouter.ai/api/v1
+EMBEDDING_MODEL=baai/bge-m3
+EMBEDDING_DIM=1024
 ```
 
-ค่าอื่น ๆ ปล่อยเป็นค่า default ได้เลย (`LLM_MODEL=qwen/qwen3-30b-a3b`, `EMBEDDING_MODEL=baai/bge-m3`, `EMBEDDING_DIM=1024`) — ค่าเหล่านี้ผ่านการทดสอบ end-to-end มาแล้วว่าทำงานร่วมกันได้ครบทั้ง 3 ฐานข้อมูล
+ค่าชุดนี้ (LLM + Embedding) ผ่านการทดสอบ end-to-end มาแล้วว่าทำงานร่วมกันได้ครบทั้ง 3 ฐานข้อมูล
 
 > **อย่าเปลี่ยน `EMBEDDING_DIM` ตามใจ** ถ้าเปลี่ยน `EMBEDDING_MODEL` เป็นตัวอื่น ต้องเช็คว่า dimension ของมันไม่เกิน 2000 (ข้อจำกัดของ pgvector HNSW index) ไม่งั้น PostgreSQL จะ init ไม่ผ่านทั้งระบบ
 
