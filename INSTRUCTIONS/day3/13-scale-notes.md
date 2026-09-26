@@ -76,7 +76,7 @@ flowchart LR
 | Guardrail ทั้ง 5 ชั้น | ยิ่ง scale ใหญ่ยิ่งสำคัญ |
 | Intent Gate | ยิ่งผู้ใช้เยอะยิ่งประหยัดมาก |
 | Memory management | ยิ่งจำเป็นเมื่อบทสนทนายาว |
-| Plan validation | ป้องกัน query ที่ผิดตั้งแต่ก่อนรัน |
+| Loop Guard | ยิ่งจำนวนคำถามพร้อมกันเยอะ ยิ่งต้องกัน loop ที่กิน GPU ฟรีๆ |
 | ชุดคำถามมาตรฐาน | ใช้เป็น regression test ได้ตลอดโครงการ |
 
 ---

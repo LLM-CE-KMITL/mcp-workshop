@@ -6,6 +6,13 @@ from pathlib import Path
 from typing import Any
 from pydantic import BaseModel, Field
 import psycopg
+from dotenv import load_dotenv
+
+# ต้องโหลด .env ก่อน import agent.llm เสมอ เพราะ agent/llm.py อ่าน
+# LLM_BASE_URL/LLM_API_KEY เป็นค่าคงที่ระดับโมดูลตอน import - ถ้าโหลดทีหลัง
+# มันจะได้ default "not-needed" ไปแล้ว แล้วยิง request ไปเจอ 401 Missing
+# Authentication header ที่ OpenRouter (เจอบ่อยที่สุดตอนรันสคริปต์นี้ตรงๆ)
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 # เพิ่ม Path ไปยังโฟลเดอร์ agent-api
 sys.path.insert(0, str(Path(__file__).resolve().parent / "apps" / "agent-api"))
@@ -80,6 +87,7 @@ class StructuredExtractor:
         fallback_used = False
 
         for attempt in range(1, self.max_retries + 1):
+            print(f"\n  🔄 รอบที่ {attempt}")
             try:
                 # เรียกใช้ LLM ผ่านโมดูลกลางพร้อมเก็บ Stats (Token & Latency)
                 raw_response = await llm.complete(
@@ -88,7 +96,8 @@ class StructuredExtractor:
                     model=self.model,
                     temperature=self.temperature
                 )
-                
+                print(f"     raw response: {raw_response.strip()[:300]}")
+
                 # ทำความสะอาด Markdown Fence ถ้ามี
                 clean_raw = raw_response.strip()
                 if clean_raw.startswith("```"):
@@ -99,7 +108,8 @@ class StructuredExtractor:
 
                 # ตรวจสอบความถูกต้องด้วย Pydantic Schema
                 parsed_data = self.schema.model_validate_json(clean_raw)
-                
+                print(f"     ✅ parse ผ่าน: {parsed_data.model_dump()}")
+
                 stats_dict = stats.as_dict()
                 return ExtractionResult(
                     ok=True,
@@ -114,7 +124,8 @@ class StructuredExtractor:
             except Exception as exc:
                 error_msg = str(exc)
                 errors_log.append(error_msg)
-                
+                print(f"     ❌ parse ไม่ผ่าน: {error_msg[:300]}")
+
                 # ส่งประวัติที่ผิดพลาดกลับไปให้ LLM แก้ตัวเองในรอบถัดไป
                 messages.append({"role": "assistant", "content": raw_response[:1000] if 'raw_response' in locals() else ""})
                 messages.append({
@@ -156,7 +167,8 @@ async def main():
     for ticket_id, conversation in rows:
         print(f"\n----------------------------------------")
         print(f"📌 กำลังประมวลผล Ticket ID: {ticket_id}")
-        
+        print(f"📥 บทสนทนาดิบ (raw_text):\n{conversation}")
+
         result = await extractor.extract(conversation)
         
         print(f"สถานะ (OK): {result.ok}")

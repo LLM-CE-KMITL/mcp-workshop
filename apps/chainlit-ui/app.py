@@ -18,7 +18,7 @@ import os
 
 import chainlit as cl
 import httpx
-from elements import cost_meter, plan_view, topic_banner
+from elements import cost_meter, thought_view, topic_banner
 
 AGENT_API_URL = os.getenv("AGENT_API_URL", "http://localhost:8080")
 
@@ -74,7 +74,6 @@ async def on_message(message: cl.Message):
 
     answer = cl.Message(content="")
     steps: dict[int, cl.Step] = {}
-    plan_step: cl.Step | None = None
     intent_step: cl.Step | None = None
     usage: dict = {}
 
@@ -118,14 +117,14 @@ async def on_message(message: cl.Message):
                     elif event_type == "topic_changed":
                         await topic_banner(data)
 
-                    # -------- plan --------
-                    elif event_type == "plan_created":
-                        plan_step = cl.Step(
-                            name=f"วางแผน {len(data['steps'])} ขั้นตอน", type="llm"
+                    # -------- ReAct thought (one per loop iteration) --------
+                    elif event_type == "thought":
+                        thought_step = cl.Step(
+                            name=f"คิด [{data['step']}]", type="llm"
                         )
-                        await plan_step.__aenter__()
-                        plan_step.output = plan_view(data)
-                        await plan_step.__aexit__(None, None, None)
+                        await thought_step.__aenter__()
+                        thought_step.output = thought_view(data)
+                        await thought_step.__aexit__(None, None, None)
 
                     # -------- tool calls --------
                     elif event_type == "step_started":

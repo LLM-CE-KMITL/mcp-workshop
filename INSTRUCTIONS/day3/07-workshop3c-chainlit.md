@@ -16,11 +16,14 @@
 flowchart TB
     E["Event จาก API"] --> A["intent_checked → cl.Step"]
     E --> B["topic_changed → ข้อความแจ้ง<br/>+ ตัวเลข context ที่ลดลง"]
-    E --> C["plan_created → cl.Step<br/>+ แผนภาพ Mermaid"]
+    E --> C["thought → cl.Step ต่อรอบ<br/>(ไม่ใช่แผนก้อนเดียวอีกต่อไป)"]
     E --> D["step_started/result → cl.Step<br/>กดเปิดดูข้อมูลดิบได้"]
     E --> F["token → stream_token"]
     E --> G["usage → มาตรวัดต้นทุน"]
 ```
+
+> **ต่างจากตอนใช้ plan-then-execute**: ไม่มี event เดียวที่ส่ง "แผนทั้งชุด" มาให้แสดงตั้งแต่ต้นอีกแล้ว
+> UI ต้องเปิด `cl.Step` ใหม่ทุกครั้งที่มี event `thought` เข้ามา — ผู้ใช้จะเห็นทีละก้าวตามจังหวะที่โมเดลคิดจริง ไม่ใช่เห็นทั้งหมดล่วงหน้า
 
 ---
 
@@ -54,21 +57,18 @@ await step.__aexit__(None, None, None)
 
 ---
 
-## 3. แสดงแผนเป็นแผนภาพ
+## 3. แสดง Thought แต่ละรอบ
 
-Chainlit เรนเดอร์ Mermaid ได้ ทำให้ dependency ของแผนเห็นได้ทันที apps/chainlit-ui/elements.py
+ไม่มีแผนก้อนเดียวให้วาดเป็นแผนภาพ dependency อีกต่อไป — แต่ละรอบของ ReAct คือ `cl.Step` แยกกัน `apps/chainlit-ui/elements.py`
 
 ```python
-lines = ["```mermaid", "flowchart TD"]
-for s in plan["steps"]:
-    lines.append(f'    S{s["step"]}["{s["step"]}. {s["tool"]}"]')
-for s in plan["steps"]:
-    for d in s.get("depends_on", []):
-        lines.append(f"    S{d} --> S{s['step']}")
-lines.append("```")
+def thought_view(data: dict) -> str:
+    if data.get("tool"):
+        return f"{data['thought']}\n\n**ขั้นต่อไป**: เรียก `{data['tool']}`"
+    return f"{data['thought']}\n\n**พร้อมตอบแล้ว** ไม่เรียกเครื่องมือเพิ่ม"
 ```
 
-**ขั้นที่วางเรียงกันแนวนอน = รันขนาน · ขั้นที่ต่อกันเป็นสาย = ต้องรอ**
+**เปิด step ใหม่ทุกครั้งที่มี event `thought` เข้ามา** — จำนวน step ที่เห็นบนจอเท่ากับจำนวนรอบตัดสินใจจริง ไม่ใช่ค่าคงที่
 
 ---
 
@@ -98,8 +98,8 @@ async def starters():
 
 ## เกณฑ์ผ่าน
 
-- [ ] เห็น step ของ intent, plan และทุก tool call
-- [ ] แผนแสดงเป็นแผนภาพ Mermaid ที่เห็น dependency
+- [ ] เห็น step ของ intent, ทุกรอบ thought และทุก tool call
+- [ ] จำนวน thought step ที่เห็นตรงกับจำนวนรอบตัดสินใจจริงใน event stream
 - [ ] คำตอบ stream ทีละตัวอักษร
 - [ ] มาตรวัดต้นทุนแสดงครบ รวม context tokens
 - [ ] ตอนเปลี่ยนเรื่อง มีข้อความแจ้งพร้อมตัวเลข context ที่ลดลง

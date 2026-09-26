@@ -12,7 +12,7 @@ def register(mcp) -> None:
             "readOnlyHint": False,
             "destructiveHint": False,
             "idempotentHint": False,
-            "openWorldHint": True
+            "openWorldHint": False
         }
     )
     def send_notification(to: str, subject: str, body: str, attachment_path: str | None = None) -> dict:

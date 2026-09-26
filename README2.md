@@ -54,11 +54,10 @@ flowchart LR
 
     subgraph AGENT["Agent Core"]
         direction TB
-        I[Intent Gate] --> P[Planner]
-        P --> E[Executor]
-        E --> S[Synthesizer]
+        I[Intent Gate] --> R[ReAct Loop<br/>Thought → Action → Observation]
+        R --> S[Synthesizer]
         M[(Memory<br/>short + long)] -.-> I
-        M -.-> P
+        M -.-> R
         G[Grounding] -.-> S
     end
 

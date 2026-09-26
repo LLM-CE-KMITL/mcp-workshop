@@ -3,12 +3,13 @@
 ```mermaid
 flowchart LR
     Q(["คำถาม"]) --> I["Intent<br/>Qwen<br/>temp 0.0"]
-    I --> P["Planner<br/>Qwen<br/>temp 0.0 + JSON schema"]
-    P --> T["เรียก tool"]
+    I --> R["ReAct step<br/>Qwen<br/>temp 0.0 + JSON schema<br/>(วนซ้ำทีละ Thought/Action)"]
+    R --> T["เรียก tool"]
     T --> EMB["baai/bge-m3<br/>1024 มิติ"]
     EMB --> RET["retrieve 50"]
     RET --> RR["mxbai-rerank<br/>เหลือ 5"]
-    RR --> S["Synthesizer<br/>Qwen<br/>temp 0.3"]
+    RR --> R
+    R --> S["Synthesizer<br/>Qwen<br/>temp 0.3"]
     S --> G["Grounding<br/>Qwen<br/>temp 0.0"]
     G --> A(["คำตอบ"])
 ```
@@ -20,7 +21,7 @@ flowchart LR
 | บทบาท | โมเดล | temperature | ทำไมเลือกแบบนี้ |
 |---|---|---|---|
 | Intent | `qwen/qwen3-30b-a3b` | 0.0 | การจำแนกต้องคงเส้นคงวา คำถามเดิมต้องได้ผลเดิม |
-| Planner | `qwen/qwen3-30b-a3b` | 0.0 | แผนที่เปลี่ยนไปมาทำให้ทดสอบไม่ได้ |
+| ReAct step | `qwen/qwen3-30b-a3b` | 0.0 | การตัดสินใจ Thought/Action ที่เปลี่ยนไปมาทำให้ทดสอบไม่ได้ แม้จะไม่มีแผนล่วงหน้าให้ตรึงไว้แล้วก็ตาม |
 | Synthesizer | `qwen/qwen3-30b-a3b` | 0.3 | ต้องการภาษาที่อ่านรื่น แต่ไม่ให้แต่งเรื่อง |
 | Grounding | `qwen/qwen3-30b-a3b` | 0.0 | การตรวจสอบต้องเข้มงวด |
 | Embedding | `baai/bge-m3` | — | 1024 มิติ · **ตรงกับ production** |

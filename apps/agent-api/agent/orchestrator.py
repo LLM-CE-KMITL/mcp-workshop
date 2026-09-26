@@ -1,6 +1,6 @@
 """Multi-agent routing (Module 6).
 
-The single-planner design used by the main flow is the right default for this
+The single ReAct loop used by the main flow is the right default for this
 dataset. This module exists to make the alternative concrete rather than
 theoretical, and to let participants measure the difference themselves.
 
