@@ -136,7 +136,22 @@ ticket ที่ยังไม่ปิดตอนนี้มีอะไร�
 
 ---
 
-## 6. ล้างทั้งหมดเพื่อเริ่มใหม่
+## 6. ดู topology เป็นกราฟ (bonus)
+
+อยากเห็นว่าฐานข้อมูลที่ agent ใช้หน้าตาเป็นยังไงจริงๆ เปิด Neo4j Browser ที่:
+
+**http://localhost:7474** (login: `neo4j` / `neo4j_dev_password`)
+
+แล้วรัน:
+```cypher
+MATCH p=(n)-[r]-(m) RETURN p
+```
+
+จะเห็นกราฟทั้งหมด (105 nodes: Circuit, Customer, Device, Interface, Site เชื่อมกันด้วย 163 relationships) เป็น cluster ตามพื้นที่ BKK/NBI ชัดเจน — นี่คือข้อมูลจริงที่ tool อย่าง `get_upstream_devices` และ `get_device_neighbors` ไล่หาอยู่เบื้องหลังทุกครั้งที่ agent ตอบคำถามข้ามระบบ
+
+---
+
+## 7. ล้างทั้งหมดเพื่อเริ่มใหม่
 
 ```bash
 docker compose -f docker/docker-compose.yml --env-file .env --profile demo down && docker compose -f docker/docker-compose.yml --env-file .env down -v
