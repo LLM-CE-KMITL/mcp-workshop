@@ -81,7 +81,9 @@ flowchart LR
 
 ## 4. ดูข้อมูลด้วยตาก่อนเริ่มเรียน
 
-### 🐘 PostgreSQL (pgAdmin)
+### 4.1 PostgreSQL (pgAdmin)
+
+**http://localhost:5050**
 
 Password (ใส่ตอน login server ที่ลงทะเบียนไว้ 2 ตัว):
 
@@ -123,7 +125,9 @@ LIMIT 10;
 SELECT * FROM v_ticket_overview ORDER BY opened_at DESC LIMIT 10;
 ```
 
-### 🕸️ Neo4j (Neo4j Browser)
+### 4.2 Neo4j (Neo4j Browser)
+
+**http://localhost:7474**
 
 Password (ใส่ตอน connect, username คือ `neo4j`):
 
@@ -136,9 +140,17 @@ neo4j_dev_password
 MATCH p = (l:Device {role:'LPE'})-[:UPLINK_TO]->(a:Device) RETURN p
 ```
 
-### 🔍 OpenSearch (OpenSearch Dashboards)
+### 4.3 OpenSearch (OpenSearch Dashboards)
 
-ไม่ต้องใส่ password (security plugin ปิดไว้สำหรับ workshop) เปิด Dev Tools แล้วรัน:
+**http://localhost:5601**
+
+ไม่ต้องใส่ password (security plugin ปิดไว้สำหรับ workshop)
+
+ต้อง query ผ่านหน้า **Dev Tools** โดยเฉพาะ (ไม่ใช่หน้าแรก) เข้าตรง ๆ ได้ที่:
+
+**http://localhost:5601/app/dev_tools#/console**
+
+(หรือกดที่ไอคอนเมนู ☰ มุมซ้ายบน → เลื่อนลงหา "Dev Tools" ใต้หมวด Management) แล้วรัน:
 
 ```
 GET network-logs-*/_search
