@@ -77,14 +77,9 @@ docker compose -f docker/docker-compose.yml --env-file .env up -d postgres pgadm
 
 ## 4. เข้าใช้งาน
 
-| อะไร | ลิงก์ | หมายเหตุ |
-|---|---|---|
-| **Chatbot UI (เดโม)** | **http://localhost:8100** | ← เริ่มที่นี่ |
-| Agent API docs | http://localhost:8180/docs | ดู endpoint `/chat` แบบ interactive |
-| pgAdmin | http://localhost:5050 | login ด้วยค่าใน `.env` (`PGADMIN_EMAIL`/`PGADMIN_PASSWORD`) |
-| Neo4j Browser | http://localhost:7474 | login ด้วย `NEO4J_USER`/`NEO4J_PASSWORD` ใน `.env` |
-| OpenSearch Dashboards | http://localhost:5601 | ดู index `network-logs`/`network-docs` |
-| MailHog (fake SMTP) | http://localhost:8025 | ดูอีเมลที่ agent "ส่ง" ระหว่างทดสอบ |
+เปิด Chatbot UI ที่:
+
+**http://localhost:8100**
 
 ---
 
