@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Workshop 2 reference solution: an agent loop written from scratch.
+"""Workshop 2 reference solution: a ReAct agent loop written from scratch.
 
     python solutions/day2/workshop2_agent.py
     python solutions/day2/workshop2_agent.py "หา ticket ที่ยังไม่ปิด แล้วส่งสรุปให้ NOC"
@@ -8,6 +8,13 @@ No agent framework, and deliberately no MCP either - tools are plain Python
 functions called directly. Day 3 replaces that layer with MCP and nothing else
 about the loop changes, which is the point: the loop is the part worth
 understanding, and it is about 200 lines.
+
+This is a ReAct loop, not a plan-then-execute one: there is no upfront Plan
+object. On every iteration the model sees the goal and every observation so
+far, and decides the single next action - call one tool, or stop and answer.
+That is also why there is no separate "repair the arguments" step: a failed
+call's error just becomes the next observation, and the model corrects itself
+on its next turn like any other decision.
 
 Capabilities required by the curriculum: search, convert a file, send email.
 """
@@ -210,29 +217,19 @@ TOOLS = {
 
 
 # ==========================================================================
-# 2. Plan schema
+# 2. ReAct decision schema
 # ==========================================================================
 
-class PlanStep(BaseModel):
-    step: int = Field(ge=1)
-    tool: str
-    arguments: dict = Field(default_factory=dict)
-    purpose: str
-    depends_on: list[int] = Field(default_factory=list)
-    argument_from: dict[str, str] = Field(
-        default_factory=dict,
-        description="{argument: 'step.N.path'} สำหรับค่าที่ยังไม่รู้จนกว่าขั้นก่อนจะรัน",
+class ReactDecision(BaseModel):
+    thought: str = Field(description="รู้อะไรแล้วบ้าง และจะทำอะไรต่อ พูดสั้นๆ ประโยคเดียว")
+    tool: str | None = Field(
+        default=None, description="เครื่องมือที่จะเรียกต่อไป หรือ null ถ้าพร้อมตอบแล้ว"
     )
-
-
-class Plan(BaseModel):
-    goal: str
-    reasoning: str
-    steps: list[PlanStep]
+    arguments: dict = Field(default_factory=dict)
 
 
 # ==========================================================================
-# 3. Planner
+# 3. LLM client
 # ==========================================================================
 
 async def call_llm(messages: list[dict], schema: type[BaseModel] | None = None,
@@ -258,25 +255,18 @@ async def call_llm(messages: list[dict], schema: type[BaseModel] | None = None,
         return response.json()["choices"][0]["message"]["content"] or ""
 
 
-PLANNER_PROMPT = """\
-วางแผนว่าจะใช้เครื่องมือใดตามลำดับใด เพื่อบรรลุเป้าหมายของผู้ใช้
-คุณไม่ต้องตอบคำถาม - หน้าที่คือสร้างแผน
+REACT_PROMPT = """\
+ตอบเป้าหมายของผู้ใช้ด้วยการเรียกเครื่องมือทีละขั้น
+บนทุกรอบ ให้ตัดสินใจ "ขั้นต่อไปขั้นเดียว":
+- เรียกเครื่องมือหนึ่งตัวเพื่อหาข้อมูลเพิ่ม หรือ
+- ตั้ง tool เป็น null เมื่อมีหลักฐานพอจะตอบแล้ว
 
 กติกา:
-1. ใช้ขั้นตอนน้อยที่สุดที่ทำงานสำเร็จ
-2. ใส่ depends_on เฉพาะเมื่อขั้นนั้นต้องใช้ผลของขั้นก่อนจริงๆ
-3. พารามิเตอร์ที่ต้องอ้างอิงข้อมูลจากขั้นก่อน (เช่น step.1...) **ห้ามใส่ใน arguments เด็ดขาด** ให้ใส่ใน argument_from เท่านั้น!
-   ตัวอย่างการเขียน JSON ของแต่ละขั้นตอน (ต้องมีฟิลด์ purpose เสมอ):
-   {{
-       "step": 2,
-       "tool": "export_report",
-       "purpose": "สร้างรายงานสรุปจากข้อมูล Ticket",
-       "arguments": {{"title": "รายงาน Ticket", "format": "markdown"}},
-       "argument_from": {{"rows": "step.1.tickets"}},
-       "depends_on": [1]
-   }}
-4. ถ้าผู้ใช้ขอให้ส่งผลให้ทีม ต้องมีขั้น export_report ก่อน send_notification
-   (และอย่าลืมแนบไฟล์รายงานในขั้น send_notification ด้วย "argument_from": {{"attachment": "step.2.path"}})
+1. ใช้ขั้นตอนน้อยที่สุดที่ทำงานสำเร็จ ดูผลลัพธ์ที่มีอยู่แล้วก่อนตัดสินใจ
+2. ถ้าเครื่องมือก่อนหน้าล้มเหลว ข้อผิดพลาดจะอยู่ใน observation - แก้เฉพาะจุดที่ผิด
+   อย่าเรียกซ้ำด้วย argument เดิม
+3. ถ้าผู้ใช้ขอให้ส่งผลให้ทีม ต้องเรียก export_report ก่อน send_notification เสมอ
+   (แนบไฟล์จาก path ที่ export_report คืนมาใน attachment)
 
 ความรู้ที่ต้องใช้:
 - ถ้าลูกค้าหลายรายที่อยู่คนละอุปกรณ์แจ้งอาการเดียวกัน
@@ -287,32 +277,36 @@ PLANNER_PROMPT = """\
 """
 
 
-async def create_plan(goal: str) -> Plan:
-    import inspect  # เพิ่มบรรทัดนี้เข้ามา
-    catalogue = "\n\n".join(
-        f"{name}{inspect.signature(fn)}: {(fn.__doc__ or '').strip()}" for name, fn in TOOLS.items()
-    )
-    raw = await call_llm(
-        [
-            {"role": "system", "content": PLANNER_PROMPT.format(catalogue=catalogue)},
-            {"role": "user", "content": goal},
-        ],
-        schema=Plan,
-    )
+def _parse_json(schema: type[BaseModel], raw: str) -> BaseModel:
     text = raw.strip()
     if text.startswith("```"):
         text = text.split("```")[1]
         text = text[4:] if text.lstrip().startswith("json") else text
-    plan = Plan.model_validate_json(text.strip())
+    return schema.model_validate_json(text.strip())
 
-    # Validate BEFORE executing. A hallucinated tool name caught here costs
-    # nothing; caught at execution time it costs a round trip and produces a
-    # confusing error for the user.
-    known = set(TOOLS)
-    plan.steps = [s for s in plan.steps if s.tool in known]
-    for step in plan.steps:
-        step.depends_on = [d for d in step.depends_on if d < step.step]
-    return plan
+
+async def decide_next_step(goal: str, scratchpad: list[dict]) -> ReactDecision:
+    import inspect
+    catalogue = "\n\n".join(
+        f"{name}{inspect.signature(fn)}: {(fn.__doc__ or '').strip()}" for name, fn in TOOLS.items()
+    )
+    messages = [
+        {"role": "system", "content": REACT_PROMPT.format(catalogue=catalogue)},
+        {"role": "user", "content": goal},
+        *scratchpad,
+    ]
+    raw = await call_llm(messages, schema=ReactDecision)
+    decision = _parse_json(ReactDecision, raw)
+
+    # Validate BEFORE calling. A hallucinated tool name caught here costs
+    # nothing; caught at call time it costs a round trip either way, so this
+    # just avoids a confusing traceback below.
+    if decision.tool is not None and decision.tool not in TOOLS:
+        decision = ReactDecision(
+            thought=f"{decision.thought} (เครื่องมือ '{decision.tool}' ไม่มีจริง)",
+            tool=None,
+        )
+    return decision
 
 
 # ==========================================================================
@@ -351,99 +345,40 @@ class LoopGuard:
 
 
 # ==========================================================================
-# 5. Executor
+# 5. Tool execution + scratchpad
 # ==========================================================================
 
-def resolve(path: str, results: dict) -> object:
-    """Resolve 'step.1.tickets.*.device_id' against previous results.
-
-    The '*' form is what turns "the tickets from step 1" into "the list of
-    device ids to pass to step 2" - without it, every multi-step plan would
-    need the model to copy values by hand, which it does unreliably.
-    """
-    parts = path.split(".")
-    if len(parts) < 2 or parts[0] != "step":
-        return None
-    step_number = int(parts[1])
-    if step_number not in results or not results[step_number]["ok"]:
-        return None
-
-    value = results[step_number]["result"]
-    for i, part in enumerate(parts[2:], start=2):
-        if value is None:
-            return None
-        if part == "*":
-            remainder = parts[i + 1:]
-            if not isinstance(value, list):
-                return None
-            collected = []
-            for item in value:
-                current = item
-                for key in remainder:
-                    current = current.get(key) if isinstance(current, dict) else None
-                    if current is None:
-                        break
-                if current is not None:
-                    collected.append(current)
-            return collected
-        if isinstance(value, list):
-            try:
-                value = value[int(part)]
-            except (ValueError, IndexError):
-                return None
-        elif isinstance(value, dict):
-            value = value.get(part)
-        else:
-            return None
-    return value
+async def call_one_tool(tool: str, arguments: dict) -> dict:
+    started = time.time()
+    try:
+        # Tools are synchronous; run them off the event loop so the process
+        # is not blocked while a DB or HTTP call is in flight.
+        result = await asyncio.to_thread(TOOLS[tool], **arguments)
+        elapsed = int((time.time() - started) * 1000)
+        print(f"        -> สำเร็จ {elapsed} ms")
+        return {"ok": True, "tool": tool, "result": result}
+    except Exception as exc:  # noqa: BLE001
+        print(f"        -> ล้มเหลว: {type(exc).__name__}: {exc}")
+        return {"ok": False, "tool": tool, "error": f"{type(exc).__name__}: {exc}"}
 
 
-async def execute(plan: Plan) -> dict:
-    guard = LoopGuard()
-    results: dict = {}
-    pending = {s.step: s for s in plan.steps}
-
-    while pending:
-        runnable = [s for s in pending.values()
-                    if all(d in results for d in s.depends_on)]
-        if not runnable:
-            for step in pending.values():
-                results[step.step] = {"ok": False, "tool": step.tool,
-                                      "error": "ขั้นที่ต้องพึ่งพาไม่สำเร็จ"}
-            break
-
-        async def run(step: PlanStep) -> tuple[int, dict]:
-            arguments = dict(step.arguments)
-            for name, reference in step.argument_from.items():
-                resolved = resolve(reference, results)
-                if resolved is not None:
-                    arguments[name] = resolved
-
-            blocked = guard.check(step.tool, arguments)
-            if blocked:
-                print(f"    [{step.step}] {step.tool} - หยุด: {blocked}")
-                return step.step, {"ok": False, "tool": step.tool, "error": blocked}
-
-            print(f"    [{step.step}] {step.tool}({json.dumps(arguments, ensure_ascii=False)[:70]})")
-            started = time.time()
-            try:
-                # Tools are synchronous; run them off the event loop so
-                # independent steps really do overlap.
-                result = await asyncio.to_thread(TOOLS[step.tool], **arguments)
-                elapsed = int((time.time() - started) * 1000)
-                print(f"        -> สำเร็จ {elapsed} ms")
-                return step.step, {"ok": True, "tool": step.tool, "result": result}
-            except Exception as exc:  # noqa: BLE001
-                print(f"        -> ล้มเหลว: {type(exc).__name__}: {exc}")
-                return step.step, {"ok": False, "tool": step.tool,
-                                   "error": f"{type(exc).__name__}: {exc}"}
-
-        completed = await asyncio.gather(*(run(s) for s in runnable))
-        for number, outcome in completed:
-            results[number] = outcome
-            pending.pop(number, None)
-
-    return results
+def append_turn(scratchpad: list[dict], decision: ReactDecision, outcome: dict) -> None:
+    """Add one Thought/Action/Observation turn - this, not an explicit
+    dependency graph, is what lets a later step use an earlier one's result:
+    the model just reads it back out of the conversation."""
+    scratchpad.append({
+        "role": "assistant",
+        "content": json.dumps(
+            {"thought": decision.thought, "tool": decision.tool,
+             "arguments": decision.arguments},
+            ensure_ascii=False,
+        ),
+    })
+    if outcome["ok"]:
+        observation = json.dumps(outcome["result"], ensure_ascii=False, default=str)[:4000]
+    else:
+        observation = f"ERROR: {outcome['error']}"
+    scratchpad.append({"role": "user", "content": f"Observation: {observation}"})
 
 
 # ==========================================================================
@@ -461,15 +396,14 @@ SYNTH_PROMPT = """\
 """
 
 
-async def synthesize(goal: str, plan: Plan, results: dict) -> str:
+async def synthesize(goal: str, results: list[dict]) -> str:
     evidence = json.dumps(
-        [{"step": k, **v} for k, v in sorted(results.items())],
+        [{"step": i + 1, **r} for i, r in enumerate(results)],
         ensure_ascii=False, default=str,
     )[:10000]
     return await call_llm(
         [
             {"role": "system", "content": SYNTH_PROMPT},
-            {"role": "system", "content": f"แผนที่ใช้: {plan.goal}\n{plan.reasoning}"},
             {"role": "system", "content": f"หลักฐาน:\n{evidence}"},
             {"role": "user", "content": goal},
         ],
@@ -483,28 +417,41 @@ async def synthesize(goal: str, plan: Plan, results: dict) -> str:
 
 async def run(goal: str) -> None:
     print(f"\n{'=' * 68}\n  เป้าหมาย: {goal}\n{'=' * 68}\n")
-
-    print("  [วางแผน]")
     started = time.time()
-    plan = await create_plan(goal)
-    print(f"    {plan.reasoning}\n")
-    for step in plan.steps:
-        depends = f" (รอขั้น {step.depends_on})" if step.depends_on else " (รันได้ทันที)"
-        print(f"    {step.step}. {step.tool}{depends}")
-        print(f"       {step.purpose}")
 
-    print("\n  [ลงมือทำ]")
-    results = await execute(plan)
+    guard = LoopGuard()
+    scratchpad: list[dict] = []
+    results: list[dict] = []
+
+    print("  [ReAct loop]")
+    for step_num in range(1, MAX_STEPS + 1):
+        decision = await decide_next_step(goal, scratchpad)
+        print(f"    {step_num}. คิด: {decision.thought}")
+
+        if decision.tool is None:
+            break
+
+        blocked = guard.check(decision.tool, decision.arguments)
+        if blocked:
+            print(f"       หยุด: {blocked}")
+            outcome = {"ok": False, "tool": decision.tool, "error": blocked}
+        else:
+            print(f"       เรียก {decision.tool}"
+                  f"({json.dumps(decision.arguments, ensure_ascii=False)[:70]})")
+            outcome = await call_one_tool(decision.tool, decision.arguments)
+
+        append_turn(scratchpad, decision, outcome)
+        results.append(outcome)
 
     print("\n  [สรุป]")
-    answer = await synthesize(goal, plan, results)
+    answer = await synthesize(goal, results)
     print(f"\n{answer}\n")
 
-    ok = sum(1 for r in results.values() if r["ok"])
+    ok = sum(1 for r in results if r["ok"])
     print(f"  {'-' * 66}")
-    print(f"  {ok}/{len(results)} ขั้นตอนสำเร็จ · "
+    print(f"  {ok}/{len(results)} เครื่องมือสำเร็จ · "
           f"ใช้เวลารวม {time.time() - started:.1f} วินาที")
-    if any(r["tool"] == "send_notification" and r["ok"] for r in results.values()):
+    if any(r["tool"] == "send_notification" and r["ok"] for r in results):
         print("  ตรวจอีเมลที่ http://localhost:8025")
     print()
 

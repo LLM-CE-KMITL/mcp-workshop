@@ -1,9 +1,12 @@
-# ตัวอย่าง Prompt → Plan → การเรียกข้อมูล → คำตอบ
+# ตัวอย่าง Prompt → ReAct → การเรียกข้อมูล → คำตอบ
 
 เอกสารนี้แสดง **การทำงานเต็มวงจร** ของระบบ ตั้งแต่คำถามจนถึงคำตอบ พร้อมข้อมูลจริงที่ดึงออกมาจากแต่ละระบบ
 
 > ค่าตัวเลขและ timestamp จะต่างจากเครื่องของคุณ เพราะข้อมูลถูกสร้างใหม่ทุกครั้งที่ seed
-> แต่ **โครงสร้างของ plan และลำดับการเรียกต้องเหมือนกัน**
+> แต่ **ลำดับที่ระบบเลือกเรียกเครื่องมือและเหตุผลแต่ละขั้นต้องคล้ายกัน**
+>
+> ระบบนี้เป็น **ReAct loop** ไม่ใช่ plan-then-execute: ไม่มี "แผน" ก้อนเดียวที่เห็นล่วงหน้า
+> ทุกขั้นตอนด้านล่างคือรอบ **Thought → Action → Observation** หนึ่งรอบ ตัดสินใจใหม่ทุกครั้งจากสิ่งที่เพิ่งเห็น
 
 ---
 
@@ -25,17 +28,12 @@ ticket ที่ยังไม่ปิดตอนนี้มีอะไร�
 ```
 > ตัดสินโดย fast path ไม่ต้องเรียก LLM เลย
 
-### Plan
+### รอบที่ 1 — Thought → Action
 ```json
 {
-  "goal": "แสดง ticket ที่ยังไม่ปิด เรียงตามความรุนแรง",
-  "reasoning": "คำถามนี้ตอบได้จากฐานข้อมูล ticket โดยตรง ไม่ต้องใช้แหล่งอื่น",
-  "steps": [
-    {"step": 1, "tool": "search_tickets",
-     "arguments": {"status": "open", "range": "last_30d", "limit": 20},
-     "purpose": "ดึง ticket ที่ยังไม่ปิดทั้งหมด", "depends_on": []}
-  ],
-  "expected_sources": ["postgres"]
+  "thought": "คำถามนี้ตอบได้จากฐานข้อมูล ticket โดยตรง ไม่ต้องใช้แหล่งอื่น",
+  "tool": "search_tickets",
+  "arguments": {"status": "open", "range": "last_30d", "limit": 20}
 }
 ```
 
@@ -58,13 +56,22 @@ ticket ที่ยังไม่ปิดตอนนี้มีอะไร�
 }
 ```
 
+### รอบที่ 2 — Thought → พอแล้ว
+```json
+{
+  "thought": "ผลลัพธ์มี ticket ที่ยังไม่ปิดครบแล้ว พอจะสรุปคำตอบได้",
+  "tool": null
+}
+```
+
 ### ต้นทุน
 | | |
 |---|---|
-| เรียก LLM | 2 ครั้ง (plan + สรุป) |
+| เรียก LLM (ตัดสินใจ) | 2 ครั้ง (เรียก tool 1 ครั้ง + พอแล้ว 1 ครั้ง) |
+| เรียก LLM (สรุป) | 1 ครั้ง |
 | เรียก tool | 1 |
-| token รวม | ~1,850 |
-| เวลา | 4.2 วินาที |
+| token รวม | ~2,100 |
+| เวลา | 5.1 วินาที |
 
 ---
 
@@ -77,50 +84,28 @@ ticket ที่ยังไม่ปิดตอนนี้มีอะไร�
 
 > **สังเกตว่าคำถามไม่บอกพื้นที่และไม่บอกอุปกรณ์เลย** ระบบต้องค้นพบเอง
 
-### Plan ที่ระบบคิดเอง
-```json
-{
-  "goal": "หาสาเหตุร่วมของ ticket เน็ตหลุดหลายรายในช่วง 14 วัน",
-  "reasoning": "ลูกค้าหลายรายที่อยู่คนละอุปกรณ์แจ้งอาการเดียวกัน มักเกิดจากอุปกรณ์ upstream ที่เป็นจุดร่วม จึงต้องหา ticket ก่อน แล้วไล่ขึ้นไปดู topology และตรวจ log ของจุดร่วมในช่วงเวลาเดียวกัน",
-  "steps": [
-    {"step": 1, "tool": "search_tickets",
-     "arguments": {"category": "intermittent", "range": "last_14d"},
-     "purpose": "หา ticket ที่มีอาการหลุดเป็นช่วงในรอบ 2 สัปดาห์",
-     "depends_on": []},
-    {"step": 2, "tool": "get_upstream_devices",
-     "arguments": {},
-     "argument_from": {"device_ids": "step.1.tickets.*.device_id"},
-     "purpose": "หาว่าอุปกรณ์จาก ticket เหล่านั้นมี upstream ร่วมกันหรือไม่",
-     "depends_on": [1]},
-    {"step": 3, "tool": "search_logs",
-     "arguments": {"range": "last_14d", "severity": "error"},
-     "argument_from": {"device_id": "step.2.shared_by_all.0.device_id"},
-     "purpose": "ตรวจ log ของอุปกรณ์จุดร่วมในช่วงเวลาเดียวกับ ticket",
-     "depends_on": [2]},
-    {"step": 4, "tool": "count_log_events",
-     "arguments": {"group_by": "event_type", "range": "last_14d"},
-     "purpose": "นับว่าเหตุการณ์เกิดถี่แค่ไหน",
-     "depends_on": [2]}
-  ],
-  "expected_sources": ["postgres", "neo4j", "opensearch"]
-}
-```
+### รอบต่อรอบที่ระบบตัดสินใจเอง
 
 ```mermaid
 flowchart TD
     S1["1. search_tickets<br/>PostgreSQL"] --> S2["2. get_upstream_devices<br/>Neo4j"]
     S2 --> S3["3. search_logs<br/>OpenSearch"]
-    S2 --> S4["4. count_log_events<br/>OpenSearch"]
+    S3 --> S4["4. count_log_events<br/>OpenSearch"]
+    S4 --> S5["5. Thought: พอแล้ว"]
     style S1 fill:#e8f0ff,stroke:#06c
     style S2 fill:#f0e8ff,stroke:#60c
     style S3 fill:#e8fff0,stroke:#0a6
     style S4 fill:#e8fff0,stroke:#0a6
+    style S5 fill:#fff8e0,stroke:#c90
 ```
-> ขั้นที่ 3 และ 4 ไม่ขึ้นต่อกัน จึงรันขนานได้
+> **ต่างจาก plan-then-execute ตรงนี้**: ขั้น 3 และ 4 เคยไม่ขึ้นต่อกันและรันขนานได้ในสถาปัตยกรรมเดิม
+> แต่ ReAct ตัดสินใจทีละขั้นเสมอ จึงเรียงตามลำดับเวลาแทน — ไม่มีการรันคู่ขนานอีกต่อไป
 
-### ผลจากแต่ละระบบ
-
-**ขั้นที่ 1 — PostgreSQL** (168 ms)
+**รอบที่ 1 — Thought → Action**
+```json
+{"thought": "ลูกค้าหลายรายที่อยู่คนละอุปกรณ์แจ้งอาการเดียวกัน มักเกิดจากอุปกรณ์ upstream ที่เป็นจุดร่วม เริ่มจากหา ticket ที่มีอาการหลุดเป็นช่วงในรอบ 2 สัปดาห์ก่อน",
+ "tool": "search_tickets", "arguments": {"category": "intermittent", "range": "last_14d"}}
+```
 ```json
 {"total_matches": 5,
  "tickets": [
@@ -134,7 +119,13 @@ flowchart TD
 ```
 > **จุดสำคัญ**: ticket ทั้ง 5 ใบ **ไม่มีคำว่า APE อยู่เลย** ถ้าหยุดตรงนี้จะสรุปผิดว่าเป็นปัญหาฝั่งลูกค้าแต่ละราย
 
-**ขั้นที่ 2 — Neo4j** (54 ms)
+**รอบที่ 2 — Thought → Action**
+```json
+{"thought": "อุปกรณ์ทั้ง 3 ตัวจาก ticket อยู่คนละตัวกัน ต้องหาว่ามี upstream ร่วมกันไหม",
+ "tool": "get_upstream_devices",
+ "arguments": {"device_ids": ["LPE-NBI-11", "LPE-NBI-12", "LPE-NBI-13"]}}
+```
+> ค่า `device_ids` มาจากการที่โมเดล **อ่านผลลัพธ์ของรอบที่ 1 เอง** จากบทสนทนา ไม่มี `argument_from`/`depends_on` ให้ต้องประกาศล่วงหน้าอีกต่อไป
 ```json
 {"queried_devices": ["LPE-NBI-11","LPE-NBI-12","LPE-NBI-13"],
  "shared_by_all": [
@@ -145,7 +136,11 @@ flowchart TD
 ```
 > **นี่คือขั้นที่พลิกคำตอบ** — ข้อมูลนี้ไม่มีทางได้จาก ticket
 
-**ขั้นที่ 3 — OpenSearch** (211 ms)
+**รอบที่ 3 — Thought → Action**
+```json
+{"thought": "APE-NBI-03 คือจุดร่วม ต้องตรวจ log ของมันในช่วงเวลาเดียวกับ ticket",
+ "tool": "search_logs", "arguments": {"device_id": "APE-NBI-03", "range": "last_14d", "severity": "error"}}
+```
 ```json
 {"total_matches": 320, "returned": 30,
  "logs": [
@@ -157,7 +152,11 @@ flowchart TD
  ]}
 ```
 
-**ขั้นที่ 4 — OpenSearch** (89 ms)
+**รอบที่ 4 — Thought → Action**
+```json
+{"thought": "log ดูเหมือน flap ซ้ำ ต้องนับว่าเกิดถี่แค่ไหนถึงจะฟันธงได้",
+ "tool": "count_log_events", "arguments": {"device_id": "APE-NBI-03", "group_by": "event_type", "range": "last_14d"}}
+```
 ```json
 {"results":[
   {"key":"LINK-UPDOWN","count":80},
@@ -167,6 +166,11 @@ flowchart TD
 ]}
 ```
 > 80 ครั้ง = down 40 + up 40 → **interface flap 40 รอบใน 14 วัน**
+
+**รอบที่ 5 — Thought → พอแล้ว**
+```json
+{"thought": "มีทั้ง topology ที่ชี้จุดร่วมและ log ที่ยืนยันความถี่แล้ว พอสรุปได้", "tool": null}
+```
 
 ### คำตอบสุดท้าย
 
@@ -183,10 +187,11 @@ flowchart TD
 ### ต้นทุน
 | | |
 |---|---|
-| เรียก LLM | 3 ครั้ง (plan + สรุป + grounding) |
+| เรียก LLM (ตัดสินใจ) | 5 ครั้ง (เรียก tool 4 ครั้ง + พอแล้ว 1 ครั้ง) |
+| เรียก LLM (สรุป + grounding) | 2 ครั้ง |
 | เรียก tool | 4 |
-| token รวม | ~7,400 |
-| เวลา | 18.6 วินาที |
+| token รวม | ~9,600 |
+| เวลา | 24.3 วินาที (**เพิ่มขึ้นจากเดิม** เพราะขั้น 3-4 เคยรันขนานได้ ตอนนี้เรียงคิว) |
 | แหล่งข้อมูล | PostgreSQL + Neo4j + OpenSearch |
 
 ---
@@ -220,7 +225,7 @@ flowchart TD
 | token | ~120 |
 | เวลา | 0.03 วินาที |
 
-> **นี่คือคุณค่าที่วัดได้ของ Intent Gate** — คำถามแบบนี้ไม่กิน GPU และไม่แตะฐานข้อมูลเลย
+> **นี่คือคุณค่าที่วัดได้ของ Intent Gate** — คำถามแบบนี้ไม่กิน GPU และไม่แตะฐานข้อมูลเลย ไม่ว่าสถาปัตยกรรมข้างในจะเป็น plan-then-execute หรือ ReAct ก็ไม่ต่างกัน เพราะยังไปไม่ถึงขั้นนั้น
 
 ---
 
@@ -231,30 +236,34 @@ flowchart TD
 log ที่ APE-BKK-05 เมื่อ 3 วันก่อนเป็นเหตุเสียจริง หรือเป็นงานที่แจ้งไว้ล่วงหน้า
 ```
 
-### Plan
+**รอบที่ 1 — Thought → Action**
 ```json
-{"steps": [
-  {"step":1,"tool":"search_logs",
-   "arguments":{"device_id":"APE-BKK-05","range":"last_3d"},
-   "purpose":"ดูว่ามี log อะไรเกิดขึ้นบ้าง","depends_on":[]},
-  {"step":2,"tool":"search_tickets",
-   "arguments":{"device_id":"APE-BKK-05","category":"maintenance","range":"last_7d"},
-   "purpose":"ตรวจว่ามีงานบำรุงรักษาที่แจ้งไว้ครอบคลุมช่วงเวลานั้นหรือไม่",
-   "depends_on":[]}
-]}
+{"thought": "ต้องดูก่อนว่ามี log อะไรเกิดขึ้นที่อุปกรณ์นี้ในช่วง 3 วันที่ผ่านมา",
+ "tool": "search_logs", "arguments": {"device_id": "APE-BKK-05", "range": "last_3d"}}
 ```
-> ขั้นที่ 2 ไม่ขึ้นกับขั้นที่ 1 จึงรันขนาน — และ **ขั้นที่ 2 คือขั้นที่ป้องกันการรายงานผิด**
-
-### ผลลัพธ์
 ```json
-// ขั้น 1: log ที่ดูรุนแรงมาก
 {"total_matches": 150, "logs":[
   {"severity":"critical","event_type":"SYS-RELOAD",
    "message":"System reload requested by admin - reason: firmware upgrade"}]}
+```
+> log ดูรุนแรงมาก แต่นี่ **ไม่ใช่** จุดที่ควรหยุด
 
-// ขั้น 2: มี ticket maintenance ครอบคลุม
+**รอบที่ 2 — Thought → Action**
+```json
+{"thought": "log ระดับ critical อาจเป็นงานบำรุงรักษาที่แจ้งไว้ล่วงหน้าก็ได้ ต้องตรวจ ticket ประเภท maintenance ก่อนสรุปว่าเป็นเหตุเสีย",
+ "tool": "search_tickets",
+ "arguments": {"device_id": "APE-BKK-05", "category": "maintenance", "range": "last_7d"}}
+```
+```json
 {"tickets":[{"ticket_id":"TK-25-00006","category":"maintenance","status":"closed",
   "title":"แผนงานอัปเกรด firmware APE-BKK-05"}]}
+```
+> **นี่คือขั้นที่ป้องกันการรายงานผิด** — โมเดลเลือกเรียกเองเพราะ tool description ของ `search_logs` เตือนไว้ตรงๆ ว่า *"log ที่ดูรุนแรงไม่ได้แปลว่าเป็นเหตุเสีย ... ตรวจ ticket ประเภท maintenance ก่อน"* (Module 5)
+> ใน ReAct ไม่มีอะไรบังคับให้เรียกขั้นนี้ล่วงหน้าเหมือน plan ที่ประกาศ 2 ขั้นตั้งแต่ต้น — ถ้า tool description เขียนไม่ดี โมเดลอาจหยุดตอบตั้งแต่รอบที่ 1 แล้วรายงานผิดได้เลย
+
+**รอบที่ 3 — Thought → พอแล้ว**
+```json
+{"thought": "มี ticket maintenance ครอบคลุมช่วงเวลาเดียวกัน สรุปได้ว่าไม่ใช่เหตุเสีย", "tool": null}
 ```
 
 ### คำตอบ
@@ -264,7 +273,16 @@ log ที่ APE-BKK-05 เมื่อ 3 วันก่อนเป็นเ�
 >
 > ISIS adjacency ทุกเส้นกลับมาสถานะ Up หลังจบงาน ไม่ต้องดำเนินการใดเพิ่ม
 
-> **หากไม่มีขั้นที่ 2 ระบบจะรายงานว่าเป็นเหตุเสียร้ายแรง** ซึ่งเป็น hallucination ที่อันตรายที่สุด เพราะมีหลักฐานจริงรองรับแต่ตีความผิด
+> **หากรอบที่ 2 ไม่เกิดขึ้น ระบบจะรายงานว่าเป็นเหตุเสียร้ายแรง** ซึ่งเป็น hallucination ที่อันตรายที่สุด เพราะมีหลักฐานจริงรองรับแต่ตีความผิด — นี่คือเหตุผลที่ Module 5 ย้ำเรื่องการเขียน tool description ให้ดี **มากกว่าที่เคยเป็นตอนใช้ plan-then-execute** เพราะไม่มีขั้นตอนที่สองรออยู่แน่นอนอีกต่อไป
+
+### ต้นทุน
+| | |
+|---|---|
+| เรียก LLM (ตัดสินใจ) | 3 ครั้ง (เรียก tool 2 ครั้ง + พอแล้ว 1 ครั้ง) |
+| เรียก LLM (สรุป + grounding) | 2 ครั้ง |
+| เรียก tool | 2 |
+| token รวม | ~4,700 |
+| เวลา | 11.4 วินาที |
 
 ---
 
@@ -275,10 +293,15 @@ log ที่ APE-BKK-05 เมื่อ 3 วันก่อนเป็นเ�
 สถานะของ PE-CNX-99 ตอนนี้เป็นยังไง
 ```
 
-### Plan
+### รอบที่ 1 — Thought → Action
 ```json
-{"steps":[{"step":1,"tool":"list_devices","arguments":{},
-  "purpose":"ตรวจว่าอุปกรณ์นี้มีอยู่ในระบบหรือไม่ก่อน","depends_on":[]}]}
+{"thought": "ชื่ออุปกรณ์นี้ไม่คุ้นเลย ต้องตรวจก่อนว่ามีอยู่ในระบบจริงไหม",
+ "tool": "list_devices", "arguments": {}}
+```
+
+### รอบที่ 2 — Thought → พอแล้ว
+```json
+{"thought": "ไม่พบ PE-CNX-99 ในรายการอุปกรณ์ทั้ง 10 ตัว พอจะตอบว่าไม่มีอยู่จริงได้แล้ว", "tool": null}
 ```
 
 ### คำตอบ
@@ -296,11 +319,11 @@ log ที่ APE-BKK-05 เมื่อ 3 วันก่อนเป็นเ�
 
 ## สรุปเปรียบเทียบต้นทุน
 
-| คำถาม | เรียก LLM | เรียก tool | token | เวลา |
-|---|---|---|---|---|
-| นอกขอบเขต | 0 | 0 | ~120 | 0.03 วิ |
-| แหล่งเดียว | 2 | 1 | ~1,850 | 4.2 วิ |
-| กับดัก maintenance | 3 | 2 | ~3,900 | 9.1 วิ |
-| ข้ามสามระบบ | 3 | 4 | ~7,400 | 18.6 วิ |
+| คำถาม | เรียก LLM (ตัดสินใจ) | เรียก LLM (สรุป+grounding) | เรียก tool | token | เวลา |
+|---|---|---|---|---|---|
+| นอกขอบเขต | 0 | 0 | 0 | ~120 | 0.03 วิ |
+| แหล่งเดียว | 2 | 1 | 1 | ~2,100 | 5.1 วิ |
+| กับดัก maintenance | 3 | 2 | 2 | ~4,700 | 11.4 วิ |
+| ข้ามสามระบบ | 5 | 2 | 4 | ~9,600 | 24.3 วิ |
 
-> ระยะห่าง 60 เท่าระหว่างคำถามนอกขอบเขตกับคำถามซับซ้อน คือเหตุผลที่ Intent Gate คุ้มค่ามาก
+> ระยะห่างระหว่างคำถามนอกขอบเขตกับคำถามซับซ้อนยังคุ้มค่าเหมือนเดิม — แต่สังเกตว่าคอลัมน์ "เรียก LLM (ตัดสินใจ)" **ผูกกับจำนวน tool call ตรงๆ** (N tool calls ต้องใช้ N+1 รอบตัดสินใจเสมอ) ต่างจาก plan-then-execute ที่ตัวเลขนี้เคยคงที่ที่ 1 ครั้งไม่ว่าคำถามจะซับซ้อนแค่ไหน

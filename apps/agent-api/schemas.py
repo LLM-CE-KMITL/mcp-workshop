@@ -3,7 +3,7 @@
 Every structure the LLM produces is defined here as a schema, and every one
 of them is enforced with guided decoding rather than hoped for. That is the
 direct continuation of Day 1: a model that must emit valid JSON cannot emit a
-plan the executor is unable to run.
+decision the ReAct loop is unable to act on.
 """
 
 from __future__ import annotations
@@ -49,44 +49,29 @@ class IntentResult(BaseModel):
 
 
 # --------------------------------------------------------------------------
-# Planning
+# ReAct loop
 # --------------------------------------------------------------------------
 
-class PlanStep(BaseModel):
-    step: int = Field(ge=1)
-    tool: str
+class ReactDecision(BaseModel):
+    """One turn of Thought -> Action, produced fresh on every iteration.
+
+    There is no upfront plan: the model sees the question and every observation
+    so far, then decides the single next move. Setting `tool` to null is how it
+    signals that it has enough evidence and is ready to answer.
+    """
+
+    thought: str = Field(description="One sentence: what is known so far and what to do next")
+    tool: str | None = Field(
+        default=None,
+        description="Tool to call next, or null when ready to answer the question",
+    )
     arguments: dict = Field(default_factory=dict)
-    purpose: str = Field(description="What this step is meant to establish")
-    depends_on: list[int] = Field(
-        default_factory=list,
-        description="Steps whose results this step needs. Empty means it can run immediately.",
-    )
-    argument_from: dict[str, str] = Field(
-        default_factory=dict,
-        description=(
-            "Arguments filled from an earlier result, as "
-            "{argument_name: 'step.N.json_path'}. Used when a value is not "
-            "known until a previous step runs."
-        ),
-    )
 
-
-class Plan(BaseModel):
-    goal: str = Field(description="Restatement of what the user actually wants")
-    reasoning: str = Field(description="Why this sequence of steps answers it")
-    steps: list[PlanStep]
-    expected_sources: list[str] = Field(
-        default_factory=list, description="postgres, neo4j and/or opensearch"
-    )
-
-
-# --------------------------------------------------------------------------
-# Execution
-# --------------------------------------------------------------------------
 
 class StepResult(BaseModel):
     step: int
     tool: str
+    thought: str = ""
     ok: bool
     duration_ms: int
     result: dict | list | str | None = None

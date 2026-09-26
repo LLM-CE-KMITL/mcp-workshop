@@ -1,15 +1,14 @@
 """Loop protection.
 
 Runs without any service: the guard is pure logic, which is exactly why it can
-be relied on. Module 6 argues that one stop condition is never enough - these
-tests pin down all three.
+be relied on. In the ReAct loop this is the ONLY defense against an unbounded
+loop - there is no upfront plan to validate first - so these tests pin down
+all three stop conditions.
 """
 
 from __future__ import annotations
 
-import pytest
-from agent.executor import LoopGuard, resolve_reference
-from schemas import StepResult
+from agent.react import LoopGuard
 
 
 class TestLoopGuard:
@@ -37,36 +36,10 @@ class TestLoopGuard:
         assert blocked is not None
 
     def test_blocks_total_step_budget(self, monkeypatch):
-        import agent.executor as executor
+        import agent.react as react
 
-        monkeypatch.setattr(executor, "MAX_STEPS", 3)
-        monkeypatch.setattr(executor, "MAX_SAME_TOOL_CALLS", 99)
-        guard = executor.LoopGuard()
+        monkeypatch.setattr(react, "MAX_STEPS", 3)
+        monkeypatch.setattr(react, "MAX_SAME_TOOL_CALLS", 99)
+        guard = react.LoopGuard()
         results = [guard.check(f"tool_{i}", {"i": i}) for i in range(5)]
         assert results[-1] is not None
-
-
-class TestResolveReference:
-    def _results(self):
-        return {
-            1: StepResult(step=1, tool="search_tickets", ok=True, duration_ms=1,
-                          result={"tickets": [{"device_id": "LPE-NBI-11"},
-                                              {"device_id": "LPE-NBI-12"}]}),
-            2: StepResult(step=2, tool="get_upstream_devices", ok=False,
-                          duration_ms=1, error="boom"),
-        }
-
-    def test_simple_path(self):
-        assert resolve_reference("step.1.tickets.0.device_id", self._results()) == "LPE-NBI-11"
-
-    def test_wildcard_collects_every_element(self):
-        """This is what turns 'the tickets from step 1' into a device list."""
-        assert resolve_reference("step.1.tickets.*.device_id", self._results()) == [
-            "LPE-NBI-11", "LPE-NBI-12"
-        ]
-
-    def test_failed_step_yields_none(self):
-        assert resolve_reference("step.2.shared_by_all", self._results()) is None
-
-    def test_missing_step_yields_none(self):
-        assert resolve_reference("step.9.anything", self._results()) is None

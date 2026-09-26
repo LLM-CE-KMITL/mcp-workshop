@@ -12,33 +12,15 @@ from __future__ import annotations
 import chainlit as cl
 
 
-def plan_view(plan: dict) -> str:
-    """Render a plan as a Mermaid diagram plus a table.
+def thought_view(data: dict) -> str:
+    """Render one ReAct Thought.
 
-    The diagram makes dependencies obvious at a glance: steps side by side ran
-    concurrently, steps in a chain had to wait.
+    There is no plan to diagram: the agent decides a single next action - or
+    decides it is ready to answer - and this is that one decision made visible.
     """
-    lines = [f"**เป้าหมาย**: {plan['goal']}", "", f"{plan['reasoning']}", ""]
-
-    lines += ["```mermaid", "flowchart TD"]
-    for step in plan["steps"]:
-        label = f"{step['step']}. {step['tool']}"
-        lines.append(f'    S{step["step"]}["{label}"]')
-    for step in plan["steps"]:
-        for dependency in step.get("depends_on", []):
-            lines.append(f"    S{dependency} --> S{step['step']}")
-    lines.append("```")
-
-    lines += ["", "| ขั้น | เครื่องมือ | ทำเพื่อ | รอขั้น |", "|---|---|---|---|"]
-    for step in plan["steps"]:
-        depends = ", ".join(str(d) for d in step.get("depends_on", [])) or "-"
-        lines.append(
-            f"| {step['step']} | `{step['tool']}` | {step['purpose']} | {depends} |"
-        )
-
-    sources = ", ".join(plan.get("expected_sources", [])) or "-"
-    lines += ["", f"**แหล่งข้อมูลที่คาดว่าจะใช้**: {sources}"]
-    return "\n".join(lines)
+    if data.get("tool"):
+        return f"{data['thought']}\n\n**ขั้นต่อไป**: เรียก `{data['tool']}`"
+    return f"{data['thought']}\n\n**พร้อมตอบแล้ว** ไม่เรียกเครื่องมือเพิ่ม"
 
 
 async def topic_banner(data: dict) -> None:

@@ -151,7 +151,7 @@ conversation += [
 | หลักการ | ตัวอย่างจากโปรเจกต์นี้ |
 |---|---|
 | ใช้ `Enum` แทน string อิสระ | `IntentLabel` มี 4 ค่า ไม่ใช่ string ว่างเปล่า |
-| ใส่ `description` ทุกฟิลด์ | `PlanStep.depends_on` อธิบายว่าเมื่อไหร่ควรใส่ |
+| ใส่ `description` ทุกฟิลด์ | `ReactDecision.tool` อธิบายว่า null หมายถึงพร้อมตอบแล้ว |
 | กำหนดขอบเขตตัวเลข | `confidence: float = Field(ge=0, le=1)` |
 | ฟิลด์ที่ไม่บังคับต้องมี default | `missing_information: list = Field(default_factory=list)` |
 | **หลีกเลี่ยง nested ลึกเกิน 3 ชั้น** | โมเดลพลาดมากขึ้นตามความลึก |

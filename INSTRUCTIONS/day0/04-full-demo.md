@@ -12,7 +12,7 @@
 ```mermaid
 flowchart TB
     UI["Chainlit UI<br/>:8000 dev / :8100 demo"]
-    API["Agent API (FastAPI)<br/>:8080 dev / :8180 demo<br/>Intent -> Memory -> Planner -> Executor -> Synthesizer -> Grounding"]
+    API["Agent API (FastAPI)<br/>:8080 dev / :8180 demo<br/>Intent -> Memory -> ReAct Loop -> Synthesizer -> Grounding"]
     MCP["MCP Server<br/>Tools / Resources<br/>:9000"]
     LLM["OpenRouter<br/>LLM + Embedding"]
     PG[("PostgreSQL + pgvector<br/>tickets, circuits, customers")]
@@ -27,7 +27,7 @@ flowchart TB
     MCP --> OS
 ```
 
-**Agent API** ประมวลผลคำถามผ่าน 6 ขั้นตอนเรียงกัน: Intent Gate → Memory → Planner → Executor (+ Loop Guard) → Synthesizer → Grounding
+**Agent API** ประมวลผลคำถามผ่าน 5 ขั้นตอนเรียงกัน: Intent Gate → Memory → ReAct Loop (+ Loop Guard) → Synthesizer → Grounding
 รายละเอียดแต่ละขั้นตอน + เหตุผลเชิงสถาปัตยกรรม อยู่ที่ [01-architecture.md](01-architecture.md)
 
 ---
