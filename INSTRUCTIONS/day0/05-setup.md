@@ -81,29 +81,29 @@ flowchart LR
 
 ## 4. ดูข้อมูลด้วยตาก่อนเริ่มเรียน
 
-**pgAdmin** — มี server ลงทะเบียนไว้ 2 ตัว ลองรัน:
+**pgAdmin** — Password (ใส่ตอน login server ที่ลงทะเบียนไว้ 2 ตัว):
 
-```sql
-SELECT device_id, site_code, role, model FROM devices ORDER BY site_code, role;
 ```
-**pgAdmin** — Password:
-
-```sql
 mpls_dev_password
 ```
 
-**Neo4j Browser** — ดูโครงสร้างที่เป็นหัวใจของโจทย์:
-
-```cypher
-MATCH p = (l:Device {role:'LPE'})-[:UPLINK_TO]->(a:Device) RETURN p
+แล้วลองรัน:
+```sql
+SELECT device_id, site_code, role, model FROM devices ORDER BY site_code, role;
 ```
-**Neo4j Browser** — Password:
 
-```cypher
+**Neo4j Browser** — Password (ใส่ตอน connect, username คือ `neo4j`):
+
+```
 neo4j_dev_password
 ```
 
-**OpenSearch Dashboards** — Dev Tools แล้วรัน:
+แล้วดูโครงสร้างที่เป็นหัวใจของโจทย์:
+```cypher
+MATCH p = (l:Device {role:'LPE'})-[:UPLINK_TO]->(a:Device) RETURN p
+```
+
+**OpenSearch Dashboards** — ไม่ต้องใส่ password (security plugin ปิดไว้สำหรับ workshop) เปิด Dev Tools แล้วรัน:
 
 ```
 GET network-logs-*/_search
