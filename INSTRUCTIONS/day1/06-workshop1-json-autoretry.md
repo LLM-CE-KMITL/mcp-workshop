@@ -12,6 +12,51 @@
 
 ---
 
+## ภาพรวม Flow ก่อนลงมือเขียน
+
+หัวใจของโจทย์นี้มีแค่ 3 สถานะที่ต้องจัดการให้ครบ: **สำเร็จตั้งแต่รอบแรก**, **พังแล้วแก้ตัวจนสำเร็จ**, และ **พังจนครบทุกรอบแล้วต้องมี fallback ไม่ crash**
+
+```mermaid
+flowchart TD
+    A["ข้อความดิบจากลูกค้า"] --> B["ส่งให้ LLM<br/>พร้อม JSON Schema"]
+    B --> C{"parse ผ่าน<br/>Pydantic ไหม"}
+    C -->|ผ่าน| D["คืน ExtractionResult<br/>ok=true"]
+    C -->|ไม่ผ่าน| E["เก็บ error ลง errors[]"]
+    E --> F["ต่อ error กลับเข้า conversation<br/>บอกโมเดลว่าผิดตรงไหน"]
+    F --> G{"attempt < max_retries?"}
+    G -->|ใช่| B
+    G -->|ครบแล้ว| H["คืน ExtractionResult<br/>ok=false + fallback"]
+    style D fill:#e0ffe0,stroke:#0a0
+    style H fill:#fff4e0,stroke:#c90
+```
+
+**จุดที่มักพลาด**:
+
+| จุด | พลาดยังไง | แก้ยังไง |
+|---|---|---|
+| ขั้น F | ลองใหม่ด้วย prompt เดิมทุกคำ | ต้องส่ง **ข้อความ error จริง** กลับไปให้โมเดลเห็นว่าผิดตรงไหน ไม่งั้นมันจะพังแบบเดิมซ้ำ |
+| ขั้น G | ลืมมีเพดาน จึงวนไม่จบ | `max_retries` ต้องบังคับจริง นับ `attempt` ทุกรอบ |
+| ขั้น H | โยน exception ออกไปตรงๆ | ต้อง**คืนค่า** เสมอ (`ok=false` + ข้อมูล fallback) ผู้เรียกโค้ดจะได้ไม่ต้อง try/except เอง |
+| ทุกขั้น | ลืมนับ token สะสม | ใช้ `LLMStats` ตัวเดียวกันสะสมไปตลอดทุก attempt ไม่สร้างใหม่ทุกรอบ |
+
+ลำดับเวลาของ "รอบที่พังแล้วแก้ตัวสำเร็จ" หน้าตาแบบนี้ (เทียบกับ Module 3 หัวข้อ 5 ที่เป็นกลไกเดียวกัน แต่ที่นี่ให้เขียนเอง):
+
+```mermaid
+sequenceDiagram
+    participant E as StructuredExtractor
+    participant L as LLM
+
+    E->>L: attempt 1: ข้อความ + schema
+    L-->>E: JSON ที่ severity="วิกฤต" (ไม่อยู่ใน enum)
+    E->>E: validate ล้มเหลว → เก็บ error, attempt += 1
+    E->>L: attempt 2: ข้อความเดิม + "ผิดตรงนี้: severity ต้องเป็น low/medium/high/critical"
+    L-->>E: JSON ที่ severity="critical" (ถูกต้อง)
+    E->>E: validate ผ่าน
+    E-->>E: คืน ok=true, attempts=2, errors=[รายการที่ 1]
+```
+
+---
+
 ## บริบทงานจริง
 
 `ticket_messages` ในระบบเป็นข้อความอิสระที่ลูกค้าและเจ้าหน้าที่พิมพ์กันเอง ไทยปนอังกฤษ ไม่มีโครงสร้าง
@@ -109,6 +154,46 @@ class TicketExtraction(BaseModel):
     customer_impact: str = Field(description="ผลกระทบต่อการใช้งานของลูกค้า")
     confidence: float = Field(ge=0.0, le=1.0)
 ```
+
+**ตัวอย่าง output ที่ต้องการ** — จากข้อความ *"ลูกค้าสาขา NBI โทรมาโวยวายว่าเน็ตหลุดเป็นช่วงๆ ตั้งแต่เช้า ใช้งาน video conference ไม่ต่อเนื่องเลย แจ้งให้เช็คเร้าเตอร์ LPE-NBI-11 ด่วนๆ"* ควรได้ JSON แบบนี้กลับมา:
+
+```json
+{
+  "category": "intermittent",
+  "severity": "high",
+  "affected_device": "LPE-NBI-11",
+  "affected_site": "NBI",
+  "summary_th": "เน็ตหลุดเป็นช่วงๆ ตั้งแต่เช้า กระทบการใช้งาน video conference",
+  "customer_impact": "วิดีโอคอนเฟอเรนซ์ใช้งานไม่ต่อเนื่อง ลูกค้าแจ้งด่วน",
+  "confidence": 0.9
+}
+```
+
+ข้อความที่ไม่มีอุปกรณ์หรือสาขาเจาะจง (เช่นถามข้อมูลทั่วไป) ก็ต้องได้ JSON ที่ valid เหมือนกัน — แค่ฟิลด์ optional เป็น `null`:
+
+```json
+{
+  "category": "inquiry",
+  "severity": "low",
+  "affected_device": null,
+  "affected_site": null,
+  "summary_th": "ลูกค้าสอบถามขั้นตอนการขอใบเสร็จรับเงิน",
+  "customer_impact": "ไม่กระทบการใช้งาน เป็นคำถามเชิงธุรการ",
+  "confidence": 0.75
+}
+```
+
+**JSON ที่ validate ไม่ผ่าน** (ตัวอย่างสิ่งที่โมเดลชอบทำพัง แล้ว `StructuredExtractor` ต้องจับได้และส่งกลับไปแก้):
+
+```json
+{
+  "category": "สายหลุด",
+  "severity": "วิกฤต",
+  "affected_device": "เร้าเตอร์ LPE-NBI-11",
+  "confidence": "สูงมาก"
+}
+```
+ผิด 4 จุดพร้อมกัน: `category`/`severity` ไม่อยู่ใน enum ที่กำหนด (เป็นคำไทยอิสระ), `affected_device` ใส่คำฟุ่มเฟือยปนมาแทนที่จะเป็นรหัสล้วนๆ, `confidence` ควรเป็นตัวเลข 0.0-1.0 แต่ได้ string มา, และขาดฟิลด์บังคับ `summary_th`/`customer_impact`/`affected_site` ไปเลย — ข้อความ error ที่ Pydantic โยนออกมาตรงนี้แหละคือสิ่งที่ต้องส่งกลับให้โมเดลเห็นในรอบถัดไป
 
 ### 2. คลาส `StructuredExtractor`
 
