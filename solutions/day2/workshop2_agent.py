@@ -29,9 +29,14 @@ from pathlib import Path
 
 import httpx
 import psycopg
+from dotenv import load_dotenv
 from neo4j import GraphDatabase
 from opensearchpy import OpenSearch
 from pydantic import BaseModel, Field
+
+# Loaded before reading any env var below - running this script directly with
+# `uv run` (not through docker compose --env-file) never sees .env otherwise.
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 BANGKOK = timezone(timedelta(hours=7))
 PG_DSN = os.getenv("PG_DSN",

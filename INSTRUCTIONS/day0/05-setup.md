@@ -17,21 +17,19 @@ LLM_BASE_URL=https://openrouter.ai/api/v1
 LLM_API_KEY=sk-or-v1-***Your Key***
 LLM_MODEL=qwen/qwen3-30b-a3b
 ```
-จุดที่ต้องใส่ Key
-`apps/agent-api/agent/llm.py`
-`cosine.py`
-`scripts/embed_devices.py`
-`solutions/day2/workshop2_agent.py`
-`test_api.py`
+แก้ที่ `.env` ไฟล์เดียวพอ — ทุกโค้ดในโปรเจกต์ (`apps/agent-api/agent/llm.py`, `scripts/*.py`, `solutions/day2/workshop2_agent.py`) อ่านค่าจาก `.env` เองผ่าน `load_dotenv()` ไม่มีจุดไหนต้องแก้ไข key ซ้ำอีก
+
 ```bash
 docker compose -f docker/docker-compose.yml --env-file .env up -d postgres pgadmin neo4j opensearch opensearch-dashboards mailhog
 ```
 ```bash
 docker compose -f docker/docker-compose.yml --env-file .env up seeder
 ```
-สำรอง ***รันคำสั่งด้านล้างเพื่อปิดการทำงานและลบข้อมูลที่ค้างอยู่ในระบบ***
+> ⚠️ **คำสั่งข้างล่างนี้ไม่ต้องรัน** ถ้าเพิ่งเริ่มทำตามขั้นตอนนี้ครั้งแรก — เก็บไว้ใช้เฉพาะตอน**ต้องการล้างข้อมูลทิ้งแล้วเริ่มใหม่** เช่น เจอ error แปลก ๆ ที่แก้ไม่ตก, seed ข้อมูลค้างครึ่งทาง, หรือเปลี่ยนค่าใน `.env` ที่กระทบ schema (เช่น `EMBEDDING_DIM`) แล้วต้องสร้างฐานข้อมูลใหม่ทั้งหมด — รันคำสั่งนี้จะ**ลบข้อมูลทุกอย่างทิ้งถาวร**
+
+สำรอง ***รันคำสั่งด้านล่างเพื่อปิดการทำงานและลบข้อมูลที่ค้างอยู่ในระบบ***
 ```bash
-docker compose -f docker/docker-compose.yml down -v
+docker compose -f docker/docker-compose.yml --env-file .env down -v
 ```
 คำสั่งนี้จะเปิดทุกบริการ รอจนพร้อม แล้ว seed ข้อมูลให้อัตโนมัติ (ประมาณ 3-5 นาทีครั้งแรก)
 
