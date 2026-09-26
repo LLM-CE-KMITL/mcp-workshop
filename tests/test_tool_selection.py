@@ -33,7 +33,12 @@ async def _choose(question: str, descriptions: dict) -> str:
             {"role": "system", "content": CHOOSER_PROMPT.format(catalogue=catalogue)},
             {"role": "user", "content": question},
         ],
-        temperature=0.0, max_tokens=32,
+        # Qwen3 is a reasoning model: it spends tokens on a hidden "thinking"
+        # trace before writing the actual answer. 32 tokens was enough room
+        # for the one-word reply but not the thinking that precedes it, so
+        # generation hit the token cap mid-thought and returned empty content
+        # - a token-budget bug, not a tool-description problem.
+        temperature=0.0, max_tokens=512,
     )
     return reply.strip().strip("`").split()[0] if reply.strip() else ""
 

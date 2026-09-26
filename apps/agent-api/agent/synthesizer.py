@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from typing import AsyncIterator
 
-from schemas import Plan, StepResult
+from schemas import StepResult
 
 from . import llm
 
@@ -46,11 +46,10 @@ bold only for the single most important finding.
 """
 
 
-def _build_evidence(plan: Plan, results: list[StepResult]) -> str:
+def _build_evidence(results: list[StepResult]) -> str:
     blocks = []
     for result in results:
-        step = next((s for s in plan.steps if s.step == result.step), None)
-        purpose = step.purpose if step else ""
+        purpose = result.thought
         if result.ok:
             payload = json.dumps(result.result, ensure_ascii=False, default=str)[:6000]
             blocks.append(
@@ -68,7 +67,6 @@ def _build_evidence(plan: Plan, results: list[StepResult]) -> str:
 
 async def synthesize_stream(
     question: str,
-    plan: Plan,
     results: list[StepResult],
     context: list[dict] | None = None,
     stats: llm.LLMStats | None = None,
@@ -76,9 +74,7 @@ async def synthesize_stream(
 ) -> AsyncIterator[str]:
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "system",
-         "content": f"Plan that was executed:\n{plan.goal}\n{plan.reasoning}"},
-        {"role": "system", "content": f"EVIDENCE:\n{_build_evidence(plan, results)}"},
+        {"role": "system", "content": f"EVIDENCE:\n{_build_evidence(results)}"},
     ]
     if context:
         messages.append({

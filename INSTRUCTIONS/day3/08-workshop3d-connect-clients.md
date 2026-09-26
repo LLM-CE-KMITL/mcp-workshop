@@ -128,8 +128,8 @@ flowchart LR
     C --> D
 ```
 
-- Claude Desktop ใช้โมเดลคนละตัวกับ Qwen3.5 35B-A3B → **แผนที่วางอาจต่างกัน**
-- Claude Desktop มี native tool calling → เรียก tool แบบวนทีละขั้น ต่างจาก plan-then-execute ของเรา
+- Claude Desktop ใช้โมเดลคนละตัวกับ Qwen3.5 35B-A3B → **ลำดับเครื่องมือที่มันเลือกเรียกอาจต่างกัน**
+- Claude Desktop มี native tool calling ในตัว เรียก tool แบบวนทีละขั้นเหมือนกัน — ต่างกันแค่ *กลไก* ที่ทำให้เกิด JSON เรียก tool (native API vs structured output ที่เราบังคับเอง) ไม่ใช่ต่างที่สถาปัตยกรรมการวนลูป
 - `readOnlyHint` มีผลกับการขออนุญาต — ลองเรียก `generate_report` (ที่ `readOnlyHint: false`) แล้วดูว่า client ถามก่อนไหม
 - **Tool ชุดเดียวกัน โค้ดชุดเดียวกัน ทำงานได้กับ client ที่ต่างกันสิ้นเชิง** — นี่คือคุณค่าของ MCP
 

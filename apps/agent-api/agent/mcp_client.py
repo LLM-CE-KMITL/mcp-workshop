@@ -40,8 +40,8 @@ class MCPClient:
         return self._server
 
     async def list_tools(self) -> list[dict]:
-        """Tool definitions, cached. The planner needs the names, the
-        descriptions and the argument schemas to produce a runnable plan."""
+        """Tool definitions, cached. The ReAct loop needs the names, the
+        descriptions and the argument schemas to decide each next action."""
         if self._tools_cache is not None:
             return self._tools_cache
 

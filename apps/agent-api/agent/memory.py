@@ -31,7 +31,7 @@ from schemas import MemorySnapshot, TopicState
 from agent import llm, tokenizer
 
 
-SIMILARITY_THRESHOLD = float(os.getenv("MEMORY_TOPIC_SHIFT_THRESHOLD", "0.55"))
+SIMILARITY_THRESHOLD = float(os.getenv("MEMORY_TOPIC_SHIFT_THRESHOLD", "0.3"))
 WINDOW_TURNS = int(os.getenv("MEMORY_WINDOW_TURNS", "6"))
 EMBEDDING_BASE_URL = os.getenv("EMBEDDING_BASE_URL", "https://openrouter.ai/api/v1")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "baai/bge-m3")
@@ -42,7 +42,12 @@ EXPLICIT_SHIFT = re.compile(
     re.IGNORECASE,
 )
 DEVICE_PATTERN = re.compile(r"\b((?:CR|PE|APE|LPE)-([A-Z]{3})-\d{2})\b", re.IGNORECASE)
-SITE_PATTERN = re.compile(r"\b(BKK|NBI|กรุงเทพ|นนทบุรี)\b", re.IGNORECASE)
+# No \b here: Thai script has no spaces between words, so "...ของนนทบุรีมีอะไร"
+# never has a \w/\W transition around "นนทบุรี" for \b to anchor on - a boundary
+# assumption that happens to work for the English site codes below, but silently
+# never matches the Thai aliases in ordinary sentences. Plain substring search is
+# safe here: these are two fixed, unambiguous site names, not general words.
+SITE_PATTERN = re.compile(r"(BKK|NBI|กรุงเทพ|นนทบุรี)", re.IGNORECASE)
 
 SITE_ALIASES = {"กรุงเทพ": "BKK", "นนทบุรี": "NBI"}
 

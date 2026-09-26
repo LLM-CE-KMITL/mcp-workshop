@@ -18,7 +18,7 @@ API = "http://localhost:8080"
 
 
 async def ask(question: str, session_id: str = "test") -> dict:
-    collected = {"answer": "", "tools": [], "intent": None, "plan": None}
+    collected = {"answer": "", "tools": [], "thoughts": [], "intent": None}
     async with httpx.AsyncClient(timeout=300) as client:
         async with client.stream(
             "POST", f"{API}/chat",
@@ -40,8 +40,8 @@ async def ask(question: str, session_id: str = "test") -> dict:
                             collected["tools"].append(data["tool"])
                         elif kind == "intent_checked":
                             collected["intent"] = data["label"]
-                        elif kind == "plan_created":
-                            collected["plan"] = data
+                        elif kind == "thought":
+                            collected["thoughts"].append(data["thought"])
     return collected
 
 
@@ -69,13 +69,21 @@ async def test_cross_service_finds_the_shared_upstream(questions):
         assert "APE-NBI-03" in result["answer"]
 
 
-async def test_plan_declares_dependencies(questions):
-    result = await ask(questions["Q21"]["question"], "test-plan")
-    steps = result["plan"]["steps"]
-    assert len(steps) >= 3
-    assert any(step["depends_on"] for step in steps), (
-        "a multi-store plan must declare at least one dependency, otherwise "
-        "the executor cannot pass results forward"
+async def test_react_uses_all_three_sources(questions):
+    """Q21 needs PostgreSQL, Neo4j and OpenSearch - no single tool answers it.
+
+    There is no upfront plan to inspect any more (ReAct decides one tool at a
+    time), so what must hold instead is that the *trace* ends up covering the
+    tools the question actually needs.
+    """
+    result = await ask(questions["Q21"]["question"], "test-react-trace")
+    expected = set(questions["Q21"]["expected_tools"])
+    used = set(result["tools"])
+    assert expected <= used, (
+        f"missing tools {expected - used}; used {used}"
+    )
+    assert len(result["thoughts"]) >= len(result["tools"]), (
+        "every tool call must be preceded by a decision (thought)"
     )
 
 

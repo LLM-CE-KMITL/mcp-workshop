@@ -16,7 +16,7 @@ flowchart TB
     end
     subgraph D2["วันที่ 2 — Agent"]
         B1["Intent Gate"]
-        B2["Planner + Executor<br/>+ Loop Guard"]
+        B2["ReAct Loop<br/>+ Loop Guard"]
         B3["Memory<br/>+ topic shift"]
     end
     subgraph D3["วันที่ 3 — MCP"]
@@ -46,9 +46,8 @@ flowchart TB
     subgraph CORE["Agent Core"]
         direction LR
         I["Intent Gate"] --> M["Memory"]
-        M --> P["Planner"]
-        P --> E["Executor<br/>+ Loop Guard"]
-        E --> S["Synthesizer"]
+        M --> R["ReAct Loop<br/>(Thought → Action → Observation)<br/>+ Loop Guard"]
+        R --> S["Synthesizer"]
         S --> G["Grounding"]
     end
 
@@ -90,13 +89,14 @@ sequenceDiagram
     Note over API: ถ้า out_of_scope จบตรงนี้<br/>ไม่แตะฐานข้อมูลเลย
     API->>API: ตรวจว่าเปลี่ยนเรื่องไหม
     API->>M: อ่าน clock://now + schema://overview
-    API->>L: วางแผน (บังคับ JSON schema)
-    L-->>API: Plan พร้อม dependency
-    loop ทุกขั้นตอนตามลำดับ dependency
+    loop ReAct: ทีละขั้น จนกว่าจะพอตอบ
+        API->>L: คิดขั้นต่อไป (บังคับ JSON schema)
+        L-->>API: Thought + เครื่องมือที่จะเรียก (หรือ null ถ้าพอแล้ว)
         API->>M: เรียก tool
         M->>DB: query แบบ read-only
         DB-->>M: ผลลัพธ์
         M-->>API: ผลลัพธ์ (ตัดจำนวน + กรองความลับแล้ว)
+        Note over API: ผลลัพธ์กลายเป็น observation<br/>ของรอบคิดถัดไปทันที
     end
     API->>L: สังเคราะห์คำตอบจากหลักฐาน
     L-->>U: คำตอบ stream ทีละ token

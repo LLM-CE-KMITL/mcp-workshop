@@ -15,7 +15,7 @@ flowchart TB
     end
     subgraph D2["วันที่ 2"]
         B1["Intent Gate 4 ประเภท"]
-        B2["Planner + Executor<br/>+ Loop Guard 3 ชั้น"]
+        B2["ReAct Loop<br/>+ Loop Guard 3 ชั้น"]
         B3["Memory ที่ลดขนาดเมื่อเปลี่ยนเรื่อง"]
     end
     subgraph D3["วันที่ 3"]

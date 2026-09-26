@@ -35,7 +35,7 @@ class TestSurface:
 
     async def test_read_tools_declare_read_only(self, server):
         """An honest readOnlyHint is what lets a client skip a permission prompt."""
-        writes = {"generate_report"}
+        writes = {"generate_report", "send_notification"}
         for tool in await server.list_tools():
             annotations = getattr(tool, "annotations", None)
             if annotations is None:

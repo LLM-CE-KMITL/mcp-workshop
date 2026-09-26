@@ -4,7 +4,7 @@
 Wraps the agent as an HTTP service so any frontend can drive it - Chainlit
 during the workshop, and a real NMS integration afterwards. The important
 design choice is that the API streams EVENTS, not just text: the caller sees
-the intent decision, the plan, and each tool call as they happen.
+the intent decision, each reasoning step, and each tool call as they happen.
 
 That is what lets the UI show the agent thinking instead of a spinner, and it
 is what makes a demo persuasive rather than magical.
@@ -40,7 +40,7 @@ from agent import (  # noqa: E402
     llm,
     mcp_client,
     memory,
-    planner,
+    react,
     synthesizer,
 )
 from agent.events import EventType  # noqa: E402
@@ -63,8 +63,10 @@ async def run_turn(request: ChatRequest):
     """One conversational turn, emitted as a stream of events.
 
     The order below is the agent's control flow, and it is deliberate:
-    intent before memory, memory before planning, planning before any tool
-    call, and grounding after the answer but before it is considered final.
+    intent before memory, memory before the ReAct loop, and grounding after
+    the answer but before it is considered final. Unlike a plan-then-execute
+    design there is no separate planning phase - the loop below decides and
+    acts one step at a time.
     """
     session = memory.get(request.session_id)
     session.turn += 1
@@ -128,31 +130,23 @@ async def run_turn(request: ChatRequest):
             yield events.sse(EventType.DONE, {"reason": "general_knowledge"})
             return
 
-        # ---------- 3. Plan ----------
-        plan = await planner.create_plan(
+        # ---------- 3. Reason + act (ReAct loop) ----------
+        from schemas import StepResult
+
+        results: list[StepResult] = []
+        async for event_type, payload in react.run(
             request.message, context=session.build_context(),
             stats=stats, model=request.model,
-        )
-        yield events.sse(EventType.PLAN_CREATED, plan.model_dump())
-
-        # ---------- 4. Execute ----------
-        from agent import executor  # imported here to keep startup fast
-
-        results = []
-        async for event_type, payload in executor.execute(
-            plan, stats=stats, model=request.model
         ):
             if event_type == EventType.STEP_RESULT:
                 tool_calls += 1
-                from schemas import StepResult
-
                 results.append(StepResult(**payload))
             yield events.sse(event_type, payload)
 
-        # ---------- 5. Synthesise ----------
+        # ---------- 4. Synthesise ----------
         answer = ""
         async for token in synthesizer.synthesize_stream(
-            request.message, plan, results,
+            request.message, results,
             context=session.build_context(), stats=stats, model=request.model,
         ):
             answer += token
@@ -160,7 +154,7 @@ async def run_turn(request: ChatRequest):
 
         session.add_turn("assistant", answer)
 
-        # ---------- 6. Ground ----------
+        # ---------- 5. Ground ----------
         try:
             # เรียกใช้ฟังก์ชัน verify จาก verifier.py ที่เราสร้างขึ้น
             verdict = await verify(answer, results)

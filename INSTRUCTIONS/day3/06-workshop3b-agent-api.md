@@ -20,30 +20,30 @@ flowchart LR
 
 ## 1. เปลี่ยนจากเรียกฟังก์ชันตรง เป็นเรียกผ่าน MCP
 
-เมื่อวาน agent เรียกฟังก์ชัน Python ตรงๆ วันนี้ต้องเรียกผ่าน MCP apps/agent-api/agent/executor.py
+เมื่อวาน agent เรียกฟังก์ชัน Python ตรงๆ วันนี้ต้องเรียกผ่าน MCP apps/agent-api/agent/react.py
 
 ```python
 result = await asyncio.wait_for(
-    client.call_tool(step.tool, arguments),
+    client.call_tool(tool, arguments),
     timeout=STEP_TIMEOUT_SECONDS,
 ```
 
 **สิ่งที่ได้มาฟรีจากการเปลี่ยน**: tool ชุดเดียวกันนี้ใช้ได้กับ Claude Desktop ทันทีโดยไม่ต้องเขียนอะไรเพิ่ม
 
-### รายการ tool ต้องมาจาก MCP ไม่ใช่ hardcode apps/agent-api/agent/planner.py
+### รายการ tool ต้องมาจาก MCP ไม่ใช่ hardcode apps/agent-api/agent/react.py
 
 ```python
-async def create_plan(
+async def run(
     question: str,
     context: list[dict] | None = None,
-    stats: llm.LLMStats | None = None,
+    stats: "llm.LLMStats | None" = None,
     model: str | None = None,
-) -> Plan:
+) -> AsyncIterator[tuple[EventType, dict]]:
     client = mcp_client.get()
     tools = await client.list_tools()
 ```
 
-เพิ่ม tool ใน MCP Server → planner รู้จักทันที ไม่ต้องแก้ agent
+เพิ่ม tool ใน MCP Server → ทุกรอบตัดสินใจของ ReAct loop รู้จักทันที ไม่ต้องแก้ agent
 
 ---
 
@@ -70,8 +70,8 @@ async def create_plan(
 `uv run pytest tests/test_agent_flow.py -v`
 
 ```
-intent_checked → memory_updated → plan_created
-→ step_started → step_result (วนซ้ำ)
+intent_checked → memory_updated
+→ thought → [step_started → step_result] (วนซ้ำทีละรอบ ReAct)
 → token ... → grounding_checked → usage → done
 ```
 
@@ -101,10 +101,9 @@ flowchart TD
     A["1. Intent"] --> B{"in_scope?"}
     B -->|ไม่| END["ตอบและจบ<br/>ไม่แตะ tool"]
     B -->|ใช่| C["2. Memory / topic shift"]
-    C --> D["3. Plan"]
-    D --> E["4. Execute"]
-    E --> F["5. Synthesize"]
-    F --> G["6. Ground"]
+    C --> D["3. ReAct Loop<br/>(Thought → Action → Observation)"]
+    D --> F["4. Synthesize"]
+    F --> G["5. Ground"]
 ```
 
 **Intent ต้องมาก่อน Memory เสมอ** — ไม่งั้นคำถามนอกขอบเขตจะไปกระตุ้นการเปลี่ยนหัวข้อ ทำให้ context ที่ผู้ใช้กำลังใช้อยู่ถูกล้างทิ้ง (ดูโจทย์ที่ 4 turn 5)
@@ -117,7 +116,7 @@ flowchart TD
 - [ ] `POST /chat` คืน event ครบทุกประเภท
 - [ ] คำถามนอกขอบเขต: `tool_calls == 0`
 - [ ] `GET /sessions/{id}/memory` แสดง `context_tokens` ที่เปลี่ยนตามจริง
-- [ ] เพิ่ม tool ใน MCP Server แล้ว planner ใช้ได้โดยไม่แก้ agent
+- [ ] เพิ่ม tool ใน MCP Server แล้ว ReAct loop ใช้ได้โดยไม่แก้ agent
 - [ ] `uv run pytest tests/test_agent_flow.py` ผ่าน
 
 ---
