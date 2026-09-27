@@ -74,7 +74,7 @@ flowchart TD
 ### 6. Synthesizer
 เมื่อโมเดลตั้ง `tool` เป็น `null` แปลว่าพร้อมตอบแล้ว รวมผลทุกรอบเป็นคำตอบ **พร้อมอ้างอิงว่าข้อมูลมาจากไหน** เปิด `http://localhost:8025/` รอ
 
-> **⚠️ ถ้า `send_notification` ส่งไม่ออก (`gaierror: nodename nor servname provided`)**: เช็ค `.env` ว่า `SMTP_HOST` เป็น `localhost` ไม่ใช่ `mailhog` — `mailhog` คือชื่อ service ใน docker-compose ที่ resolve ได้แค่จากในเครือข่าย Docker เท่านั้น สคริปต์ที่รันตรงบนเครื่อง (`uv run python ...`) ต้องใช้ `localhost` ถึงจะเข้าถึงพอร์ตที่ map ไว้ได้
+> **⚠️ ถ้า `send_notification` ส่งไม่ออก (`gaierror: nodename nor servname provided`)**: เช็ค `.env` ว่า `SMTP_HOST` เป็น `localhost` ไม่ใช่ `mailhog` — `mailhog` คือชื่อ service ใน docker-compose ที่ resolve ได้แค่จากในเครือข่าย Docker เท่านั้น สคริปต์ที่รันตรงบนเครื่อง (`uv run python ...`) ต้องใช้ `localhost` ถึงจะเข้าถึงพอร์ตที่ map ไว้ได้ (`.env.example` แก้ค่านี้ให้ถูกต้องแล้ว ถ้า setup ใหม่จะไม่เจอปัญหานี้เลย ปัญหานี้จะเจอเฉพาะ `.env` เก่าที่ copy มาก่อนหน้านี้เท่านั้น)
 
 > **⚠️ ระวังการหลอน citation เมื่อไม่มีหลักฐาน** — ถ้า Synthesizer ถูกเรียกตอนที่ยังไม่เคยเรียก tool สำเร็จเลยสักครั้ง (เช่นโมเดลตัดสินใจ `tool: null` ตั้งแต่รอบแรกทั้งที่ยังไม่มีข้อมูล) โมเดลมีโอกาสแต่ง ticket ID หรือชื่ออุปกรณ์ขึ้นมาเองโดยไม่มีหลักฐานรองรับ — เจอเคสนี้จริงระหว่างทดสอบ ทางที่ปลอดภัยกว่าคือ**เช็คด้วยโค้ดก่อนเรียก Synthesizer**: ถ้า `results` ว่างเปล่า (ไม่มีการเรียก tool สำเร็จเลย) ให้ตอบข้อความคงที่ตรงๆ ว่ายังไม่มีหลักฐาน แทนที่จะให้โมเดลพยายามสรุปจากความว่างเปล่า (ดูโค้ดจริงใน `solutions/day2/workshop2_agent.py` ฟังก์ชัน `run()`)
 
@@ -147,12 +147,12 @@ flowchart TD
 
 สาเหตุ: `.env` ตั้ง `SMTP_HOST=mailhog` ซึ่งเป็นชื่อ service ใน `docker-compose.yml` — resolve ได้แค่จากใน**เครือข่าย Docker เท่านั้น** สคริปต์ที่รันตรงบนเครื่อง (`uv run python ...`) ไม่ได้อยู่ในเครือข่ายนั้น จึง resolve ชื่อไม่ออก
 
-แก้ที่ `.env`:
+แก้ที่ `.env.example` แล้ว (ไฟล์ต้นทางที่ทุกคน copy เป็น `.env` ตอน setup — ไม่ใช่แค่แก้ `.env` ของตัวเอง เพราะ `.env` ถูก gitignore ไว้ ไม่มีทางถูกแชร์ไปหาคนอื่นได้เลย):
 ```diff
 - SMTP_HOST=mailhog
 + SMTP_HOST=localhost
 ```
-ปลอดภัย เพราะ container จริงใน `docker-compose.yml` ตั้ง `SMTP_HOST: mailhog` แยกให้ตัวเองอยู่แล้ว ([docker-compose.yml:259](../../docker/docker-compose.yml)) ไม่ได้อ่านจาก root `.env` ไฟล์นี้ การแก้จึงกระทบแค่สคริปต์ที่รันตรงบนเครื่องเท่านั้น
+ปลอดภัย เพราะ container จริงใน `docker-compose.yml` ตั้ง `SMTP_HOST: mailhog` แยกให้ตัวเองอยู่แล้ว ([docker-compose.yml:259](../../docker/docker-compose.yml)) ไม่ได้อ่านจาก root `.env`/`.env.example` ไฟล์นี้ การแก้จึงกระทบแค่สคริปต์ที่รันตรงบนเครื่องเท่านั้น — ถ้า `.env` ของตัวเองยังมีค่าเก่าอยู่ (setup มาก่อนหน้านี้) ต้องแก้ตามด้วยมือเช่นกัน
 
 **2) Synthesizer หลอน citation ตอนไม่มีหลักฐานเลย**
 
