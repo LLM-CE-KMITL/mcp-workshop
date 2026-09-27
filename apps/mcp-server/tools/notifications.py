@@ -26,7 +26,12 @@ def register(mcp) -> None:
         """
         backend = os.getenv("NOTIFIER_BACKEND", "email")
 
-        if backend == "email":
+        # "mailhog" and "email" are the same backend: SMTP to localhost:1025,
+        # which is Mailhog's own SMTP port in this project's docker-compose.
+        # There is no real mail server here - accept both names instead of
+        # forcing .env to say "email" when the thing it is pointing at is
+        # named "mailhog" everywhere else in the stack.
+        if backend in ("email", "mailhog"):
             msg = EmailMessage()
             msg.set_content(body)
             msg["Subject"] = subject
@@ -46,7 +51,7 @@ def register(mcp) -> None:
             try:
                 with smtplib.SMTP("localhost", 1025) as server:
                     server.send_message(msg)
-                return {"ok": True, "method": "email", "status": f"Sent successfully to {to}"}
+                return {"ok": True, "method": backend, "status": f"Sent successfully to {to}"}
             except Exception as e:
                 return {"ok": False, "error": f"Failed to send email: {e}"}
 

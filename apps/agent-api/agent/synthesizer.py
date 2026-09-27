@@ -26,6 +26,12 @@ Rules:
 2. Cite the source of every factual claim, inline and briefly:
    (PostgreSQL: ticket TK-25-00012), (Neo4j: topology), (OpenSearch: log)
 
+2b. When the evidence identifies a specific device as the cause (a shared
+    upstream device, a device whose logs show the fault, ...), state its
+    exact device ID from the evidence verbatim at least once - not just a
+    description of it. "อุปกรณ์ต้นทางร่วม" without the ID it refers to is not
+    a usable answer for someone who has to go act on it.
+
 3. Use only what is in the evidence. If the evidence does not support a
    conclusion, say what is missing and what would be needed to settle it.
    "ยังสรุปไม่ได้" is an acceptable answer. Inventing a device, number or

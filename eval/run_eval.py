@@ -32,12 +32,25 @@ OUTPUT = ROOT / "eval" / "results"
 
 
 def load_questions() -> dict[str, list[dict]]:
-    """Golden questions grouped by level."""
+    """Golden questions grouped by level, restricted to ones tagged for eval.
+
+    A question's own `used_in` is authoritative; one with no tag of its own
+    falls back to the file's `meta.used_in` (L7's red-team entries are tagged
+    only at that level). L7 is written for tests/test_guardrails.py - its
+    `expect` schema (blocked_by, audit_logged) and its `prompt` field (not
+    `question`) do not match what score()/ask() below expect, so questions
+    never tagged "eval" are skipped here rather than scored against - and
+    crashing on - criteria they were never written for.
+    """
     by_level: dict[str, list[dict]] = {}
     for path in sorted(QUESTIONS_DIR.glob("L*.yaml")):
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
         level = data["meta"]["level"]
-        by_level[level] = data.get("questions", []) or []
+        meta_used_in = data["meta"].get("used_in", [])
+        questions = data.get("questions", []) or []
+        by_level[level] = [
+            q for q in questions if "eval" in q.get("used_in", meta_used_in)
+        ]
     return by_level
 
 
