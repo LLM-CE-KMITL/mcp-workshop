@@ -116,7 +116,11 @@ flowchart LR
 
 **ชั้นเดียวเอาไม่อยู่** — งบรวมอย่างเดียวยอมให้วน 8 รอบก่อนหยุด ซึ่งช้าและเปลือง
 
-ทดสอบ: `tests/test_loop_guard.py`
+ทดสอบ:
+
+```bash
+uv run pytest tests/test_loop_guard.py -v
+```
 
 ---
 

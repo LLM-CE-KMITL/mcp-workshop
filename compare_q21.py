@@ -3,6 +3,13 @@ import time
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+# ต้องโหลด .env ก่อน import agent.llm เพราะ agent/llm.py อ่านค่า env
+# (LLM_BASE_URL, LLM_API_KEY, ...) ตอน import module - ถ้าโหลดช้าไปจะ
+# เห็นค่า default (openrouter.ai แบบไม่มี key) แทนค่าจริงใน .env
+load_dotenv(Path(__file__).resolve().parent / ".env")
+
 # ชี้ Path ไปที่ agent-api
 sys.path.insert(0, str(Path(__file__).resolve().parent / "apps" / "agent-api"))
 
