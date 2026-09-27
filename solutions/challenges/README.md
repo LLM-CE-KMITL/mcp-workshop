@@ -5,7 +5,7 @@
 | โจทย์ | ไฟล์ | คำสั่ง |
 |---|---|---|
 | [1 · Thai Token Audit](../../INSTRUCTIONS/day1/04-challenge1-thai-token-audit.md) | `challenge1_token_audit.py` | `uv run solutions/challenges/challenge1_token_audit.py` |
-| [2 · Schema Under Pressure](../../INSTRUCTIONS/day1/07-challenge2-schema-under-pressure.md) | `challenge2_robust_extractor.py` | `uv run solutions/challenges/challenge2_robust_extractor.py` |
+| [2 · Schema Under Pressure](../../INSTRUCTIONS/day1/07-challenge2-schema-under-pressure.md) | `challenge2_before.py` (baseline, ขั้นที่ 1 ของโจทย์) + `challenge2_robust_extractor.py` (เฉลย) | `uv run solutions/challenges/challenge2_before.py` แล้วค่อย `uv run solutions/challenges/challenge2_robust_extractor.py` |
 | [3 · Tool Description Battle](../../INSTRUCTIONS/day2/03-challenge3-tool-description-battle.md) | `challenge3_descriptions.json` | ดูวิธีใช้ด้านล่าง |
 | [4 · Topic Shift Survival](../../INSTRUCTIONS/day2/08-challenge4-topic-shift-survival.md) | `challenge4_topic_shift.py` | `uv run solutions/challenges/challenge4_topic_shift.py` |
 | 5 · Guardrail Red-team | `tests/test_guardrails.py` | `uv run pytest tests/test_guardrails.py` |
@@ -29,16 +29,29 @@
 
 ## โจทย์ที่ 2 — 4 การป้องกัน
 
+`challenge2_before.py` คือขั้นที่ 1 ของโจทย์ทำสำเร็จรูปไว้ให้: รัน `StructuredExtractor` ดิบๆ จาก Workshop 1 (ยังไม่แก้อะไร) กับทั้ง 25 ใบ เพื่อเห็น **"ก่อนแก้" พังตรงไหนบ้าง** ก่อนไปดู `challenge2_robust_extractor.py` ที่เป็น "หลังแก้" — รันสองไฟล์นี้เทียบ list "ยังไม่ผ่าน" กัน จะเห็นชัดว่า 4 การป้องกันด้านล่างแก้อะไรไปบ้างจริงๆ ไม่ใช่แค่คำอธิบายลอยๆ
+
+> **ข้อสังเกตจากการรัน `challenge2_before.py` จริง**: แม้แต่โค้ดดิบของ Workshop 1 ก็ยัง reject `"ALL"` เป็นชื่ออุปกรณ์ได้ (เพราะ `device_must_match_site` validator เช็คกับ `VALID_DEVICES` อยู่แล้ว) แต่พอ retry ครบ 3 ครั้งแล้วยังไม่ผ่าน มันตกไปที่ fallback ซึ่งเขียน `summary_th=text[:180]` — copy ข้อความดิบของผู้โจมตีใส่ output ตรงๆ นี่คือช่องโหว่ที่ซ่อนอยู่ใน fallback path เอง
+
 | ป้องกัน | แก้ปัญหาของ | วิธี |
 |---|---|---|
 | ตัดข้อความยาว | ใบที่ 2 (40 ข้อความ) | เก็บ**หัวและท้าย** ทิ้งตรงกลาง |
-| Delimiter + system prompt | ใบที่ 4 (injection) | แยก "คำสั่ง" ออกจาก "ข้อมูล" ให้ชัด |
+| Delimiter + system prompt | ใบที่ 4 (injection) — ชั้นแรก | แยก "คำสั่ง" ออกจาก "ข้อมูล" ให้ชัด |
 | `confidence` ต่ำเมื่อข้อมูลน้อย | ใบที่ 1, 3 | บังคับใน field description |
 | Circuit breaker | ปัญหาเชิงระบบ | ล้มเหลวติดกัน 5 ครั้ง = หยุด |
 
 **ทำไมตัดตรงกลาง ไม่ใช่ตัดท้าย**: ตรงกลางคือจุดที่โมเดลใช้ข้อมูลได้แย่ที่สุดอยู่แล้ว (Module 2) และข้อความแรกๆ บอกอาการ ส่วนข้อความท้ายๆ บอกผลการแก้ไข — ซึ่งเป็นสองสิ่งที่กำลังสกัดพอดี
 
-**การตรวจจับ injection ไม่ใช่การป้องกัน** — delimiter ต่างหากที่ป้องกัน การตรวจจับมีไว้เพื่อ log และลด confidence เพราะ ticket ที่พยายามหลอกระบบเป็น ticket ที่คนควรดู
+### เรื่องเดียวที่แก้ไปหลังพบว่ายังไม่ผ่านจริง — injection ต้อง "ป้องกัน" ไม่ใช่แค่ "ตรวจจับ"
+
+`challenge2_before.py` เผยให้เห็น**บั๊กจริง** ไม่ใช่แค่ข้อจำกัดที่ตั้งใจ: โค้ดตรวจจับ injection ได้ (`injection_detected=True`) แต่โค้ดที่ลด confidence อยู่หลังเงื่อนไข `if result.ok and result.data:` — และ `NOISY-04` validate ไม่ผ่านครบ 3 รอบเสมอ (`result.ok=False`) ทำให้โค้ดป้องกันทั้งหมด**ไม่เคยถูกรันเลยสักครั้ง** ผลคือ `before` กับ `after` (เวอร์ชันเดิม) พังเหมือนกันเป๊ะ
+
+**สิ่งที่แก้จริงในไฟล์นี้ ณ ตอนนี้**:
+1. `if result.ok and result.data:` → `if result.data:` — โค้ดป้องกันต้องรันไม่ว่า extraction จะสำเร็จหรือ fallback ก็ตาม
+2. เพิ่ม `_neutralize()` — **ตัดบรรทัดที่มี marker ออกจากข้อความก่อนส่งเข้า LLM เลย** (ไม่ใช่แค่ log ไว้เฉยๆ) โมเดลไม่มีทางเอ่ยถึงคำสั่งที่มันไม่เคยเห็น — แก้ปัญหา `"ALL"` ที่เป็นค่าที่ attacker เลือกเองแบบไม่มีทางระบุไว้ล่วงหน้าในลิสต์ marker ได้ด้วย เพราะตัดทั้งบรรทัดทิ้ง ไม่ใช่ตัดแค่คำที่ match
+3. เพิ่ม `_redact_leaks()` — เป็นด่านสุดท้าย กรองคำใน marker list ออกจาก `summary_th`/`customer_impact` **หลัง**ได้ผลลัพธ์แล้ว เผื่อโมเดล paraphrase มาแบบที่ `_neutralize()` ป้องกันไม่ทัน
+
+ผลหลังแก้: **25/25** (จากเดิม 24/25 ทั้ง before และ after) และ `NOISY-04` ผ่านตั้งแต่รอบแรกโดยไม่ต้อง retry เลย — ตรงกับหลักการของ Module 8 ที่ว่า **"detection ไม่ใช่ prevention" ต้องมีโค้ดที่บังคับจริง ไม่ใช่แค่ log แล้วหวังว่าจะพอ**
 
 ---
 

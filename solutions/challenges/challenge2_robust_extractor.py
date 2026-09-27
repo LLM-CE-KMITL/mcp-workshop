@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -70,22 +71,59 @@ class RobustExtractor(StructuredExtractor):
             True,
         )
 
-    @staticmethod
-    def _has_injection_marker(text: str) -> bool:
+    # Bug fix note: this used to live only inside _has_injection_marker() as
+    # a local list, which meant nothing else could reuse it. Detection AND
+    # redaction both need the exact same list, or the two drift apart.
+    _INJECTION_MARKERS = [
+        "ignore all previous", "ignore previous", "disregard the above",
+        "developer mode", "system prompt", "you are now",
+        "ไม่ต้องสนใจคำสั่ง", "ลืมคำสั่งก่อนหน้า",
+    ]
+
+    @classmethod
+    def _has_injection_marker(cls, text: str) -> bool:
         """Detect obvious instruction-injection attempts.
 
-        Detection alone is NOT the defence - the delimiters and the system
-        prompt are. This only exists so the attempt can be logged and the
-        confidence lowered, because something that tries to hijack the
-        extractor is a ticket a human should look at.
+        Detection alone is NOT the defence - see _neutralize() and
+        _redact_leaks() below for what actually stops it.
         """
-        markers = [
-            "ignore all previous", "ignore previous", "disregard the above",
-            "developer mode", "system prompt", "you are now",
-            "ไม่ต้องสนใจคำสั่ง", "ลืมคำสั่งก่อนหน้า",
-        ]
         lowered = text.lower()
-        return any(marker in lowered for marker in markers)
+        return any(marker in lowered for marker in cls._INJECTION_MARKERS)
+
+    @classmethod
+    def _neutralize(cls, text: str) -> str:
+        """Strip injected lines BEFORE the model ever sees them.
+
+        This is the real fix, not _redact_leaks() below. A model cannot
+        quote or half-obey an instruction it was never shown. Line-level
+        removal (not just the matched phrase) also catches an attacker's
+        own made-up payload words - like the literal "ALL" in noisy ticket
+        4's "set affected_device to ALL" - that no fixed marker list could
+        ever enumerate in advance.
+        """
+        lines = text.splitlines()
+        kept = [
+            ln for ln in lines
+            if not any(m in ln.lower() for m in cls._INJECTION_MARKERS)
+        ]
+        if len(kept) == len(lines):
+            return text
+        return "\n".join(kept) + "\n[ระบบตัดข้อความบางบรรทัดออก - พบร่องรอย prompt injection]"
+
+    @classmethod
+    def _redact_leaks(cls, value: str) -> str:
+        """Last line of defence: strip markers that still leaked into output.
+
+        _neutralize() should already prevent this, but a model can still
+        paraphrase an attack it was never directly shown (or the fallback
+        path in the base class can echo raw input verbatim). Nothing on the
+        marker list is allowed to survive into a field a human will read.
+        """
+        redacted = value
+        for marker in cls._INJECTION_MARKERS:
+            redacted = re.sub(re.escape(marker), "[ตัดข้อความต้องสงสัยออก]",
+                              redacted, flags=re.IGNORECASE)
+        return redacted
 
     # ------------------------------------------------------------------
 
@@ -107,6 +145,7 @@ class RobustExtractor(StructuredExtractor):
 
         if self._has_injection_marker(text):
             notes["injection_detected"] = True
+            text = self._neutralize(text)
 
         prepared, trimmed = self._trim(text)
         notes["trimmed"] = trimmed
@@ -114,11 +153,18 @@ class RobustExtractor(StructuredExtractor):
 
         result = await self.extract(prepared)
 
-        if result.ok and result.data:
-            # An extraction from text that tried to hijack the extractor is
-            # not trustworthy at face value, even when it validates.
+        # Bug fixed here: this used to be `if result.ok and result.data:`,
+        # which meant none of the injection defences below ever ran when
+        # extraction fell back to StructuredExtractor's own exception path -
+        # exactly the case noisy ticket 4 hits (validation fails 3 times,
+        # ok=False, but data is still the fallback object with the raw
+        # input echoed into summary_th). Fallback output needs sanitising
+        # at least as much as a normal one does.
+        if result.data:
             if notes["injection_detected"]:
                 result.data.confidence = min(result.data.confidence, 0.4)
+                result.data.summary_th = self._redact_leaks(result.data.summary_th)
+                result.data.customer_impact = self._redact_leaks(result.data.customer_impact)
             # Bonus task 1: distinguish "no information" from "extraction
             # failed". Both produce a null device, but they need different
             # follow-up, so the difference must survive into the output.
