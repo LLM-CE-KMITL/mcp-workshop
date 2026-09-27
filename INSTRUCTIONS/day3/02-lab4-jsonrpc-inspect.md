@@ -22,15 +22,17 @@ uv run python scripts/print_protocol_version.py
 
 ## 2. ยิง JSON-RPC ด้วยมือ
 
-รัน server แบบ HTTP:
+รัน server แบบ HTTP ก่อน (คำสั่งนี้เหมือนกันทุก OS):
 
 ```bash
 uv run python apps/mcp-server/server.py --transport streamable-http --port 9000
 ```
 
-เปิด terminal ใหม่ แล้วยิง `initialize` เอง:
+เปิด terminal ใหม่ แล้วทำ 3 อย่างนี้ตามลำดับ — เลือกคอลัมน์ตาม OS ที่ใช้:
 
-**macOS/Linux (curl):**
+### 2.1 ยิง `initialize`
+
+#### macOS/Linux (curl)
 ```bash
 curl -X POST http://localhost:9000/mcp \
   -H "Content-Type: application/json" \
@@ -38,33 +40,33 @@ curl -X POST http://localhost:9000/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"manual","version":"1.0"}}}'
 ```
 
-**Windows (PowerShell):**
+#### Windows (PowerShell)
 ```powershell
 Invoke-RestMethod -Uri http://localhost:9000/mcp -Method Post -ContentType "application/json" -Headers @{"Accept"="application/json, text/event-stream"} -Body '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"manual","version":"1.0"}}}'
 ```
 
-ดูรายการ tool:
+### 2.2 ดูรายการ tool
 
-**macOS/Linux (curl):**
+#### macOS/Linux (curl)
 ```bash
 curl -s http://localhost:8080/tools | python3 -m json.tool
 ```
 
-**Windows (PowerShell):**
+#### Windows (PowerShell)
 ```powershell
 Invoke-RestMethod -Uri http://localhost:8080/tools -Method Get | ConvertTo-Json -Depth 5
 ```
 
-เรียก tool จริง (ผ่าน stdio transport โดยตรง ไม่ผ่าน HTTP):
+### 2.3 เรียก tool จริง (ผ่าน stdio transport โดยตรง ไม่ผ่าน HTTP)
 
-**macOS/Linux (bash):**
+#### macOS/Linux (bash)
 ```bash
 payload='{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "workshop-client", "version": "1.0"}}}'
 
 echo "$payload" | uv run python apps/mcp-server/server.py --transport stdio
 ```
 
-**Windows (PowerShell):**
+#### Windows (PowerShell)
 ```powershell
 $payload = '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "workshop-client", "version": "1.0"}}}'
 

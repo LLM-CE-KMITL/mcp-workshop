@@ -120,12 +120,50 @@ def main() -> int:
     if args.transport == "stdio":
         log.info("starting on stdio as '%s'", settings().server_name)
         mcp.run(transport="stdio")
+    elif args.transport == "streamable-http":
+        # mcp.run(transport="streamable-http") serves the SDK's ASGI app
+        # unwrapped - no CORS. A browser-based client (the MCP Inspector web
+        # UI, or any future browser tool) talks to this server from a
+        # different origin (different port), so it sends a CORS preflight
+        # (OPTIONS) before the real POST. Without CORSMiddleware that
+        # preflight gets a bare 405 and the browser blocks the real request
+        # before it ever reaches the MCP handshake - connect fails with no
+        # clue that it was CORS, not the protocol, that broke it.
+        import uvicorn
+        from starlette.middleware.cors import CORSMiddleware
+
+        mcp.settings.port = args.port
+        app = mcp.streamable_http_app()
+        app.add_middleware(
+            CORSMiddleware,
+            # Wildcard is fine here specifically: transport_security above
+            # already restricts which Host header is accepted to loopback,
+            # so this still only serves 127.0.0.1/localhost regardless of
+            # which origin the CORS layer waves through. Pin this to a real
+            # origin list before this server ever binds beyond loopback.
+            allow_origins=["*"],
+            allow_methods=["*"],
+            allow_headers=["*"],
+            # A browser only lets JS read response headers a CORS response
+            # explicitly exposes - everything else is invisible even though
+            # it arrived. `mcp-session-id` (mcp.server.streamable_http.
+            # MCP_SESSION_ID_HEADER) carries the session the client must echo
+            # back on every later request; without exposing it here, a
+            # browser client re-sends no session id, the server treats every
+            # request as a fresh connection, and non-initialize methods on
+            # that "new" session fail with 400 - fixing the preflight alone
+            # (allow_origins/methods/headers above) is not enough on its own.
+            expose_headers=["mcp-session-id"],
+        )
+        log.info("starting on %s port %s as '%s'",
+                 args.transport, args.port, settings().server_name)
+        uvicorn.run(app, host=mcp.settings.host, port=args.port,
+                    log_level=mcp.settings.log_level.lower())
     else:
-        if args.transport == "sse":
-            log.warning(
-                "SSE transport is the deprecated pre-2025-03-26 shape. "
-                "Use streamable-http unless you must support an old client."
-            )
+        log.warning(
+            "SSE transport is the deprecated pre-2025-03-26 shape. "
+            "Use streamable-http unless you must support an old client."
+        )
         mcp.settings.port = args.port
         log.info("starting on %s port %s as '%s'",
                  args.transport, args.port, settings().server_name)
