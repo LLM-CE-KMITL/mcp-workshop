@@ -41,6 +41,7 @@
 
 | เวลา | เอกสาร |
 |---|---|
+| ก่อนเริ่ม | [day2/00-day2-architecture.md](INSTRUCTIONS/day2/00-day2-architecture.md) — ภาพรวมสถาปัตยกรรม: หนึ่ง turn เดินทางผ่านอะไรบ้าง (อ่านก่อนเข้าโมดูลแรก) |
 | 09:00–10:30 | [day2/01-module4-react-memory.md](INSTRUCTIONS/day2/01-module4-react-memory.md) — วิธีคิดของ Agent (ReAct Pattern) |
 | 10:45–11:35 | [day2/02-module5-function-calling.md](INSTRUCTIONS/day2/02-module5-function-calling.md) — Function Calling & Tool Definition |
 | 11:35–12:00 | [day2/03-challenge3-tool-description-battle.md](INSTRUCTIONS/day2/03-challenge3-tool-description-battle.md) — โจทย์ 3: Tool Description Battle |
