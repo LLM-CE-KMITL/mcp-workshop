@@ -7,10 +7,37 @@ model is involved.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
+import yaml
 from agent.intent import fast_path, refusal_message
 from conftest import needs_llm
 from schemas import IntentLabel
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _load_gate_cases() -> list[tuple[str, str, str]]:
+    """(qid, question, expected intent) for every L0 + L5 question.
+
+    Read directly from the yaml at collection time (not through the
+    session-scoped `questions` fixture) so pytest.mark.parametrize can build
+    one visible test id per question - `uv run pytest tests/test_intent_gate.py -v`
+    then covers the full L0-out-of-scope.yaml + L5-ambiguous.yaml sets on its
+    own, with no live agent-api needed.
+    """
+    cases = []
+    for fname in ("L0-out-of-scope.yaml", "L5-ambiguous.yaml"):
+        data = yaml.safe_load(
+            (ROOT / "data" / "questions" / fname).read_text(encoding="utf-8")
+        )
+        for q in data["questions"]:
+            cases.append((q["id"], q["question"], q["expect"]["intent"]))
+    return cases
+
+
+GATE_CASES = _load_gate_cases()
 
 
 class TestFastPath:
@@ -80,15 +107,31 @@ class TestRefusalMessage:
 
 @needs_llm
 class TestClassifier:
-    @pytest.mark.parametrize("qid,expected", [
-        ("Q05", IntentLabel.GENERAL_KNOWLEDGE),
-        ("Q26", IntentLabel.NEEDS_CLARIFICATION),
-        ("Q27", IntentLabel.NEEDS_CLARIFICATION),
-    ])
-    async def test_ambiguous_cases_reach_the_model(self, questions, qid, expected):
-        """These are exactly the cases the fast path must NOT decide alone."""
+    @pytest.mark.parametrize(
+        "qid,question,expected", GATE_CASES, ids=[c[0] for c in GATE_CASES]
+    )
+    async def test_full_gate_question_set(self, qid, question, expected, capsys):
+        """Every L0 + L5 question, through the real two-layer gate.
+
+        fast_path() runs first exactly like production does; only the
+        questions it cannot decide fall through to the model. So this one
+        test file, on its own, exercises the full behaviour of both files
+        without needing agent-api running - `make eval`'s EVAL_LEVELS=L0,L5
+        is for checking the live system end-to-end instead, a different
+        thing from this.
+        """
         from agent import intent
 
-        question = questions[qid]["question"]
-        result = await intent.classify(question)
-        assert result.label == expected
+        result = fast_path(question)
+        if result is None:
+            result = await intent.classify(question)
+
+        ok = result.label.value == expected
+        with capsys.disabled():
+            mark = "✓" if ok else "X"
+            print(f"\n  {qid}   {question[:40]}")
+            print(f"        [{mark}] expected {expected}, got "
+                  f"{result.label.value} (conf {result.confidence:.2f})")
+            print(f"        เหตุผล: {result.reason}")
+
+        assert ok
