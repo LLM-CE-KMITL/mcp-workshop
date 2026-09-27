@@ -97,19 +97,6 @@ uv run pytest tests/test_intent_gate.py -v
 
 `uv run pytest tests/test_intent_gate.py -v` ครอบคลุม**ครบทุกข้อ**ของทั้ง `data/questions/L0-out-of-scope.yaml` (5 ข้อ) และ `L5-ambiguous.yaml` (4 ข้อ) ในตัวเดียว — เทสต์อ่าน 2 ไฟล์นี้ตรงๆ แล้วส่งแต่ละคำถามผ่าน `fast_path()` ก่อน (เหมือนระบบจริง) ตกไปให้ `intent.classify()` (LLM) เฉพาะข้อที่ fast path ตัดสินเองไม่ได้ — ไม่ต้องเปิด server เลย และ `-v` จะโชว์แต่ละข้อเป็นบรรทัดแยก (`Q01`, `Q02`, ..., `Q29`) พร้อม confidence และเหตุผลของโมเดล
 
-### ทางเลือกเสริม: รันเทียบกับระบบเต็ม (ผ่าน API จริง)
-
-วิธีข้างบนเรียก `fast_path()`/`intent.classify()` ตรงๆ ไม่ผ่าน `/chat` เหมือนผู้ใช้จริง ถ้าอยากเห็นทั้ง pipeline ทำงานจริง (รวม synthesizer, tool calls ที่อาจเกิดขึ้น ฯลฯ) ให้เปิด agent-api ก่อนแล้วรัน `make eval`:
-
-```bash
-make api                       # เทอร์มินัลแรก - เปิด agent-api ทิ้งไว้
-EVAL_LEVELS=L0,L5 make eval    # เทอร์มินัลที่สอง - รันเฉพาะ L0 กับ L5 ผ่าน API จริง
-```
-
-`EVAL_LEVELS` กรองให้เห็นเฉพาะระดับที่ระบุ (คั่นด้วย comma) แทนที่จะรันครบทั้ง ~24 ข้อของทุกไฟล์ทุกครั้ง
-
-**ข้อควรรู้**: ทางนี้เห็นคำถาม**ไม่ครบ** — `make eval` รันเฉพาะคำถามที่ติด tag `eval` ใน `used_in` ของแต่ละข้อเท่านั้น (ดู [evaluation-metrics.md](../reference/evaluation-metrics.md)) จากทั้งหมด 5 ข้อของ L0 จะเห็นแค่ **Q01** และจากทั้งหมด 4 ข้อของ L5 จะเห็นแค่ **Q26, Q27, Q28** — นี่คือเหตุผลที่ `uv run pytest tests/test_intent_gate.py -v` ด้านบนเป็นวิธีหลักที่แนะนำ เพราะเห็นครบทุกข้อโดยไม่ต้องเปิด server
-
 ### ตัวอย่างคำถามเต็มชุดจาก L0 (นอกขอบเขต) และ L5 (กำกวม)
 
 **L0 — `data/questions/L0-out-of-scope.yaml`** (ทุกข้อต้อง `tool_calls == 0`):
@@ -175,3 +162,44 @@ EVAL_LEVELS=L0,L5 make eval    # เทอร์มินัลที่สอ�
 ## สิ่งที่ต้องส่ง
 
 `agent/intent.py` ของตัวเอง + ผล test + สถิติว่า fast path ตัดสินได้กี่ %
+
+---
+
+<details>
+<summary>Hint</summary>
+
+- **Q05 ("router คืออะไร") ต้องได้ `general_knowledge` ไม่ใช่ปฏิเสธ** — กับดักที่พบบ่อยที่สุดของแล็บนี้: เขียน fast path ให้เจอคำว่า "router" (เป็นคำในโดเมน) แล้วรีบตัดสินว่า `in_scope` ทันที ทั้งที่คำถามนี้ไม่ได้ต้องการข้อมูลจากฐานข้อมูลเลย หรือตรงกันข้าม เขียนกฎ "ไม่ใช่รหัสอุปกรณ์/ticket = out_of_scope" หลวมเกินไปจนดันคำถามนี้ไปปฏิเสธผิดๆ
+- **วิธีแก้ที่ถูกคือแยกที่ LLM classifier ไม่ใช่ fast path** — fast path ควรคืน `None` ให้คำถามนี้ตกไปชั้น 2 (เพราะคำว่า "router" เพียงคำเดียวไม่ชัดพอว่าต้องการข้อมูลจริงหรือความรู้ทั่วไป) แล้วให้ prompt ของ LLM classifier มีกฎแยกชัดๆ ว่า **"คำถามเกี่ยวกับความรู้ทั่วไปด้าน networking ที่ไม่ต้องใช้ข้อมูลสดจากระบบ (ไม่มีรหัสอุปกรณ์ ไม่ถามสถานะ ไม่ถามเหตุการณ์) ให้ตอบเป็น `general_knowledge` ไม่ใช่ `out_of_scope`"**
+- เช็คว่า prompt เขียนตัวอย่างเทียบคู่ไว้ด้วย เช่น *"router คืออะไร"* (general_knowledge) เทียบกับ *"router APE-NBI-03 เป็นยังไง"* (in_scope) — ให้เห็นว่าเส้นแบ่งอยู่ที่ "มีการอ้างถึงอุปกรณ์/ข้อมูลจริง" หรือไม่ ไม่ใช่แค่มีคำว่า router
+
+</details>
+
+<details>
+<summary>เฉลย</summary>
+
+โค้ดจริงที่แก้ปัญหานี้อยู่ที่ [`apps/agent-api/agent/intent.py`](../../apps/agent-api/agent/intent.py) มีสองจุดที่ต้องทำงานร่วมกัน:
+
+**1) fast path ต้องไม่ฟันธงจากคำว่า "router" คำเดียว** — เงื่อนไข `in_scope` จาก domain terms ต้องการอย่างน้อย **2 คำ** ไม่ใช่ 1 คำ ("router" อย่างเดียวไม่พอ ต้องมีคำในโดเมนอีกคำ เช่น "log", "config" ด้วยถึงจะฟันธงได้ที่ชั้นนี้):
+
+```python
+domain_hits = [t for t in DOMAIN_TERMS if t in lowered]
+
+if len(domain_hits) >= 2:
+    return IntentResult(label=IntentLabel.IN_SCOPE, ...)
+```
+
+*"router คืออะไร ช่วยอธิบายให้ฟังหน่อย"* มี domain hit แค่ตัวเดียว (`router`) เงื่อนไขนี้เลยไม่ทำงาน fast path จึงคืน `None` ปล่อยให้ตกไปชั้น 2 แทนที่จะฟันธงเองผิดๆ
+
+**2) LLM classifier ต้องมีตัวอย่างที่แยก `general_knowledge` ออกจาก `out_of_scope`/`in_scope` ชัดเจน** — อยู่ใน `SYSTEM_PROMPT`:
+
+```python
+general_knowledge
+    A genuine networking question that needs explanation, not data.
+    Example: "what is a router", "how does ISIS work".
+    Answer directly, no tools.
+```
+
+การใส่ตัวอย่างที่ตรงกับ Q05 เป๊ะ ("what is a router") ลงไปใน prompt ตรงๆ คือสิ่งที่ทำให้โมเดลแยกออกว่านี่คือคำถามความรู้ทั่วไป ไม่ใช่ `out_of_scope` (นอกโดเมนไปเลย) และไม่ใช่ `in_scope` (ต้องมีอุปกรณ์/ข้อมูลจริงให้ค้น) — ถ้า prompt ไม่มีตัวอย่างนี้ โมเดลมักจะสับสนว่า "router" เป็นคำในโดเมนที่ควรค้นข้อมูลจริง (`in_scope`) แทน
+
+**บทเรียน**: ปัญหานี้แก้ด้วยการเขียนกฎเดียวถูกจุดสองที่ (fast path ไม่ฟันธงเร็วเกินไป + prompt มีตัวอย่างชัดเจน) ไม่ใช่การเติมเงื่อนไขพิเศษเฉพาะคำว่า "router" ซึ่งจะพังทันทีที่เจอคำถามความรู้ทั่วไปคำอื่น เช่น "BGP คืออะไร" หรือ "ISIS ทำงานยังไง"
+</details>
