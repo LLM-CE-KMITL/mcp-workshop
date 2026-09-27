@@ -174,10 +174,20 @@ async def run(
         {"role": "system", "content": f"Current time context:\n{clock_info}"},
     ]
     if context:
+        # `context` is memory.build_context(): archived-summary system
+        # messages first, then the recent conversational turns. Slicing the
+        # whole list with [-6:] can drop the summaries once `recent` grows
+        # past a handful of turns - exactly when they matter most, since
+        # that is what lets the model answer from a prior topic without
+        # re-running tools. Keep every system message and only cap the
+        # conversational tail.
+        summaries = [turn for turn in context if turn["role"] == "system"]
+        recent_turns = [turn for turn in context if turn["role"] != "system"]
         base_messages.append({
             "role": "system",
             "content": "Conversation so far:\n" + "\n".join(
-                f"{turn['role']}: {turn['content'][:400]}" for turn in context[-6:]
+                f"{turn['role']}: {turn['content'][:400]}"
+                for turn in summaries + recent_turns[-6:]
             ),
         })
     base_messages.append({"role": "user", "content": question})

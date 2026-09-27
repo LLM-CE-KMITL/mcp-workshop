@@ -73,6 +73,28 @@ http://localhost:8080/sessions/default/memory
 
 **สำคัญ** — กลไกความจำมองจากภายนอกไม่เห็น ถ้าไม่มี endpoint นี้ก็ debug ไม่ได้และเรียนรู้ไม่ได้
 
+### 6. เก็บข้อมูลทุก turn แล้ววาดกราฟ
+
+`GET /sessions/{id}/memory` บอกแค่ **สถานะล่าสุด** ณ ตอนที่เรียก — ถ้าอยากเห็นว่า context โต/หดยังไงตลอดบทสนทนา ต้องเรียกซ้ำหลังทุก turn แล้วเก็บผลไว้เอง ไม่มี endpoint ไหนคืน "ประวัติทั้งหมด" ให้ในทีเดียว
+
+โครงเดียวกับที่ `solutions/challenges/challenge4_topic_shift.py` ทำจริง:
+
+1. **หลังทุก turn เรียกสองอย่าง**:
+   - `POST /chat` (ตอบคำถาม) — ระหว่าง stream เก็บจำนวนครั้งที่เจอ event `step_started` นับเป็น "จำนวน tool ที่เรียกใน turn นั้น" ([challenge4_topic_shift.py:55-56](../../solutions/challenges/challenge4_topic_shift.py))
+   - `GET /sessions/{id}/memory` ทันทีหลัง stream จบ แล้วดึง `context_tokens`, `current_topic.label`, `topic_changes` ออกมา ([challenge4_topic_shift.py:63](../../solutions/challenges/challenge4_topic_shift.py))
+2. **เก็บทั้งสองอย่างต่อ 1 turn เป็น record เดียว** (dict หรือแถวในลิสต์) แล้ว append เข้า list ที่เก็บผลของทุก turn ตามลำดับ — นี่คือ "ประวัติ" ที่ endpoint เดี่ยวๆ ไม่มีให้
+3. **วาดกราฟจาก list นั้น**: เวิร์กช็อปนี้ไม่ต้องพึ่ง matplotlib หรือ dashboard ภายนอก — ใช้กราฟแท่งตัวอักษร (sparkline) ธรรมดาพอ เพราะสิ่งที่ต้องเห็นคือ "รูปทรง" ของเส้น (โตขึ้นเรื่อยๆ vs โตแล้วหด) ไม่ใช่ตัวเลขละเอียด ดูฟังก์ชัน `sparkline()` ที่สเกลทุกค่าเทียบกับค่าสูงสุดในชุดข้อมูล แล้วพิมพ์ `#` ตามสัดส่วน ([challenge4_topic_shift.py:69](../../solutions/challenges/challenge4_topic_shift.py))
+
+ถ้าจะเขียนเอง ไม่ต้อง reproduce ทั้งไฟล์ — วนลูปตามข้อ 1-2 ด้านบนให้ได้ list ของ `(turn, context_tokens, tool_count, topic_changed)` ก่อน แล้วค่อยพิมพ์กราฟทีหลัง (ข้อ 3 แยกอิสระจากการเก็บข้อมูล เปลี่ยนวิธีวาดได้โดยไม่กระทบ loop หลัก)
+
+รันสคริปต์เฉลยตัวเต็มได้เลย (ต้อง `make api` ให้ agent-api ทำงานอยู่ก่อน):
+
+```bash
+uv run solutions/challenges/challenge4_topic_shift.py
+```
+
+ใช้เวลา ~3 นาทีขึ้นไป (แต่ละ turn เรียก LLM หลายรอบ) ผลลัพธ์ถูกบันทึกไว้ที่ `solutions/challenges/challenge4_result.json` ด้วย
+
 ---
 
 ## ทดสอบ
