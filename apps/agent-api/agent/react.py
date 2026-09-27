@@ -60,9 +60,20 @@ Rules:
 3. Time ranges are relative names only: last_1h, last_6h, last_24h, last_3d,
    last_7d, last_14d, last_30d, last_90d. Never write a date.
 
-4. If a tool call failed, the error is in your observations. Fix the specific
-   thing that was wrong (an invented enum value, a bad range name) rather than
-   repeating the same call or giving up on the question.
+4. If a tool call failed OR was refused as a duplicate, that exact call is now
+   a dead end. Do not repeat it - change which device or arguments you use, or
+   stop and answer with whatever evidence you already have. An observation
+   that repeats "เรียก ... ด้วย argument เดิมซ้ำ" means you already tried this;
+   producing the identical action again wastes a step and gets refused again.
+
+5. When your MOST RECENT successful tool call was get_device_neighbors or
+   get_upstream_devices, that call's whole purpose was to move the
+   investigation onward to the device it returned. A bare follow-up right
+   after it ("แล้วมี log ผิดปกติไหม", "log เป็นยังไงบ้าง", "เป็นยังไงบ้าง") means
+   the NEWLY FOUND device, not the one you started from - even though, read on
+   its own, the sentence sounds like it means "this device's own logs". Do not
+   re-check the device you already checked before that step; check the one the
+   step just returned instead.
 
 Domain knowledge you are expected to apply:
 
@@ -226,7 +237,13 @@ async def run(
         yield EventType.THOUGHT, {"step": step_num, "thought": decision.thought,
                                   "tool": decision.tool}
 
-        if not decision.tool:
+        # Guided decoding occasionally emits the literal string "null" instead
+        # of JSON null for this field - `str | None` accepts both, and a
+        # naive `not decision.tool` treats "null" as a truthy tool name,
+        # sending it straight into call_tool() where it fails as an unknown
+        # tool. That wastes a step every time it happens and, worse, can burn
+        # through the whole loop budget before the model ever gets to answer.
+        if not decision.tool or decision.tool.strip().lower() == "null":
             break
 
         refusal = guard.check(decision.tool, decision.arguments)
