@@ -87,14 +87,6 @@ http://localhost:8080/sessions/default/memory
 
 ถ้าจะเขียนเอง ไม่ต้อง reproduce ทั้งไฟล์ — วนลูปตามข้อ 1-2 ด้านบนให้ได้ list ของ `(turn, context_tokens, tool_count, topic_changed)` ก่อน แล้วค่อยพิมพ์กราฟทีหลัง (ข้อ 3 แยกอิสระจากการเก็บข้อมูล เปลี่ยนวิธีวาดได้โดยไม่กระทบ loop หลัก)
 
-รันสคริปต์เฉลยตัวเต็มได้เลย (ต้อง `make api` ให้ agent-api ทำงานอยู่ก่อน):
-
-```bash
-uv run solutions/challenges/challenge4_topic_shift.py
-```
-
-ใช้เวลา ~3 นาทีขึ้นไป (แต่ละ turn เรียก LLM หลายรอบ) ผลลัพธ์ถูกบันทึกไว้ที่ `solutions/challenges/challenge4_result.json` ด้วย
-
 ---
 
 ## ทดสอบ

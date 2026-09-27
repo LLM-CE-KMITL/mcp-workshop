@@ -77,3 +77,15 @@
 ## สิ่งที่ต้องส่ง
 
 ตาราง/กราฟ context_tokens ทั้ง 10 turn + dump `/memory` + วิเคราะห์ 1 ย่อหน้า
+
+---
+
+## ตรวจคำตอบด้วยเฉลย
+
+**ลองทำเองก่อน** แล้วค่อยเปิดดู — มีสคริปต์เฉลยที่ทำข้อ 1-3 ของ "สิ่งที่ต้องทำ" ให้ครบ (เรียกครบ 10 turn, เก็บ `context_tokens`/`tools`/`topic_changed` ต่อ turn, พิมพ์กราฟ ASCII) ใช้เทียบผลลัพธ์หรือดูเป็นตัวอย่างโครงสร้างได้:
+
+```bash
+uv run solutions/challenges/challenge4_topic_shift.py
+```
+
+ต้อง `make api` ให้ agent-api ทำงานอยู่ก่อน ใช้เวลา ~3 นาทีขึ้นไป (แต่ละ turn เรียก LLM หลายรอบ) ผลลัพธ์ถูกบันทึกไว้ที่ `solutions/challenges/challenge4_result.json` ด้วย
