@@ -22,13 +22,13 @@
 
 `data/challenge_fixtures/tool_selection_cases.json` — คำถามทดสอบ 12 ข้อพร้อมเฉลยว่าควรเรียก tool ไหน
 
-4 tool ที่ description แย่:
+4 tool ที่ description แย่ (จงใจเขียนให้กำกวมและทับซ้อนกันเป็นคู่ — สังเกตว่า `search_tickets` กับ `search_tickets_semantic` ใช้ประโยคเดียวกันเป๊ะ เช่นเดียวกับ `search_logs` กับ `search_docs_semantic`):
 
 ```python
-{"name": "search_tickets",         "description": "ค้นหา ticket"}
-{"name": "search_logs",            "description": "ค้นหา log"}
-{"name": "search_tickets_semantic","description": "ค้นหา ticket แบบ semantic"}
-{"name": "search_docs_semantic",   "description": "ค้นหาเอกสาร"}
+{"name": "search_tickets",          "description": "ใช้เครื่องมือนี้สำหรับการค้นหาข้อมูลทั่วไปเกี่ยวกับระบบเครือข่ายและอุปกรณ์ต่างๆ"}
+{"name": "search_logs",             "description": "ใช้เครื่องมือนี้สำหรับการค้นหาข้อมูลทั่วไปเกี่ยวกับปัญหาหรือเรื่องที่เคยเกิดขึ้น"}
+{"name": "search_tickets_semantic", "description": "ใช้เครื่องมือนี้สำหรับการค้นหาข้อมูลทั่วไปเกี่ยวกับระบบเครือข่ายและอุปกรณ์ต่างๆ"}
+{"name": "search_docs_semantic",    "description": "ใช้เครื่องมือนี้สำหรับการค้นหาข้อมูลทั่วไปเกี่ยวกับปัญหาหรือเรื่องที่เคยเกิดขึ้น"}
 ```
 
 ---
@@ -38,7 +38,7 @@
 ### 1. วัดคะแนนตั้งต้น
 
 ```bash
-uv run pytest tests/test_tool_selection.py
+uv run pytest tests/test_tool_selection.py -s
 ```
 
 จดคะแนนไว้ (คาดว่าจะได้ประมาณ 4-6 จาก 12)
@@ -55,7 +55,7 @@ uv run pytest tests/test_tool_selection.py
 ### 3. วัดใหม่
 
 ```bash
-uv run pytest tests/test_tool_selection.py
+uv run pytest tests/test_tool_selection.py -s
 ```
 
 ### 4. หาจุดที่ยังพลาด
@@ -88,6 +88,23 @@ uv run pytest tests/test_tool_selection.py
 - คู่ที่สับสนที่สุดคือ `search_tickets` กับ `search_tickets_semantic` — เส้นแบ่งคือ *"กรองด้วยเงื่อนไขที่รู้แน่นอน"* กับ *"หาสิ่งที่อาการคล้ายกันแต่เขียนคนละคำ"*
 - `search_logs` กับ `search_docs_semantic` แยกด้วย *"เกิดอะไรขึ้น"* กับ *"ปกติเราทำยังไง"*
 - ดูตัวอย่าง description ที่เขียนดีแล้วได้ที่ `apps/mcp-server/TOOLS.md` แต่ลองเขียนเองก่อน
+</details>
+
+<details>
+<summary>เฉลย</summary>
+
+คัดลอก JSON ด้านล่างไปแทนที่ `descriptions_under_test` ทั้งก้อนใน `data/challenge_fixtures/tool_selection_cases.json` แล้วรัน `uv run pytest tests/test_tool_selection.py -s` ซ้ำเพื่อดูคะแนนขึ้น
+
+```json
+"descriptions_under_test": {
+  "search_tickets": "ค้นหาและกรอง ticket ที่ถูกแจ้งเข้ามา ด้วยเงื่อนไขที่รู้แน่นอน เช่น สถานะ ระดับความรุนแรง พื้นที่ อุปกรณ์ ประเภท และช่วงเวลา\n\nใช้เมื่อ: อยากรู้ว่ามีอะไรถูก 'แจ้ง' เข้ามาบ้าง หรือรู้หมายเลข ticket อยู่แล้ว\n\nห้ามใช้เมื่อ: อยากรู้ว่าอุปกรณ์กำลังทำอะไรอยู่ - ปัญหาจำนวนมากไม่เคยมีใครแจ้ง ให้ใช้ search_logs แทน\nห้ามใช้เมื่อ: หาเคสที่ 'อาการคล้ายกัน' แต่เขียนคนละคำ - ให้ใช้ search_tickets_semantic แทน\n\nคืน: รายการ ticket พร้อมข้อมูลลูกค้าและวงจร เรียงจากใหม่ไปเก่า และจำนวนที่พบทั้งหมดก่อนถูกตัด",
+  "search_logs": "ค้นหา log ดิบที่อุปกรณ์รายงานออกมาจริง เช่น interface ขึ้นลง adjacency หลุด CRC error หรือการ reload\n\nใช้เมื่อ: อยากเห็นว่า 'เกิดอะไรขึ้น' กับอุปกรณ์ และอยากอ่านข้อความ log จริง\n\nห้ามใช้เมื่อ: ถามว่า 'กี่ครั้ง' หรือ 'ตัวไหนเยอะที่สุด' - ให้ใช้ count_log_events ซึ่งรวมผลฝั่ง server และไม่ท่วม context\nห้ามใช้เมื่อ: อยากรู้ว่ามีใครแจ้งเรื่องนี้ไว้ไหม - ให้ใช้ search_tickets\nห้ามใช้เมื่อ: ถามว่า 'ปกติเราแก้ปัญหานี้ยังไง' - ให้ใช้ search_docs_semantic\n\nข้อควรระวัง: log ที่ดูรุนแรงไม่ได้แปลว่าเป็นเหตุเสียเสมอไป งานบำรุงรักษาตามแผนสร้าง log ที่หน้าตาเหมือนกันทุกประการ ก่อนสรุปว่าเป็นเหตุเสีย ให้ตรวจ search_tickets ประเภท maintenance ที่ครอบคลุมช่วงเวลาเดียวกันก่อนเสมอ\n\nคืน: บรรทัด log เรียงจากใหม่ไปเก่า พร้อมจำนวนที่พบทั้งหมด",
+  "search_tickets_semantic": "ค้นหา ticket ในอดีตที่อธิบาย 'ปัญหาแบบเดียวกัน' แม้จะใช้คำคนละแบบ โดยเทียบจากความหมาย ไม่ใช่จากตัวอักษร\n\nใช้เมื่อ: หาแนวทางจากเคสเดิม - 'เคยเจอแบบนี้ไหม แล้วตอนนั้นแก้ยังไง' เพราะลูกค้าเขียนว่า 'เน็ตหลุด' แต่วิศวกรเขียนว่า 'circuit drop' ซึ่ง keyword search เชื่อมให้ไม่ได้\n\nห้ามใช้เมื่อ: กรองด้วยสถานะ พื้นที่ หรือช่วงเวลา - ให้ใช้ search_tickets ซึ่งเร็วกว่าและแม่นกว่า\nห้ามใช้เมื่อ: รู้หมายเลข ticket อยู่แล้ว - ให้ใช้ search_tickets\n\nคืน: ticket ที่ใกล้เคียงที่สุดพร้อมระยะห่างเชิงความหมาย และวิธีแก้ที่บันทึกไว้",
+  "search_docs_semantic": "ค้นหาเอกสารปฏิบัติการ ได้แก่ runbook และ config ของอุปกรณ์ โดยเทียบจากความหมาย\n\nใช้เมื่อ: ถามถึง 'ขั้นตอน' 'วิธีการ' 'มาตรฐาน' หรือ 'ปกติเราทำยังไง'\n\nห้ามใช้เมื่อ: อยากรู้ว่า 'เกิดอะไรขึ้นจริง' - ให้ใช้ search_logs เครื่องมือนี้คืนความรู้ ไม่ได้คืนเหตุการณ์\nห้ามใช้เมื่อ: หาเคสที่ลูกค้าเคยแจ้ง - ให้ใช้ search_tickets_semantic\n\nคืน: ส่วนของเอกสารที่เกี่ยวข้องที่สุด พร้อมชื่อเรื่องและคะแนนความใกล้เคียง"
+}
+```
+
+`TS-12` ยังพลาดได้แม้ description ดีแล้ว เพราะ `search_tickets` กับ `search_tickets_semantic` ถูกออกแบบให้ทับซ้อนกันตั้งแต่แรก (คำถามต้องใช้ทั้งกรองสถานะ *และ* เทียบความหมายพร้อมกัน) แก้ด้วยการเขียน description ไม่ได้ ต้องยุบ tool หรือเปลี่ยนสัญญาแทน — นี่คือบทเรียนที่ลึกกว่าการแก้ prose (รายละเอียดเพิ่มเติมดูที่ `solutions/challenges/challenge3_descriptions.json`)
 </details>
 
 ---

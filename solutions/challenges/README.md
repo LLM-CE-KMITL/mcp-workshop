@@ -59,7 +59,7 @@
 
 1. เปิด `challenge3_descriptions.json`
 2. คัดลอกส่วน `descriptions_under_test` ไปแทนที่ใน `data/challenge_fixtures/tool_selection_cases.json`
-3. รัน `uv run pytest tests/test_tool_selection.py`
+3. รัน `uv run pytest tests/test_tool_selection.py -s`
 
 คะแนนควรขึ้นจาก ~5/12 เป็น 11-12/12
 

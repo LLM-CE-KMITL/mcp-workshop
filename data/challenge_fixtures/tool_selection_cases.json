@@ -1,71 +1,83 @@
 {
-  "_readme": "Challenge 3: Tool Selection Accuracy",
+  "_readme": "แก้เฉพาะส่วน descriptions_under_test เท่านั้น ห้ามแก้ expected_tool และห้ามแก้โค้ดของ tool",
   "descriptions_under_test": {
-    "search_tickets": "ค้นหาและกรอง ticket ที่ถูกแจ้งเข้ามา\n\nใช้เมื่อ: อยากรู้ว่ามีอะไรถูก 'แจ้ง' เข้ามาบ้าง, รู้หมายเลข ticket, ถามหาสถานะ ticket, หรือหา 'เคสไหนที่ปิดไปแล้วแต่ลูกค้าเปิดใหม่ด้วยอาการเดิม'\n\nห้ามใช้เมื่อ: หาเคสที่ 'อาการคล้ายกัน' (ให้ใช้ semantic)",
-    "search_logs": "ค้นหา log ดิบที่อุปกรณ์รายงานออกมาจริง\n\nใช้เมื่อ: อยากเห็นว่า 'เกิดอะไรขึ้น' กับอุปกรณ์, มี log error ไหม, มีอะไร down ไหม, หรือถามว่า 'รีบูตไปกี่ครั้ง'\n\nห้ามใช้เมื่อ: อยากรู้ว่ามีใครแจ้งเรื่องนี้ไว้ไหม (ให้ใช้ search_tickets)",
-    "search_tickets_semantic": "ค้นหา ticket ในอดีตที่อธิบาย 'ปัญหาแบบเดียวกัน' โดยเทียบจากความหมาย\n\nใช้เมื่อ: หาแนวทางจากเคสเดิม เช่น 'เคยเจอแบบนี้ไหม', 'เคยมีปัญหาคล้ายๆ กับ...', หรือถามแนวทางปฏิบัติจากอดีตเช่น 'อาการแบบนี้เรามักจะให้ช่างเปลี่ยนอุปกรณ์เลยไหม'\n\nห้ามใช้เมื่อ: กรองด้วยสถานะ พื้นที่ (ให้ใช้ search_tickets)",
-    "search_docs_semantic": "ค้นหาเอกสารปฏิบัติการ ได้แก่ runbook, คู่มือ และ config\n\nใช้เมื่อ: ถามถึง 'ขั้นตอน', 'วิธีการ', 'มาตรฐาน', 'คู่มือ', หรือ 'ปกติเราทำยังไง'\n\nห้ามใช้เมื่อ: หาเคสที่เคยแจ้ง (ให้ใช้ search_tickets_semantic)"
+    "search_tickets": "ใช้เครื่องมือนี้สำหรับการค้นหาข้อมูลทั่วไปเกี่ยวกับระบบเครือข่ายและอุปกรณ์ต่างๆ",
+    "search_logs": "ใช้เครื่องมือนี้สำหรับการค้นหาข้อมูลทั่วไปเกี่ยวกับปัญหาหรือเรื่องที่เคยเกิดขึ้น",
+    "search_tickets_semantic": "ใช้เครื่องมือนี้สำหรับการค้นหาข้อมูลทั่วไปเกี่ยวกับระบบเครือข่ายและอุปกรณ์ต่างๆ",
+    "search_docs_semantic": "ใช้เครื่องมือนี้สำหรับการค้นหาข้อมูลทั่วไปเกี่ยวกับปัญหาหรือเรื่องที่เคยเกิดขึ้น"
   },
   "cases": [
     {
       "id": "TS-01",
-      "question": "มี ticket ค้างของ APE-NBI-03 ไหม",
-      "expected_tool": "search_tickets"
+      "question": "ticket ที่ยังไม่ปิดของนนทบุรีมีกี่ใบ",
+      "expected_tool": "search_tickets",
+      "why": "กรองด้วยเงื่อนไขที่รู้แน่นอน"
     },
     {
       "id": "TS-02",
-      "question": "เมื่อคืนมี log CRC error แถวฝั่งธนไหม",
-      "expected_tool": "search_logs"
+      "question": "เมื่อคืนมี log critical อะไรบ้าง",
+      "expected_tool": "search_logs",
+      "why": "ถามถึงเหตุการณ์ที่อุปกรณ์รายงาน"
     },
     {
       "id": "TS-03",
-      "question": "หาเคสเก่าที่ลูกค้ารายงานว่าเน็ตช้าเป็นพักๆ หน่อย",
-      "expected_tool": "search_tickets_semantic"
+      "question": "เคยมีเคสที่อาการเหมือนเน็ตกระตุกแบบนี้มาก่อนไหม",
+      "expected_tool": "search_tickets_semantic",
+      "why": "หาเคสที่อาการคล้ายแต่เขียนคนละคำ"
     },
     {
       "id": "TS-04",
-      "question": "มาตรฐานการอัปเดต firmware ของอุปกรณ์รุ่น LPE คืออะไร",
-      "expected_tool": "search_docs_semantic"
+      "question": "ปกติเวลา ISIS adjacency ไม่ขึ้น เราตรวจอะไรก่อน",
+      "expected_tool": "search_docs_semantic",
+      "why": "ถามขั้นตอนปฏิบัติ ไม่ใช่เหตุการณ์"
     },
     {
       "id": "TS-05",
-      "question": "ticket #1234 สถานะเป็นยังไงบ้าง",
-      "expected_tool": "search_tickets"
+      "question": "APE-NBI-03 มี interface flap กี่ครั้งสัปดาห์นี้",
+      "expected_tool": "search_logs",
+      "why": "นับเหตุการณ์จาก log"
     },
     {
       "id": "TS-06",
-      "question": "เมื่อกี้ LPE-BKK-05 มีอะไร down ไหม",
-      "expected_tool": "search_logs"
+      "question": "ticket ระดับ critical ของเดือนนี้",
+      "expected_tool": "search_tickets",
+      "why": "กรองด้วย severity ที่รู้แน่นอน"
     },
     {
       "id": "TS-07",
-      "question": "เคยมีปัญหาคล้ายๆ กับ routing loop เกิดขึ้นที่ไหนบ้าง",
-      "expected_tool": "search_tickets_semantic"
+      "question": "มีเอกสารเรื่องมาตรฐาน MTU ไหม",
+      "expected_tool": "search_docs_semantic",
+      "why": "ค้นเอกสาร"
     },
     {
       "id": "TS-08",
-      "question": "ขอคู่มือการ config BGP peer หน่อย",
-      "expected_tool": "search_docs_semantic"
+      "question": "ลูกค้าเคยบ่นเรื่องความเร็วไม่เต็มบ้างไหม",
+      "expected_tool": "search_tickets_semantic",
+      "why": "อาการที่เขียนได้หลายแบบ"
     },
     {
       "id": "TS-09",
-      "question": "สรุปยอด ticket ประเภท maintenance ของเดือนนี้",
-      "expected_tool": "search_tickets"
+      "question": "PE-BKK-02 มี CRC error เมื่อไหร่บ้าง",
+      "expected_tool": "search_logs",
+      "why": "เหตุการณ์จากอุปกรณ์"
     },
     {
       "id": "TS-10",
-      "question": "LPE-CNX-02 รีบูตไปกี่ครั้งในรอบสัปดาห์",
-      "expected_tool": "search_logs"
+      "question": "ticket หมายเลข TK-25-00003 มีรายละเอียดอะไร",
+      "expected_tool": "search_tickets",
+      "why": "รู้หมายเลขแน่นอน ไม่ต้องใช้ semantic"
     },
     {
       "id": "TS-11",
-      "question": "อาการแบบนี้เรามักจะให้ช่างเปลี่ยนอุปกรณ์เลยไหม",
-      "expected_tool": "search_tickets_semantic"
+      "question": "ขั้นตอนแจ้งลูกค้าก่อนปิดอุปกรณ์ซ่อมทำยังไง",
+      "expected_tool": "search_docs_semantic",
+      "why": "ขั้นตอนปฏิบัติ"
     },
     {
       "id": "TS-12",
-      "question": "เคสไหนที่ปิดไปแล้วแต่ลูกค้าเปิดใหม่ด้วยอาการเดิม",
-      "expected_tool": "search_tickets"
+      "question": "มีเคสไหนที่ปิดไปแล้วแต่ลูกค้าเปิดใหม่ด้วยอาการเดิม",
+      "expected_tool": "search_tickets_semantic",
+      "why": "ต้องเทียบความหมายของอาการ"
     }
   ]
 }

@@ -49,8 +49,14 @@ async def test_tool_selection_accuracy(tool_cases, capsys):
 
     correct, wrong = 0, []
     for case in cases:
+        with capsys.disabled():
+            print(f"  รอ {case['id']} ทำงานก่อน ...", end=" ", flush=True)
         chosen = await _choose(case["question"], descriptions)
-        if chosen == case["expected_tool"]:
+        ok = chosen == case["expected_tool"]
+        with capsys.disabled():
+            mark = "✓" if ok else "X"
+            print(f"[{mark}] expected {case['expected_tool']}, got {chosen}")
+        if ok:
             correct += 1
         else:
             wrong.append((case["id"], case["question"], case["expected_tool"], chosen))
