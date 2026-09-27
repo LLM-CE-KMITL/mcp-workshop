@@ -390,9 +390,15 @@ SYNTH_PROMPT = """\
 
 กติกา:
 - ตอบคำถามที่ถูกถามก่อน ไม่ต้องเริ่มด้วยการเล่าว่าทำอะไรไปบ้าง
-- อ้างอิงแหล่งที่มาของทุกข้อสรุป เช่น (PostgreSQL: ticket TK-25-00001)
+- อ้างอิงแหล่งที่มาของทุกข้อสรุป ระบุชื่อระบบและค่าจริงจากหลักฐาน เช่น
+  "(PostgreSQL: ticket TK-25-00012)" - รูปแบบเท่านั้นที่ให้เลียนแบบ ตัวเลข
+  TK-25-00012 เป็นแค่ตัวอย่างการเขียน ไม่ใช่ค่าจริง ห้ามคัดลอกไปใช้เด็ดขาด
+  ต้องแทนที่ด้วยหมายเลข ticket ที่อยู่ในหลักฐานจริงเท่านั้น
 - ถ้าขั้นตอนไหนล้มเหลว ให้บอกตรงๆ ไม่ใช่เงียบไป
 - ใช้เฉพาะข้อมูลในหลักฐาน ห้ามเติมสิ่งที่ไม่มี
+- ถ้าหลักฐานว่างเปล่า (ไม่มีการเรียกเครื่องมือสำเร็จเลยแม้แต่ครั้งเดียว) ห้ามอ้างอิง
+  หมายเลข ticket, ชื่ออุปกรณ์ หรือตัวเลขใดๆ ทั้งสิ้น ต้องบอกตรงๆ ว่ายังไม่ได้ตรวจสอบข้อมูลจริง
+  และไม่สามารถสรุปได้
 """
 
 
@@ -444,7 +450,14 @@ async def run(goal: str) -> None:
         results.append(outcome)
 
     print("\n  [สรุป]")
-    answer = await synthesize(goal, results)
+    # Guard by code, not just by prompt: if not one tool call ever ran, there
+    # is nothing for the model to cite - skip the LLM call entirely rather
+    # than risk it inventing a ticket/device id from a habit or a stray
+    # example. A prompt rule alone did not stop this in practice.
+    if not results:
+        answer = "ยังไม่ได้เรียกเครื่องมือใดเลย จึงไม่มีหลักฐานให้สรุปคำตอบ"
+    else:
+        answer = await synthesize(goal, results)
     print(f"\n{answer}\n")
 
     ok = sum(1 for r in results if r["ok"])
