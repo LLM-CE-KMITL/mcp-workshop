@@ -148,12 +148,16 @@ def main() -> int:
             # explicitly exposes - everything else is invisible even though
             # it arrived. `mcp-session-id` (mcp.server.streamable_http.
             # MCP_SESSION_ID_HEADER) carries the session the client must echo
-            # back on every later request; without exposing it here, a
-            # browser client re-sends no session id, the server treats every
-            # request as a fresh connection, and non-initialize methods on
-            # that "new" session fail with 400 - fixing the preflight alone
-            # (allow_origins/methods/headers above) is not enough on its own.
-            expose_headers=["mcp-session-id"],
+            # back on every later request; without exposing it, a browser
+            # client re-sends no session id, the server treats every request
+            # as a fresh connection, and non-initialize methods on that "new"
+            # session fail with 400 - fixing the preflight alone (allow_
+            # origins/methods/headers above) is not enough on its own.
+            # Wildcarded like the other three settings, for the same reason
+            # and the same loopback-only caveat: any header the SDK adds
+            # later (protocol evolves, spec grows a new response header)
+            # stays exposed without editing this file again.
+            expose_headers=["*"],
         )
         log.info("starting on %s port %s as '%s'",
                  args.transport, args.port, settings().server_name)
