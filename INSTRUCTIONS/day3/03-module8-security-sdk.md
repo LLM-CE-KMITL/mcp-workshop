@@ -74,88 +74,81 @@ flowchart LR
 
 `redact()` ทำงานกับ **ทุกข้อความที่ออกจาก tool** รวมถึงข้อมูลที่ดึงจากฐานข้อมูล เพราะ config snippet อาจมี SNMP community string ปนอยู่
 
+ลองเอง ([security/guardrails.py:141](../../apps/mcp-server/security/guardrails.py:141)):
+
+```bash
+uv run python -c "
+import sys; sys.path.insert(0, 'apps/mcp-server')
+from security.guardrails import redact
+
+print(redact('snmp-server community public_snmp_read RO'))
+"
+```
+
+ผลที่ควรเห็น: `snmp-server community: [REDACTED] RO` — ชื่อ community string หายไป เหลือแค่รูปแบบของบรรทัดไว้ให้เห็นบริบท
+
 ---
 
 ## 3. Audit Log
 
-ทุกครั้งที่ปฏิเสธหรือตัดผลลัพธ์ ต้องบันทึก
+ทุกครั้งที่ระบบปฏิเสธคำขอ (`refuse()`) หรือตัดผลลัพธ์ทิ้งบางส่วน (`cap_rows()` เกินโควต้า) ต้องมีบันทึกแยกไว้ต่างหาก — เพราะข้อความปฏิเสธที่ส่งกลับให้โมเดล/ผู้ใช้ต้อง **สั้นและไม่เผยโครงสร้างภายใน** (ห้ามบอกชื่อตาราง ชื่อ role หรือ path จริง) ในขณะที่ทีมความปลอดภัยต้องเห็นรายละเอียดเต็มว่าใครพยายามทำอะไร ถูกบล็อกด้วยเหตุผลไหน สองอย่างนี้แยกช่องทางกันโดยตั้งใจ
 
-คัดลอกทับบรรทัดสุดท้ายแทนโค้ดชุดนี้ หลังจากเสร็จแล้วลองรัน cat audit.log apps/agent-api/main.py
-```
-if __name__ == "__main__":
-    import os
+โค้ดจริงอยู่ที่ [security/guardrails.py:55-76](../../apps/mcp-server/security/guardrails.py:55):
 
-    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("AGENT_API_PORT", "8080")))
-```
 ```python
-import datetime
-from mcp.server.fastmcp import FastMCP
-from tools.reports import get_safe_path
-
-mcp = FastMCP("MySimpleServer")
-
-# 1. สร้าง Class แบบง่าย เพื่อให้ใช้ syntax .emit() ได้
+@dataclass
 class AuditEvent:
-    def __init__(self, tool: str, decision: str, reason: str, detail: str = ""):
-        self.tool = tool
-        self.decision = decision
-        self.reason = reason
-        self.detail = detail
+    tool: str
+    decision: str
+    reason: str
+    detail: str = ""
+    at: datetime = field(default_factory=datetime.now)
 
-    def emit(self):
-        """เขียนข้อมูลลงไฟล์ audit.log"""
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log_entry = f"[{now}] {self.decision.upper()} | Tool: {self.tool} | Reason: {self.reason} | Detail: {self.detail}\n"
-        
-        with open("audit.log", "a", encoding="utf-8") as f:
-            f.write(log_entry)
+    def emit(self) -> None:
+        audit_log.warning(
+            "%s tool=%s reason=%s detail=%s",
+            self.decision.upper(), self.tool, self.reason, self.detail[:200],
+        )
 
-# 2. นำไปใช้งานดัก Error แบบรวมศูนย์
-@mcp.tool()
-def read_report(filename: str) -> str:
-    """ดึงข้อมูลรายงาน"""
-    try:
-        # ลองตรวจ Path
-        safe_path = get_safe_path(filename)
-        return f"✅ อ่านไฟล์ {filename} สำเร็จ"
 
-    except Exception as e:
-        # ดักทุก Error แล้วใช้ Syntax ที่คุณต้องการ
-        AuditEvent(
-            tool="read_report", 
-            decision="blocked", 
-            reason=type(e).__name__, # ดึงชื่อ Error มาเป็น Reason อัตโนมัติ (เช่น ValueError)
-            detail=str(e)
-        ).emit()
-        
-        # ตอบกลับ LLM ด้วยประโยคเดียวสั้นๆ
-        return "❌ คำขอถูกปฏิเสธ: ไม่สามารถเข้าถึงไฟล์ที่ระบุได้"
-
-# ==========================================
-# 3. จุดสั่งรันเซิร์ฟเวอร์
-# ==========================================
-if __name__ == "__main__":
-    print("🚀 เริ่มการทดสอบระบบป้องกัน (Simulated LLM Requests)\n")
-
-    # สถานการณ์ที่ 1: AI ขออ่านไฟล์ปกติที่อนุญาต
-    print("📝 [Test 1] AI สั่งอ่าน: 'q1_summary.csv'")
-    print(">> ตอบกลับ AI:", read_report("q1_summary.csv"))
-    print("-" * 50)
-
-    # สถานการณ์ที่ 2: AI โดน Prompt Injection สั่งให้อ่านไฟล์ลับนอก Allowlist
-    print("🕵️‍♂️ [Test 2] AI สั่งอ่าน: 'secret_budget.xlsx'")
-    print(">> ตอบกลับ AI:", read_report("secret_budget.xlsx"))
-    print("-" * 50)
-
-    # สถานการณ์ที่ 3: AI โดนแฮ็กเกอร์สั่งเจาะระบบด้วย Path Traversal
-    print("💀 [Test 3] AI สั่งอ่าน: '../etc/passwd'")
-    print(">> ตอบกลับ AI:", read_report("../etc/passwd"))
-    print("-" * 50)
-
-    print("\n✅ ทดสอบเสร็จสิ้น! ตอนนี้ลองเปิดดูไฟล์ 'audit.log' ในโฟลเดอร์ดูครับ")
+def refuse(tool: str, reason: str, detail: str = "") -> None:
+    """Record a refusal and raise. Never include internals in the message."""
+    AuditEvent(tool=tool, decision="blocked", reason=reason, detail=detail).emit()
+    raise GuardrailViolation(
+        f"คำขอนี้ถูกปฏิเสธโดยระบบความปลอดภัย: {reason}. "
+        f"เครื่องมือชุดนี้อ่านข้อมูลได้อย่างเดียว"
+    )
 ```
 
-**และข้อความปฏิเสธที่ส่งกลับต้องไม่เผยโครงสร้างภายใน** — บอกว่าถูกปฏิเสธเพราะอะไรในระดับที่ผู้ใช้เข้าใจ แต่ไม่บอกชื่อตาราง ชื่อ role หรือ path
+สังเกต 2 จุด:
+- `emit()` ใช้ `logging` มาตรฐานของ Python (`audit_log = logging.getLogger("mcp.audit")`) ไม่ใช่เขียนไฟล์เอง — ต่อเข้ากับระบบ log รวมศูนย์ในอนาคตได้โดยไม่ต้องแก้บรรทัดนี้เลย (ตอนนี้ยังไม่ได้ตั้ง handler แยก เลยไปโผล่ปนกับ log ปกติของ server ที่ stderr)
+- `refuse()` **เรียก `.emit()` ก่อน raise เสมอ** — ไม่ว่าฝั่งที่เรียกจะดัก exception ต่อยังไง audit event ก็ถูกบันทึกไปแล้ว
+
+> ⚠️ **จุดที่คนพลาดบ่อยที่สุด** — เขียน audit log ไว้ที่**จุดเรียกใช้** (เช่น ใน `except` ของแต่ละ tool) แทนที่จะเขียนไว้ *ข้างใน* ฟังก์ชันที่ตัดสินใจปฏิเสธเอง ถ้าทำแบบแรก ทุก tool ใหม่ที่เพิ่มเข้ามาต้องมานั่งจำเขียน audit log ซ้ำเอง ซึ่งลืมง่ายมาก — โครงสร้างที่นี่ (`refuse()` บันทึกเองก่อน raise) ทำให้ไม่มีทางลืม เพราะทุกจุดที่ปฏิเสธต้องเรียกผ่านฟังก์ชันเดียวนี้อยู่แล้ว
+
+ลองเรียกจริงเองได้ (จะเห็นบรรทัด `WARNING` โผล่ที่ terminal ทันที):
+
+```bash
+uv run python -c "
+import sys; sys.path.insert(0, 'apps/mcp-server')
+from security.guardrails import assert_read_only, GuardrailViolation
+
+try:
+    assert_read_only(\"UPDATE tickets SET severity = 'low'\", 'search_tickets')
+except GuardrailViolation as e:
+    print('ผู้ใช้เห็นแค่:', e)
+"
+```
+
+ผลที่ควรเห็น:
+```
+BLOCKED tool=search_tickets reason=พบคำสั่งที่แก้ไขข้อมูล detail=keyword=UPDATE
+ผู้ใช้เห็นแค่: คำขอนี้ถูกปฏิเสธโดยระบบความปลอดภัย: พบคำสั่งที่แก้ไขข้อมูล. เครื่องมือชุดนี้อ่านข้อมูลได้อย่างเดียว
+```
+
+บรรทัดแรก (`BLOCKED tool=...`) คือ audit log แบบเต็ม ส่วนบรรทัดที่สองคือสิ่งเดียวที่ผู้ใช้/โมเดลเห็น — เทียบสองบรรทัดนี้แล้วจะเห็นชัดว่า "บันทึกละเอียด" กับ "ข้อความปฏิเสธที่ปลอดภัย" คือคนละอย่างกันจริงๆ
+
+`cap_rows()` ใช้ `AuditEvent` ตัวเดียวกันแต่ `decision="truncated"` แทน `"blocked"` — ดูที่ [security/guardrails.py:93-106](../../apps/mcp-server/security/guardrails.py:93)
 
 ---
 
@@ -174,377 +167,43 @@ if __name__ == "__main__":
 
 ### FastMCP หรือ SDK ดิบ
 
-โปรเจกต์นี้ใช้ `FastMCP` (อยู่ใน official SDK) เพราะประกาศ tool ด้วย decorator ได้เลย ทำให้เห็น **สิ่งที่สอน** ไม่ใช่ boilerplate
+โปรเจกต์นี้ใช้ `FastMCP` (อยู่ใน official SDK) เพราะประกาศ tool ด้วย decorator ได้เลย ทำให้เห็น **สิ่งที่สอน** ไม่ใช่ boilerplate — ตัวอย่างจริงจากระบบนี้เอง ([tools/tickets.py:23-53](../../apps/mcp-server/tools/tickets.py:23)):
 
- นำ Code ชุดนี้ไปทับส่วนของ if __name__ == "__main__":
 ```python
-@mcp.tool(annotations={"readOnlyHint": True})
-def search_tickets(status: str | None = None, range: str = "last_30d") -> dict:
-    """
-    ใช้ค้นหาข้อมูล Ticket ปัญหาการใช้งานของระบบ
-    - status: สถานะของทิกเก็ต (เช่น 'open', 'closed') หากไม่ระบุจะค้นหาทั้งหมด
-    - range: ช่วงเวลาที่ต้องการค้นหา (เช่น 'last_30d', 'last_7d')
-    """
-    # ในระบบจริง ตรงนี้จะใช้คำสั่ง SQL วิ่งไปดึงข้อมูลจาก Database 
-    # (ซึ่งจะถูกคุมด้วยสิทธิ์ mcp_reader อีกชั้นนึง)
-    
-    # สำหรับการทดสอบ เราจะคืนค่าจำลอง (Mock Data) กลับไปให้ AI ก่อน
-    return {
-        "status": "success",
-        "search_params": {"status": status, "range": range},
-        "data": [
-            {"id": "TCK-101", "severity": "high", "status": "open", "issue": "Router Down"},
-            {"id": "TCK-102", "severity": "low", "status": "closed", "issue": "VPN Login Failed"}
-        ]
+@mcp.tool(
+    annotations={
+        "title": "Search trouble tickets",
+        "readOnlyHint": True,
+        "idempotentHint": True,
+        "openWorldHint": False,
     }
-# ==========================================
-# 3. จุดสั่งรันเซิร์ฟเวอร์
-# ==========================================
-# ==========================================
-# 3. จุดทดสอบแบบรันจบในตัว (Simulated LLM Requests)
-# ==========================================
-if __name__ == "__main__":
-    print("🚀 เริ่มการทดสอบระบบป้องกัน (Simulated LLM Requests)\n")
+)
+def search_tickets(
+    status: str | None = None,
+    severity: str | None = None,
+    site_code: str | None = None,
+    device_id: str | None = None,
+    category: str | None = None,
+    range: str = "last_30d",
+    limit: int = 20,
+) -> dict:
+    """Search customer trouble tickets and engineer-raised incidents.
 
-    print("📝 [Test 1] AI สั่งอ่าน: 'q1_summary.csv'")
-    print(">> ตอบกลับ AI:", read_report("q1_summary.csv"))
-    print("-" * 50)
+    Use this to answer questions about what has been REPORTED: open
+    complaints, incident history, who raised what and when, and whether a
+    device already has a case against it.
 
-    print("🕵️‍♂️ [Test 2] AI สั่งอ่าน: 'secret_budget.xlsx'")
-    print(">> ตอบกลับ AI:", read_report("secret_budget.xlsx"))
-    print("-" * 50)
-
-    print("💀 [Test 3] AI สั่งอ่าน: '../etc/passwd'")
-    print(">> ตอบกลับ AI:", read_report("../etc/passwd"))
-    print("-" * 50)
-
-    # เพิ่ม Test 4 สำหรับทดสอบ Tool ใหม่
-    print("🎫 [Test 4] AI สั่งค้นหาทิกเก็ต: status='open', range='last_7d'")
-    print(">> ตอบกลับ AI:", search_tickets(status="open", range="last_7d"))
-    print("-" * 50)
-
-    print("\n✅ ทดสอบเสร็จสิ้น! ตอนนี้ระบบมี 2 Tools พร้อมให้บริการแล้ว")
+    Do NOT use this to find out what a device is actually doing right now -
+    many faults never produce a ticket at all. For observed device behaviour
+    use search_logs. For how a device is configured use get_device_config.
+    ...
+    """
 ```
 
-type hint กลายเป็น `inputSchema` และ docstring กลายเป็น `description` โดยอัตโนมัติ
+type hint กลายเป็น `inputSchema` และ docstring กลายเป็น `description` โดยอัตโนมัติ — ไม่ต้องเขียน schema แยกอีกไฟล์ นี่คือ tool ตัวเดียวกับที่ [โจทย์ที่ 3 (day2)](../day2/03-challenge3-tool-description-battle.md) ให้ฝึกแก้ description มาแล้ว ลองเปิดไฟล์เต็มดูก็ได้ว่า `annotations` มีผลกับ MCP Inspector ยังไง (ดู [Lab 4](02-lab4-jsonrpc-inspect.md))
 
 ---
-นำ Code ชุดนี้ไปแทน Code ที่ทำมาข้างต้นทั้งหมด เพิ่มระบบกรองข้อมูลความลับ (Redaction) ที่ต้องทำหน้าที่เซ็นเซอร์ข้อมูล (เช่น SNMP community string หรือ Password) ก่อนที่ข้อความจะหลุดออกไปหา LLM
-```python
-#!/usr/bin/env python3
-"""Agent API.
 
-Wraps the agent as an HTTP service so any frontend can drive it - Chainlit
-during the workshop, and a real NMS integration afterwards. The important
-design choice is that the API streams EVENTS, not just text: the caller sees
-the intent decision, each reasoning step, and each tool call as they happen.
-
-That is what lets the UI show the agent thinking instead of a spinner, and it
-is what makes a demo persuasive rather than magical.
-
-Run:
-    make api          -> http://localhost:8080/docs
-"""
-from __future__ import annotations
-
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent))
-
-import uvicorn  # noqa: E402
-from fastapi import FastAPI, HTTPException  # noqa: E402
-from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from fastapi.responses import StreamingResponse  # noqa: E402
-from schemas import ChatRequest, IntentLabel  # noqa: E402
-from verifier import verify
-
-from agent import (  # noqa: E402
-    events,
-    grounding,
-    intent,
-    llm,
-    mcp_client,
-    memory,
-    react,
-    synthesizer,
-)
-from agent.events import EventType  # noqa: E402
-
-app = FastAPI(
-    title="NT IP-MPLS Agent API",
-    description="AI agent for network operations, backed by an MCP server.",
-    version="1.0.0",
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # workshop only; restrict this in production
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-async def run_turn(request: ChatRequest):
-    """One conversational turn, emitted as a stream of events.
-
-    The order below is the agent's control flow, and it is deliberate:
-    intent before memory, memory before the ReAct loop, and grounding after
-    the answer but before it is considered final.
-    """
-    session = memory.get(request.session_id)
-    session.turn += 1
-    stats = llm.LLMStats()
-    tool_calls = 0
-
-    try:
-        # ---------- 1. Intent ----------
-        history = session.build_context()
-        decision = await intent.classify(
-            request.message, history=history, stats=stats, model=request.model
-        )
-        yield events.sse(EventType.INTENT_CHECKED, decision.model_dump())
-
-        # Refusals and clarifications end the turn without touching any tool.
-        if decision.label in (IntentLabel.OUT_OF_SCOPE, IntentLabel.NEEDS_CLARIFICATION):
-            text = intent.refusal_message(decision)
-            for chunk in text.split(" "):
-                yield events.sse(EventType.TOKEN, chunk + " ")
-            # An out-of-scope aside must NOT disturb the current topic. The
-            # user interrupted themselves; they did not change the subject.
-            yield events.sse(EventType.USAGE,
-                             {**stats.as_dict(), "tool_calls": 0,
-                              "context_tokens": session.context_tokens()})
-            yield events.sse(EventType.DONE, {"reason": decision.label.value})
-            return
-
-        # ---------- 2. Memory ----------
-        changed, why = session.detect_topic_shift(request.message)
-        if changed:
-            before = session.context_tokens()
-            await session.start_topic(request.message, stats=stats)
-            yield events.sse(EventType.TOPIC_CHANGED, {
-                "reason": why,
-                "new_topic": session.topic.model_dump() if session.topic else None,
-                "context_tokens_before": before,
-                "context_tokens_after": session.context_tokens(),
-                "archived_summaries": session.archived[-3:],
-            })
-        session.add_turn("user", request.message)
-        yield events.sse(EventType.MEMORY_UPDATED, {
-            "turn": session.turn,
-            "topic": session.topic.label if session.topic else None,
-            "context_tokens": session.context_tokens(),
-            "archived_count": len(session.archived),
-        })
-
-        # ---------- General knowledge: answer, no tools ----------
-        if decision.label == IntentLabel.GENERAL_KNOWLEDGE:
-            answer = ""
-            async for token in synthesizer.answer_general(
-                request.message, context=session.build_context(),
-                stats=stats, model=request.model
-            ):
-                answer += token
-                yield events.sse(EventType.TOKEN, token)
-            session.add_turn("assistant", answer)
-            yield events.sse(EventType.USAGE,
-                             {**stats.as_dict(), "tool_calls": 0,
-                              "context_tokens": session.context_tokens()})
-            yield events.sse(EventType.DONE, {"reason": "general_knowledge"})
-            return
-
-        # ---------- 3. Reason + act (ReAct loop) ----------
-        from schemas import StepResult
-
-        results: list[StepResult] = []
-        async for event_type, payload in react.run(
-            request.message, context=session.build_context(),
-            stats=stats, model=request.model,
-        ):
-            if event_type == EventType.STEP_RESULT:
-                tool_calls += 1
-                results.append(StepResult(**payload))
-            yield events.sse(event_type, payload)
-
-        # ---------- 4. Synthesise ----------
-        answer = ""
-        async for token in synthesizer.synthesize_stream(
-            request.message, results,
-            context=session.build_context(), stats=stats, model=request.model,
-        ):
-            answer += token
-            yield events.sse(EventType.TOKEN, token)
-
-        session.add_turn("assistant", answer)
-
-        # ---------- 5. Ground ----------
-        try:
-            # เรียกใช้ฟังก์ชัน verify จาก verifier.py ที่เราสร้างขึ้น
-            verdict = await verify(answer, results)
-            yield events.sse(EventType.GROUNDING_CHECKED, verdict)
-        except Exception as exc:  # noqa: BLE001 - never fail a turn on the check
-            yield events.sse(EventType.GROUNDING_CHECKED,
-                             {"is_grounded": None, "error": str(exc)})
-
-        yield events.sse(EventType.USAGE, {
-            **stats.as_dict(),
-            "tool_calls": tool_calls,
-            "context_tokens": session.context_tokens(),
-        })
-        yield events.sse(EventType.DONE, {"reason": "complete"})
-
-    except Exception as exc:  # noqa: BLE001
-        yield events.sse(EventType.ERROR,
-                         {"error": f"{type(exc).__name__}: {exc}"})
-        yield events.sse(EventType.DONE, {"reason": "error"})
-
-
-@app.post("/chat", summary="Ask a question, receive a stream of events")
-async def chat(request: ChatRequest):
-    return StreamingResponse(
-        run_turn(request),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-    )
-
-
-@app.get("/health", summary="Liveness and dependency check")
-async def health():
-    status: dict = {"api": "ok"}
-    try:
-        tools = await mcp_client.get().list_tools()
-        status["mcp"] = {"ok": True, "tool_count": len(tools)}
-    except Exception as exc:  # noqa: BLE001
-        status["mcp"] = {"ok": False, "error": str(exc)}
-    try:
-        from agent import clock_probe  # noqa: F401
-    except ImportError:
-        pass
-    return status
-
-
-@app.get("/sessions/{session_id}/memory",
-         summary="Inspect what the agent currently remembers")
-async def get_memory(session_id: str):
-    """Exposed on purpose.
-
-    Memory management is invisible from the outside, which makes it impossible
-    to learn from and impossible to debug. Challenge 4 asks participants to dump
-    this after every turn and plot how context size changes - the plot is the
-    proof that topic shift detection is working.
-    """
-    session = memory.get(session_id)
-    return session.snapshot().model_dump()
-
-
-@app.delete("/sessions/{session_id}", summary="Clear a session")
-async def clear_session(session_id: str):
-    memory.reset(session_id)
-    return {"ok": True, "session_id": session_id}
-
-
-@app.get("/tools", summary="List the tools exposed by the MCP server")
-async def list_tools():
-    try:
-        return {"tools": await mcp_client.get().list_tools()}
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-
-
-@app.get("/resources", summary="List MCP resources")
-async def list_resources():
-    try:
-        return {"resources": await mcp_client.get().list_resources()}
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-
-
-# ==========================================
-# จุดทดสอบแบบรันจบในตัว (จำลองการทำงานของ AI)
-# ==========================================
-if __name__ == "__main__":
-    import datetime
-    import json
-    from mcp.server.fastmcp import FastMCP
-    from tools.reports import get_safe_path
-
-    mcp = FastMCP("MySecureServer")
-
-    class AuditEvent:
-        def __init__(self, tool: str, decision: str, reason: str, detail: str = ""):
-            self.tool = tool
-            self.decision = decision
-            self.reason = reason
-            self.detail = detail
-
-        def emit(self):
-            now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            log_entry = f"[{now}] {self.decision.upper()} | Tool: {self.tool} | Reason: {self.reason} | Detail: {self.detail}\n"
-            with open("audit.log", "a", encoding="utf-8") as f:
-                f.write(log_entry)
-
-    def redact(data):
-        secrets = [
-            "public_snmp_read", 
-            "superadmin_pass", 
-            "192.168.1.100"
-        ]
-        is_dict = isinstance(data, dict)
-        text_data = json.dumps(data, ensure_ascii=False) if is_dict else str(data)
-            
-        for secret in secrets:
-            text_data = text_data.replace(secret, "████████")
-            
-        return json.loads(text_data) if is_dict else text_data
-
-    @mcp.tool()
-    def read_report(filename: str) -> str:
-        try:
-            safe_path = get_safe_path(filename)
-            raw_content = f"✅ อ่านไฟล์ {filename} สำเร็จ ค่าคอนฟิกคือ superadmin_pass"
-            return redact(raw_content)
-        except Exception as e:
-            AuditEvent(
-                tool="read_report", 
-                decision="blocked", 
-                reason=type(e).__name__,
-                detail=str(e)
-            ).emit()
-            return "❌ คำขอถูกปฏิเสธ: ไม่สามารถเข้าถึงไฟล์ที่ระบุได้"
-
-    @mcp.tool(annotations={"readOnlyHint": True})
-    def search_tickets(status: str | None = None, range: str = "last_30d") -> dict:
-        raw_data = {
-            "status": "success",
-            "data": [
-                {"id": "TCK-101", "issue": "Router Down", "config_snippet": "snmp-server community public_snmp_read RO"},
-                {"id": "TCK-102", "issue": "DB Login Failed", "error_log": "Failed password for superadmin_pass from 192.168.1.100"}
-            ]
-        }
-        return redact(raw_data)
-
-    print("🚀 เริ่มการทดสอบระบบป้องกันและเซ็นเซอร์ข้อมูล\n")
-
-    print("📝 [Test 1] AI สั่งอ่าน: 'q1_summary.csv'")
-    print(">> ตอบกลับ AI:", read_report("q1_summary.csv"))
-    print("-" * 50)
-
-    print("🕵️‍♂️ [Test 2] AI สั่งอ่าน: 'secret_budget.xlsx'")
-    print(">> ตอบกลับ AI:", read_report("secret_budget.xlsx"))
-    print("-" * 50)
-
-    print("💀 [Test 3] AI สั่งอ่าน: '../etc/passwd'")
-    print(">> ตอบกลับ AI:", read_report("../etc/passwd"))
-    print("-" * 50)
-
-    print("🎫 [Test 4] AI สั่งค้นหาทิกเก็ต: status='open', range='last_7d'")
-    print(">> ตอบกลับ AI:", json.dumps(search_tickets(status="open", range="last_7d"), indent=2))
-    print("-" * 50)
-
-    print("\n✅ ทดสอบเสร็จสิ้น! เช็คผลการเซ็นเซอร์ (████████) ใน Test 4 ได้เลย")
-```
----
 ## 5. OAuth 2.1 — รู้ไว้ แต่ยังไม่ใช้
 
 spec รุ่นใหม่กำหนดให้ MCP server ที่เปิดบนเครือข่ายทำตัวเป็น OAuth Resource Server
