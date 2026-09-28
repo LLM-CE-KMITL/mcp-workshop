@@ -47,7 +47,7 @@ flowchart TB
 
 ## ตัวอย่างที่ Neo4j ทำได้คนเดียว
 ```cypher
-:param vec => [i in range(1, 1536) | 0.1]
+:param vec => [i in range(1, 1025) | 0.1]
 ```
 ```cypher
 CALL db.index.vector.queryNodes('device_embedding', 3, $vec)
