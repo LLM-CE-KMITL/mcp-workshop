@@ -49,6 +49,7 @@
 | 13:00–14:15 | [day2/04-module6-tools-3-databases.md](INSTRUCTIONS/day2/04-module6-tools-3-databases.md) — Module 6: เครื่องมือจาก 3 ฐานข้อมูล |
 | 14:15–14:45 | [day2/05-module8-memory.md](INSTRUCTIONS/day2/05-module8-memory.md) — Module 8: Memory |
 | 15:00–16:30 | [day2/06-workshop2-noc-agent.md](INSTRUCTIONS/day2/06-workshop2-noc-agent.md) — Workshop 2: ReAct Agent สำหรับ NOC |
+| เสริม (ไม่บังคับ) | [day2/07-summary-intent-memory-in-app.md](INSTRUCTIONS/day2/07-summary-intent-memory-in-app.md) — สรุป: แก้ Intent กับ Memory ของ Agent จริงใน App ต้องแก้ไฟล์ไหน ตัวอย่างการแก้ และต้อง stop/run อะไรถึงเห็นผล |
 
 **เฉลยวันที่ 2**: [solutions/day2/](solutions/day2/) — เปิดหลังจากลองเองแล้วเท่านั้น
 
