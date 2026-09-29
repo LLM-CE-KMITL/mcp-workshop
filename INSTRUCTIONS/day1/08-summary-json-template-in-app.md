@@ -36,17 +36,15 @@ schema ส่วนใหญ่ที่ agent จริงบังคับใ
 flowchart TD
     A["ผู้ใช้พิมพ์คำถามใน Chainlit"] --> B["POST /chat<br/>main.py: run_turn()"]
     B --> C["🔒 complete_structured(..., IntentResult)<br/>agent/intent.py"]
-    C -->|"GENERAL_KNOWLEDGE"| D["ตอบตรงๆ แบบ stream token<br/>ไม่ผ่าน JSON schema อีกเลย - จบ"]
-    C -->|"NEEDS_CLARIFICATION / OUT_OF_SCOPE"| E["ตอบปฏิเสธ/ถามกลับ - จบ"]
-    C -->|"IN_SCOPE"| F["react.run() เริ่ม ReAct loop"]
+    C -->|"JSON: IntentResult<br/>label = GENERAL_KNOWLEDGE"| D["ตอบตรงๆ แบบ stream token<br/>ไม่ผ่าน JSON schema อีกเลย - จบ"]
+    C -->|"JSON: IntentResult<br/>label = NEEDS_CLARIFICATION / OUT_OF_SCOPE"| E["ตอบปฏิเสธ/ถามกลับ - จบ"]
+    C -->|"JSON: IntentResult<br/>label = IN_SCOPE"| F["react.run() เริ่ม ReAct loop"]
     F --> G["🔒 complete_structured(..., ReactDecision)<br/>agent/react.py - วนซ้ำทุก step"]
-    G -->|"tool ไม่เป็น null"| H["เรียก tool ผ่าน MCP client<br/>(tool call ปกติ ไม่ใช่ JSON ที่ถูกบังคับ)"]
+    G -->|"JSON: ReactDecision<br/>tool ไม่เป็น null"| H["เรียก tool ผ่าน MCP client<br/>(tool call ปกติ ไม่ใช่ JSON ที่ถูกบังคับ)"]
     H --> G
-    G -->|"tool เป็น null (พร้อมตอบ)"| I["synthesizer.synthesize_stream()<br/>ตอบเป็นข้อความ stream ทีละ token<br/>ไม่ผ่าน JSON schema"]
+    G -->|"JSON: ReactDecision<br/>tool เป็น null (พร้อมตอบ)"| I["synthesizer.synthesize_stream()<br/>ตอบเป็นข้อความ stream ทีละ token<br/>ไม่ผ่าน JSON schema"]
     I --> J["🔒 complete_structured(..., GroundingVerdict)<br/>agent/grounding.py"]
-    J --> K["ส่งคำตอบ + event ทั้งหมดกลับ Chainlit ผ่าน SSE"]
-
-    L["agent/orchestrator.py<br/>RoutingDecision"] -.->|"ไม่มีใคร import module นี้"| M["ไม่อยู่ใน flow ข้างบนเลย - dead code"]
+    J -->|"JSON: GroundingVerdict"| K["ส่งคำตอบ + event ทั้งหมดกลับ Chainlit ผ่าน SSE"]
 ```
 
 **สังเกต**: จุดที่มี 🔒 คือจุดที่ LLM **ถูกบังคับ** ให้ตอบ JSON ตาม schema (guided decoding) มี 3 จุด (`IntentResult` → `ReactDecision` ×N รอบ → `GroundingVerdict`) ส่วนคำตอบสุดท้ายที่ผู้ใช้เห็นจริง ๆ (`synthesizer.synthesize_stream`) กลับ**ไม่ได้**ถูกบังคับ schema — เป็นข้อความธรรมดาที่ stream ออกมาทีละ token เหมือน ChatGPT ปกติ เหตุผลคือคำตอบสุดท้ายต้องเป็นภาษาธรรมชาติอ่านง่าย ไม่ใช่ข้อมูลโครงสร้างที่ระบบอื่นต้องเอาไปประมวลผลต่อแบบ `IntentResult`/`ReactDecision`/`GroundingVerdict`
