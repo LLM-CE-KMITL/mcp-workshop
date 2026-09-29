@@ -20,6 +20,37 @@ Module 7 และ Module 8 อธิบายหลักการของ int
 
 ---
 
+## Quick reference: ต้องการแก้พฤติกรรมนี้ แก้ตรงไหน
+
+**ข้อควรทราบก่อน**: "การเปลี่ยนหัวข้อสนทนา" (change topic) **ไม่ได้อยู่ใน `intent.py`** — อยู่ใน `memory.py` คนละไฟล์กัน `intent.py` มีหน้าที่ตัดสินแค่ว่าคำถามนี้ in_scope/out_of_scope/needs_clarification เท่านั้น
+
+### ใน `apps/agent-api/agent/intent.py`
+
+| ต้องการแก้อะไร | ตัวแปร/ฟังก์ชัน | บรรทัด |
+|---|---|---|
+| เพิ่ม/ลบคำที่ถือว่าอยู่ในโดเมน (ผลักไปทาง `in_scope`) | `DOMAIN_TERMS` | 32 |
+| เพิ่ม/ลบคำที่ถือว่านอกโดเมน (ผลักไปทาง `out_of_scope`) | `OFF_DOMAIN_TERMS` | 41 |
+| รูปแบบรหัสอุปกรณ์/ticket ที่ถือว่า `in_scope` ทันที (confidence 0.98) | `DEVICE_PATTERN` / `TICKET_PATTERN` | 47-48 |
+| ประโยคที่ถือว่ากำกวม ต้องถามกลับ (`needs_clarification`) | `VAGUE_PATTERNS` | 60 |
+| ลำดับ/เงื่อนไขการตัดสินใจของ `fast_path` เอง (เช่น เปลี่ยนเกณฑ์จาก "ต้องมีคำโดเมน ≥2 คำ" เป็น "≥1 คำ") | เนื้อใน `fast_path()` | 71 |
+| พฤติกรรมตอนกำกวมที่ LLM ต้องตัดสินแทน (นิยามของ `in_scope`/`general_knowledge`/`out_of_scope` ที่ LLM ใช้) | `SYSTEM_PROMPT` | 138 |
+| เมื่อใดที่เชื่อผล `fast_path` เมื่อใดต้องส่งต่อให้ LLM ตัดสินซ้ำ | เนื้อใน `classify()` | 171 |
+| ข้อความที่ผู้ใช้เห็นตอนถูกปฏิเสธ/ถูกถามกลับ | `refusal_message()` | 201 |
+
+### ใน `apps/agent-api/agent/memory.py`
+
+| ต้องการแก้อะไร | ตัวแปร/ฟังก์ชัน | บรรทัด |
+|---|---|---|
+| วลีที่ผู้ใช้พิมพ์แล้วถือว่า**สั่งเปลี่ยนเรื่องตรงๆ** (เช่น "เปลี่ยนเรื่อง", "ขอถามเรื่องอื่น") | `EXPLICIT_SHIFT` | 39 |
+| เกณฑ์ความคล้าย (cosine) ที่ต่ำกว่านี้ถือว่าเปลี่ยนหัวข้อ | `SIMILARITY_THRESHOLD` (env `MEMORY_TOPIC_SHIFT_THRESHOLD`) | 34 |
+| ลำดับ/ตรรกะการตัดสินใจว่าเปลี่ยนหัวข้อหรือไม่ (explicit phrase → entity overlap → เปลี่ยนไซต์ → embedding similarity) | เนื้อใน `detect_topic_shift()` | 100 |
+| จำนวน turn ล่าสุดที่เก็บไว้ก่อน archive | `WINDOW_TURNS` (env `MEMORY_WINDOW_TURNS`) | 35 |
+| วิธีสรุปหัวข้อเก่าเป็น 1-2 ประโยคตอน archive | เนื้อใน `_summarise_topic()` | 146 |
+
+หมายเลขบรรทัดอ้างอิงจากโค้ดปัจจุบัน ณ วันที่เขียนเอกสารนี้ — หากมีการแก้ไขไฟล์เพิ่มเติมในภายหลัง บรรทัดอาจขยับ ให้ยึดชื่อตัวแปร/ฟังก์ชันเป็นหลักในการค้นหา
+
+---
+
 ## Flow: ลำดับที่ intent กับ memory ทำงานใน 1 request
 
 จาก docstring ของ `run_turn()` ใน `apps/agent-api/main.py` โดยตรง: *"intent before memory, memory before the ReAct loop, and grounding after the answer"* — เป็นลำดับที่ออกแบบไว้อย่างตั้งใจ ไม่ใช่เรื่องบังเอิญ:
