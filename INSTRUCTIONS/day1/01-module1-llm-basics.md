@@ -68,6 +68,8 @@ PY
 
 > `agent/tokenizer.py` โหลด tokenizer จริงผ่าน `transformers.AutoTokenizer.from_pretrained(MODEL_ID)` โดย `MODEL_ID` มาจาก env var `TOKENIZER_MODEL_ID` (ค่าเริ่มต้นคือ `Qwen/Qwen3.5-35B-A3B`) หากโหลดไม่สำเร็จ (ไม่มีเน็ต/ยังไม่ได้ดาวน์โหลดน้ำหนักโมเดล) จะ fallback เป็นสูตรประมาณการที่ให้น้ำหนักอักขระไทยสูงกว่าอักขระอื่น (`thai / 1.6 + other / 4`) เพื่อให้ UI ยังทำงานได้แม้ออฟไลน์
 
+> **แผนสำรอง (ไม่ต้องรันโค้ด)**: หากโหลด tokenizer จริงไม่สำเร็จและไม่ต้องการพึ่งสูตรประมาณการ ใช้ [The Tokenizer Playground](https://huggingface.co/spaces/Xenova/the-tokenizer-playground) แทนได้ — เว็บที่เลือก tokenizer ของโมเดลต่างๆ (รวม Qwen) แล้ววางข้อความเทียบจำนวน token ได้ทันทีโดยไม่ต้องติดตั้ง `transformers` หรือดาวน์โหลดน้ำหนักโมเดลลงเครื่อง เหมาะกับการตรวจสอบผลลัพธ์ของ Lab นี้อย่างรวดเร็วเช่นกัน
+
 ---
 
 ## 3. ทำไมภาษาไทยถึงแพงกว่า
