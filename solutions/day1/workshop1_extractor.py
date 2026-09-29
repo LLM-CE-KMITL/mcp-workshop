@@ -397,6 +397,25 @@ async def main() -> int:
     print(f"  token เฉลี่ย/ใบ   {tokens // max(len(results), 1):,}\n")
 
     # ---------------------------------------------------------------
+    # Pair each raw conversation with the JSON it was extracted into, so the
+    # input -> output mapping is visible while reading results instead of
+    # only the one-line summary in the table above.
+    # ---------------------------------------------------------------
+    print("=== Input (ข้อความต้นทาง) → Output (JSON) รายใบ ===\n")
+    for (ticket_id, conversation), (_, result) in zip(conversations, results):
+        print(f"--- {ticket_id} " + "-" * max(0, 58 - len(ticket_id)))
+        print("[input]")
+        for line in conversation.splitlines():
+            print(f"  {line}")
+        print("[output]")
+        if result.data:
+            for line in result.data.model_dump_json(indent=2).splitlines():
+                print(f"  {line}")
+        else:
+            print("  (ไม่มีข้อมูล - สกัดไม่สำเร็จและไม่มี fallback)")
+        print()
+
+    # ---------------------------------------------------------------
     # Step 3: for the first successfully-extracted ticket, search the
     # Module 2 index (`tickets-lab`) for similar historical tickets.
     # ---------------------------------------------------------------
