@@ -47,24 +47,18 @@ flowchart TD
 
 ---
 
-## ตารางกิจกรรม
+## จุดที่ต้องลงมือเขียน/แก้ไขโค้ดจริง
 
-| # | เวลา | กิจกรรม | ประเภท | ต้องเขียน/แก้ไขโค้ดหรือไม่ |
-|---|---|---|---|---|
-| 1 | 09:00–10:15 | [Module 7 · สถาปัตยกรรม MCP](01-module7-mcp-architecture.md) | บรรยาย | ไม่ต้อง |
-| 2 | 10:15–10:30 | [Lab 4 · ดู JSON-RPC ที่วิ่งจริง](02-lab4-jsonrpc-inspect.md) | Lab (สังเกตการณ์) | ไม่ต้อง — รันระบบที่มีอยู่และตรวจสอบด้วย MCP Inspector |
-| 3 | 10:45–11:35 | [Module 8 · Security และการเลือก SDK](03-module8-security-sdk.md) | บรรยาย | ไม่ต้อง |
-| 4 | 11:35–12:00 | [โจทย์ที่ 5 · Guardrail Red-team](04-challenge5-guardrail-redteam.md) | Challenge (ทำเป็นคู่) | ไม่ต้อง — เป็นการโจมตีด้วยข้อความ (prompt) ไม่ใช่การแก้ไขโค้ด |
-| 5 | 13:00–14:00 | [Workshop 3A · สร้าง MCP Server](05-workshop3a-mcp-server.md) | Workshop | **ต้องแก้ไข — 7 ตำแหน่ง** `[3A.2.1]`…`[3A.4]` |
-| 6 | 14:00–14:30 | [Workshop 3B · ห่อ Agent เป็น API](06-workshop3b-agent-api.md) | Workshop | **ต้องแก้ไข — 3 ตำแหน่ง** `[3B.1]`…`[3B.3]` |
-| 7 | 14:30–14:45 | [Workshop 3C · ต่อ Chainlit](07-workshop3c-chainlit.md) | Workshop | **ต้องแก้ไข — 4 ตำแหน่ง** `[3C.1]`…`[3C.5]` |
-| 8 | 14:45–15:00 | [Workshop 3D · เชื่อมต่อ client จริง](08-workshop3d-connect-clients.md) | Workshop | ไม่ต้อง — แก้ไขเฉพาะไฟล์ config JSON ของ client ไม่มีการแก้ไขไฟล์ `.py` |
-| 9 | กิจกรรมเสริมช่วงบ่าย | [Lab 5 · เทียบ Vector Store](09-lab5-vector-store-comparison.md) | Lab | ไม่ต้อง — รันสคริปต์เปรียบเทียบ |
-| 10 | กิจกรรมเสริมช่วงบ่าย | [Lab 6 · Rerank Pipeline](10-lab6-rerank-pipeline.md) | Lab | ไม่ต้อง (ยกเว้นกรณีทำในไฟล์ `apps/mcp-server/` ที่เขียนขึ้นใหม่เองตั้งแต่ 3A) |
-| 11 | กิจกรรมเสริม | [Lab · Elicitation](11-lab-elicitation.md) | Lab | **ต้องแก้ไข — 1 ตำแหน่ง** `[EL.1]` (โค้ดส่วนนี้ยังไม่มีอยู่จริงใน repo) |
-| 12 | 15:00–15:30 | [โจทย์ที่ 6 · Cross-Service Diagnosis](12-challenge6-cross-service-diagnosis.md) | Challenge (โจทย์ขนาดใหญ่ที่สุด) | ไม่จำเป็น — ดำเนินการเฉพาะกรณีที่ trace ผิดพลาด (ดูคำแนะนำในเอกสาร) |
-| 13 | ช่วงสรุป | [Scale Notes](13-scale-notes.md) | บรรยาย/อภิปราย | ไม่ต้อง |
-| 14 | 15:30–16:30 | [Wrap-up · MPLS LLM](14-wrap-up-mpls-llm.md) | สรุปผล | ไม่ต้อง |
+กิจกรรมส่วนใหญ่ของวันนี้เป็นบรรยาย การทดลองกับระบบที่มีอยู่แล้ว หรือ Challenge เชิงทดสอบ (ดูรายชื่อเอกสารทั้งหมดพร้อมเวลาได้ที่ตารางในหน้าแรกของหลักสูตร) มีเพียง 4 เอกสารที่ต้องลงมือเขียนหรือแก้ไขโค้ดจริง:
+
+| เอกสาร | ตำแหน่งที่ต้องแก้ | หมายเหตุ |
+|---|---|---|
+| [Workshop 3A · สร้าง MCP Server](05-workshop3a-mcp-server.md) | `[3A.2.1]`…`[3A.4]` (7 ตำแหน่ง) | มากที่สุด — resource ใหม่ 3 ตัว, tool ใหม่ 2-3 ตัว, ต่อ guardrail 5 ชั้น |
+| [Workshop 3B · ห่อ Agent เป็น API](06-workshop3b-agent-api.md) | `[3B.1]`…`[3B.3]` (3 ตำแหน่ง) | ส่วนใหญ่คือเปลี่ยนวิธีเรียกจากฟังก์ชันตรงเป็นเรียกผ่าน MCP |
+| [Workshop 3C · ต่อ Chainlit](07-workshop3c-chainlit.md) | `[3C.1]`…`[3C.5]` (4 ตำแหน่ง) | ต่อ SSE parsing และ render UI ตาม event ที่มีอยู่แล้ว |
+| [Lab · Elicitation](11-lab-elicitation.md) | `[EL.1]` (1 ตำแหน่ง) | โค้ดส่วนนี้ยังไม่มีอยู่จริงใน repo ต้องเขียนขึ้นใหม่ทั้งหมด |
+
+[Workshop 3D](08-workshop3d-connect-clients.md) แก้ไขเฉพาะไฟล์ config JSON ของ client ไม่มีการแก้ไขไฟล์ `.py` ส่วน[โจทย์ที่ 6](12-challenge6-cross-service-diagnosis.md) ไม่จำเป็นต้องแก้โค้ด ยกเว้นกรณีที่ trace ผิดพลาด (ดูคำแนะนำในเอกสาร)
 
 > หมายเหตุ: ป้ายกำกับ `[3A.x.x]` `[3B.x]` `[3C.x]` `[EL.1]` ระบุตำแหน่งที่ต้องเขียนหรือแก้ไขโค้ดจริงในแต่ละเอกสาร โปรดดูรายละเอียดเพิ่มเติมในเอกสารที่เกี่ยวข้อง
 

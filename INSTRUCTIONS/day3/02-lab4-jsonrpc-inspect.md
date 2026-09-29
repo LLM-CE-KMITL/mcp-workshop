@@ -83,6 +83,18 @@ Write-Output $payload | uv run python apps/mcp-server/server.py --transport stdi
 npx @modelcontextprotocol/inspector uv run python apps/mcp-server/server.py --transport stdio
 ```
 
+ปกติแต่ละครั้งที่รัน Inspector จะสุ่ม token ใหม่แล้วพิมพ์ deep link ที่มี token ติดมาให้เปิด (กันคนอื่นในเครื่องเดียวกันแอบต่อเข้ามาที่ backend ซึ่ง spawn process ได้) ถ้าเปิด/ปิดบ่อยระหว่างแล็บแล้วรำคาญที่ต้องคัดลอก token ใหม่ทุกรอบ ปิดได้ด้วย `DANGEROUSLY_OMIT_AUTH=true` — **ใช้แค่ตอน dev บนเครื่องตัวเองเท่านั้น อย่าตั้งไว้ถาวรใน shell profile หรือใช้ตอนแชร์เครื่อง/deploy จริง** (ชื่อ `DANGEROUSLY_...` ตั้งใจให้ดูน่ากลัวเพื่อเตือนตรงนี้)
+
+#### macOS/Linux
+```bash
+DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector uv run python apps/mcp-server/server.py --transport stdio
+```
+
+#### Windows (PowerShell)
+```powershell
+$env:DANGEROUSLY_OMIT_AUTH="true"; npx @modelcontextprotocol/inspector uv run python apps/mcp-server/server.py --transport stdio
+```
+
 เปิดเบราว์เซอร์ตามที่แจ้ง แล้วลอง:
 - แท็บ **Tools** — เรียก `get_upstream_devices` ด้วย `["LPE-NBI-11","LPE-NBI-12","LPE-NBI-13"]`
 - แท็บ **Resources** — อ่าน `clock://now` และ `schema://overview`
