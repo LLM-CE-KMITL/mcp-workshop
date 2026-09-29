@@ -128,6 +128,33 @@ RETURN node.device_id AS id, score
 
 ---
 
+## เครื่องมือเสริม: ลองคำค้นอื่น ๆ แบบเร็วด้วย `scripts/vec_query.py`
+
+ถ้าอยากลองคำค้นอื่นแบบเร็ว ๆ โดยไม่ต้องเปิด Neo4j Browser แล้วพิมพ์ Cypher เอง มีเครื่องมือสำเร็จรูปให้: [`scripts/vec_query.py`](../../scripts/vec_query.py) แปลงคำค้นเป็น embedding แล้วพิมพ์ Cypher เต็มรูปแบบ (มี vector จริงฝังอยู่) ออกมาให้ก็อปวางใน Neo4j Browser ได้ทันที — ตัวสคริปต์เองไม่เชื่อมต่อฐานข้อมูลเลย เลือกฝั่ง `device` หรือ `circuit` ด้วย `--label`:
+
+```bash
+uv run python scripts/vec_query.py neo4j "อุปกรณ์ core router ที่เชื่อมต่อ backbone ระหว่างไซต์"
+```
+
+```bash
+uv run python scripts/vec_query.py neo4j "วงจร MPLS-VPN ความเร็ว 50 Mbps" --label circuit
+```
+
+**ตัวอย่างผลลัพธ์จริงของคำสั่งแรก** (ตัดมาแสดงบางส่วน — vector เต็ม 1024 มิติ ยาวประมาณ 50 บรรทัด รันจริงแล้วจะได้ statement เต็มพร้อมวาง):
+
+```cypher
+CALL db.index.vector.queryNodes('device_embedding', 5, [0.0038,-0.0276,-0.0413,0.0085,-0.001,-0.0001,0.0456,0.0086,-0.0002,-0.0064,-0.0049,0.0334,-0.0058,0.0005,0.0387,-0.0122,0.0255,-0.0181,0.0405,-0.0271,
+-0.0152,-0.0389,-0.0152,0.0138,0.0287,0.0172,0.0281,0.0128,0.007,0.0433,-0.0138,-0.0385,0.0722,-0.0052,-0.0583,-0.0442,0.0071,-0.0181,-0.0624,-0.0129,
+... (ตัดออก ~48 บรรทัด) ...
+])
+YIELD node, score
+RETURN node.device_id AS id, score;
+```
+
+ก็อป statement **เต็ม** ที่ได้จากการรันจริง (ไม่ใช่ตัวอย่างที่ตัดมาด้านบน) ไปวางใน Neo4j Browser ได้เลย — คำค้นด้าน `circuit` จะได้ Cypher รูปแบบเดียวกัน แต่ index เป็น `circuit_embedding` และคืนค่า `circuit_id` แทน
+
+---
+
 ## เกณฑ์ผ่าน
 
 - [ ] `device_embedding` และ `circuit_embedding` ถูกสร้างครบทั้งสอง index สถานะ `ONLINE`
