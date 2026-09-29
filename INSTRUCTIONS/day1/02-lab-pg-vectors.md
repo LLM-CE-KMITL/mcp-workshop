@@ -1,14 +1,16 @@
-# Lab · Vector ใน PostgreSQL และ Neo4j
+# Lab · Vector ใน PostgreSQL
 
-**10:30 – 11:30** (60 นาที) · ต่อจาก Module 1
+**10:30 – 11:05** (35 นาที) · ต่อจาก Module 1
 
 ---
 
 ## เป้าหมาย
 
-ดำเนินการสร้าง pipeline ของ semantic search ครบวงจรด้วยตนเอง ตั้งแต่การเพิ่ม column, สร้าง embedding, backfill, สร้าง index ไปจนถึงการค้นหา — เน้นที่ **PostgreSQL** เป็นหลัก แล้วท้ายบทจะไปทำสิ่งเดียวกันแบบสั้นๆ ใน **Neo4j** เพื่อให้เห็นว่าฐานข้อมูลกราฟก็เก็บ vector และค้นหาแบบ kNN ได้เองเช่นกัน
+ดำเนินการสร้าง pipeline ของ semantic search ครบวงจรด้วยตนเองใน PostgreSQL — ตั้งแต่การเพิ่ม column, สร้าง embedding, backfill, สร้าง index ไปจนถึงการค้นหา
 
-ระบบในขณะนี้ **มี embedding พร้อมใช้งานอยู่แล้ว** ทั้งสองฝั่ง ขั้นตอนแรกของ lab นี้คือการลบข้อมูลดังกล่าวออก เพื่อให้ผู้เรียนได้สร้างขึ้นใหม่ด้วยตนเอง
+ระบบในขณะนี้ **มี embedding พร้อมใช้งานอยู่แล้ว** ขั้นตอนแรกของ lab นี้คือการลบข้อมูลดังกล่าวออก เพื่อให้ผู้เรียนได้สร้างขึ้นใหม่ด้วยตนเอง
+
+ต่อด้วย [Lab: Vector ใน Neo4j](03-lab-neo4j-vectors.md) ที่ใช้หลักการเดียวกันนี้ แต่ในฐานข้อมูลกราฟซึ่งเก็บ vector คนละแบบ
 
 ---
 
@@ -37,19 +39,7 @@ FROM information_schema.columns
 WHERE table_name = 'tickets' AND column_name = 'embedding';
 ```
 
-**Neo4j Browser** ([http://localhost:7474](http://localhost:7474)) — รัน:
-```cypher
-DROP INDEX device_embedding IF EXISTS;
-DROP INDEX circuit_embedding IF EXISTS;
-
-MATCH (d:Device)  REMOVE d.embedding;
-MATCH (c:Circuit) REMOVE c.embedding;
-
-// ยืนยันผล ควรได้ 0
-MATCH (n) WHERE n.embedding IS NOT NULL RETURN count(n) AS nodes_with_embedding;
-```
-
-คำสั่งข้างต้นลบ vector ทั้งใน **PostgreSQL และ Neo4j** (ตรงกับที่ `make lab1-reset` ดำเนินการให้โดยอัตโนมัติ หากต้องการรันเพียงคำสั่งเดียวแทนการเปิด 2 หน้าต่าง สามารถใช้คำสั่งดังกล่าวได้เช่นกัน)
+หมายเหตุ: `make lab1-reset` ลบ vector ทั้งใน **PostgreSQL และ Neo4j** พร้อมกันในคำสั่งเดียว (Neo4j จะลบเองอีกครั้งใน [Lab: Vector ใน Neo4j](03-lab-neo4j-vectors.md)) หากต้องการรันเพียงคำสั่งเดียวแทนการเปิด pgAdmin สามารถใช้คำสั่งนี้ได้เช่นกัน
 
 ลองถามคำถามเดิมอีกครั้ง — ระบบจะตอบว่ายังไม่มี embedding
 
@@ -255,65 +245,7 @@ uv run python cosine.py
 
 ticket แถวบนสุดควรอยู่ในหมวด `intermittent`/`link_down` ที่เกี่ยวข้องกับปัญหาเน็ตหลุดโดยตรง หากได้ผลลัพธ์ที่ไม่เกี่ยวข้องเลย ให้ตรวจสอบว่า backfill เสร็จสมบูรณ์จริงหรือยัง (ดู query แรกของขั้นตอนนี้)
 
----
-
-## ขั้นที่ 6 · ดำเนินการกับ Neo4j เช่นเดียวกัน
-
-Neo4j เก็บ vector เป็น **property ของ node โดยตรง** ไม่ใช่คอลัมน์แยกแบบ PostgreSQL — index เดิมถูกลบไปแล้วตั้งแต่ขั้นที่ 1 ทั้งสองตัว (`device_embedding`, `circuit_embedding` เพราะระบบมี Device และ Circuit ที่ต้อง semantic search ทั้งคู่) สร้างใหม่ให้รองรับ 1024 มิติ:
-
-```cypher
-CREATE VECTOR INDEX device_embedding IF NOT EXISTS
-FOR (d:Device) ON (d.embedding)
-OPTIONS {
-  indexConfig: {
-    `vector.dimensions`: 1024,
-    `vector.similarity_function`: 'cosine'
-  }
-};
-
-CREATE VECTOR INDEX circuit_embedding IF NOT EXISTS
-FOR (c:Circuit) ON (c.embedding)
-OPTIONS {
-  indexConfig: {
-    `vector.dimensions`: 1024,
-    `vector.similarity_function`: 'cosine'
-  }
-};
-```
-
-แล้ว backfill `profile_text` เข้าไปด้วยสคริปต์อ้างอิง (โค้ดตัวอย่างอยู่ใน [`docker/seeder/seed_neo4j.py`](../../docker/seeder/seed_neo4j.py) — วนทั้ง `Device` และ `Circuit` ในลูปเดียว เพราะ logic เหมือนกันทุกประการ ต่างแค่ label):
-
-```bash
-uv run python scripts/embed_devices.py
-```
-
-**ผลลัพธ์ที่ควรเห็น** (รันจริงตอนเตรียมเอกสารนี้):
-
-```
-embedded 10 Device nodes
-embedded 35 Circuit nodes
-
-45 nodes now carry embeddings
-```
-
-ค้นหา:
-
-```cypher
-MATCH (d:Device {device_id: "CR-BKK-01"})
-CALL db.index.vector.queryNodes('device_embedding', 3, d.embedding)
-YIELD node, score
-RETURN node.device_id AS id, score
-```
-
-**ผลลัพธ์ที่ควรเห็น**:
-
-```
-{'id': 'CR-BKK-01', 'score': 0.9996}
-{'id': 'CR-BKK-02', 'score': 0.9792}
-{'id': 'PE-BKK-02', 'score': 0.8869}
-```
-
-อุปกรณ์ตัวเองได้คะแนนสูงสุดเสมอ (ใกล้ 1.0) ตามด้วย `CR-BKK-02` ซึ่งเป็น core router เหมือนกัน — เป็นหลักฐานว่า embedding จับ "บทบาทของอุปกรณ์" ได้ ไม่ใช่แค่จับชื่อที่คล้ายกัน
+**หมายเหตุ**: ตัวเลข distance ที่ได้จริงอาจต่างจากตัวอย่างข้างต้นเล็กน้อยในแต่ละครั้งที่ backfill ใหม่ (embedding API ไม่ deterministic 100% ทุกครั้งที่เรียก) — ที่ต้องเหมือนกันเสมอคือ `TK-25-00001` ติดอันดับ 1 และ ticket หมวด `intermittent` ทั้งหมดต้องติดกลุ่มอันดับต้นๆ ไม่ใช่ตัวเลขทศนิยมที่เป๊ะเหมือนกันทุกรอบ
 
 ---
 
@@ -322,8 +254,6 @@ RETURN node.device_id AS id, score
 - [ ] `SELECT count(embedding) FROM tickets` = จำนวน ticket ทั้งหมด
 - [ ] มี HNSW index บน `tickets.embedding`
 - [ ] ค้นคำว่า *"เน็ตหลุดบ่อย"* แล้วได้ ticket ประเภท `intermittent` ติดอันดับต้น
-- [ ] Neo4j มี vector index ทั้ง `device_embedding` และ `circuit_embedding` และทุก `:Device`/`:Circuit` มี `embedding`
-- [ ] Chainlit ตอบคำถาม semantic ได้อีกครั้ง
 
 ---
 
@@ -337,7 +267,7 @@ RETURN node.device_id AS id, score
 <summary>หากใช้เวลาเกิน 10 นาทีแล้วยังไม่สำเร็จ คลิกเพื่อดูเฉลย</summary>
 
 - DDL เต็มอยู่ที่ `scripts/lab/lab1_solution_vector.sql` (`make lab1-solution`)
-- โค้ด backfill อ้างอิงอยู่ที่ `scripts/embed_tickets.py` (`make embed-tickets`) และ `scripts/embed_devices.py` (`make embed-devices`)
+- โค้ด backfill อ้างอิงอยู่ที่ `scripts/embed_tickets.py` (`make embed-tickets`)
 - ถ้า endpoint ต่อไม่ได้ ให้ใช้ `LLM_MODEL_FAST` และตรวจ VPN
 
 </details>
@@ -346,10 +276,10 @@ RETURN node.device_id AS id, score
 
 ## สิ่งที่ต้องส่ง
 
-`my_embed.py` และ `cosine.py` ที่เขียนขึ้นเอง พร้อมผลลัพธ์ query ในขั้นที่ 5 (PostgreSQL) และขั้นที่ 6 (Neo4j)
+`my_embed.py` และ `cosine.py` ที่เขียนขึ้นเอง พร้อมผลลัพธ์ query ในขั้นที่ 5
 
 ---
 
 ## ต่อไป
 
-→ [Module 2: Embeddings กับ OpenSearch](03-module2-embeddings-opensearch.md) — ฐานข้อมูลตัวที่ 3 ที่เก็บ vector ได้ และเป็นตัวที่ production เลือกใช้เป็นหลัก
+→ [Lab: Vector ใน Neo4j](03-lab-neo4j-vectors.md)

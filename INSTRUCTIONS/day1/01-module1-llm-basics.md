@@ -212,4 +212,4 @@ tiktoken_error_pct (config): -12.8%
 
 ## ต่อไป
 
-→ [Lab: Vector ใน PostgreSQL และ Neo4j](02-lab-pg-neo4j-vectors.md)
+→ [Lab: Vector ใน PostgreSQL](02-lab-pg-vectors.md)

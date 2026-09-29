@@ -259,4 +259,4 @@ PY
 
 ## ต่อไป
 
-→ [Workshop 1: ตัวแยกข้อมูล Ticket](06-workshop1-ticket-extractor.md)
+→ [Workshop 1: ตัวแยกข้อมูล Ticket](07-workshop1-ticket-extractor.md)

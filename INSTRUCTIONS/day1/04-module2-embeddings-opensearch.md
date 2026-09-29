@@ -286,4 +286,4 @@ Indexed 117 tickets into 'tickets-lab'
 
 ## ต่อไป
 
-→ [Lab: Ingestion Pipeline สำหรับเอกสาร Markdown](04-lab-ingestion-markdown.md)
+→ [Lab: Ingestion Pipeline สำหรับเอกสาร Markdown](05-lab-ingestion-markdown.md)

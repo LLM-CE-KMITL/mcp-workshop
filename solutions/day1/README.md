@@ -4,10 +4,10 @@
 
 | ไฟล์ | เฉลยของ |
 |---|---|
-| `ticket_opensearch_lab.py` | [Module 2: Embeddings กับ OpenSearch](../../INSTRUCTIONS/day1/03-module2-embeddings-opensearch.md) |
-| `workshop1_extractor.py` | [Workshop 1: ตัวแยกข้อมูล Ticket](../../INSTRUCTIONS/day1/06-workshop1-ticket-extractor.md) |
+| `ticket_opensearch_lab.py` | [Module 2: Embeddings กับ OpenSearch](../../INSTRUCTIONS/day1/04-module2-embeddings-opensearch.md) |
+| `workshop1_extractor.py` | [Workshop 1: ตัวแยกข้อมูล Ticket](../../INSTRUCTIONS/day1/07-workshop1-ticket-extractor.md) |
 
-Module 1 และ Module 3 เป็นเนื้อหาบรรยาย/สาธิต ไม่มีไฟล์เฉลยแยก — Lab: Vector ใน PostgreSQL และ Neo4j ([`02-lab-pg-neo4j-vectors.md`](../../INSTRUCTIONS/day1/02-lab-pg-neo4j-vectors.md)) และ Lab: Ingestion Pipeline เอกสาร Markdown ([`04-lab-ingestion-markdown.md`](../../INSTRUCTIONS/day1/04-lab-ingestion-markdown.md)) ก็ไม่มีไฟล์เฉลยแยกเช่นกัน เพราะทั้งสอง Lab อ้างอิงสคริปต์ที่ทำงานได้จริงอยู่แล้วที่ `scripts/embed_tickets.py`, `scripts/embed_devices.py` และ `scripts/ingest_docs.py`
+Module 1 และ Module 3 เป็นเนื้อหาบรรยาย/สาธิต ไม่มีไฟล์เฉลยแยก — Lab: Vector ใน PostgreSQL ([`02-lab-pg-vectors.md`](../../INSTRUCTIONS/day1/02-lab-pg-vectors.md)), Lab: Vector ใน Neo4j ([`03-lab-neo4j-vectors.md`](../../INSTRUCTIONS/day1/03-lab-neo4j-vectors.md)) และ Lab: Ingestion Pipeline เอกสาร Markdown ([`05-lab-ingestion-markdown.md`](../../INSTRUCTIONS/day1/05-lab-ingestion-markdown.md)) ก็ไม่มีไฟล์เฉลยแยกเช่นกัน เพราะทั้งสาม Lab อ้างอิงสคริปต์ที่ทำงานได้จริงอยู่แล้วที่ `scripts/embed_tickets.py`, `scripts/embed_devices.py` และ `scripts/ingest_docs.py`
 
 ---
 

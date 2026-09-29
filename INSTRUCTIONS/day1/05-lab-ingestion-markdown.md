@@ -227,4 +227,4 @@ for hit in res['hits']['hits']:
 
 ## ต่อไป
 
-→ [Module 3: เรียก API และให้ตอบเป็น JSON](05-module3-json-api.md)
+→ [Module 3: เรียก API และให้ตอบเป็น JSON](06-module3-json-api.md)
