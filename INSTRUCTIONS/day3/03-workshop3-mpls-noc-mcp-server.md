@@ -32,7 +32,7 @@ flowchart LR
     W -->|stdio| CD["Claude Desktop"]
 ```
 
-งานวันนี้**ไม่ใช่**การแก้ไข `apps/mcp-server/` — โฟลเดอร์นั้นเป็นระบบที่ทำงานสมบูรณ์อยู่แล้วและใช้เป็นตัวอย่างอ้างอิงเท่านั้น (แนวทางเดียวกับที่ `solutions/day3/README.md:5` อธิบายไว้ว่า "เฉลยของวันที่ 3 คือระบบที่ทำงานอยู่จริง") งานจริงของ Workshop นี้คือสร้างไฟล์ใหม่ของตนเองที่ root ของโปรเจกต์ ชื่อ `workshop3_mcp_server.py` — แนวทางเดียวกับ `solutions/day1/workshop1_extractor.py` และ `solutions/day2/workshop2_agent.py` ที่เป็นไฟล์เดียวจบ ไม่ต้องแยกเป็นแพ็กเกจ
+งานวันนี้**ไม่ใช่**การแก้ไข `apps/mcp-server/` — โฟลเดอร์นั้นเป็นระบบที่ทำงานสมบูรณ์อยู่แล้วและใช้เป็นตัวอย่างอ้างอิงเท่านั้น (แนวทางเดียวกับที่ [`solutions/day3/README.md`](../../solutions/day3/README.md) อธิบายไว้) งานจริงของ Workshop นี้คือสร้างไฟล์ใหม่ของตนเองที่ root ของโปรเจกต์ ชื่อ `workshop3_mcp_server.py` — แนวทางเดียวกับ `solutions/day1/workshop1_extractor.py` และ `solutions/day2/workshop2_agent.py` ที่เป็นไฟล์เดียวจบ ไม่ต้องแยกเป็นแพ็กเกจ (ดูเฉลยที่ [`solutions/day3/workshop3_mcp_server.py`](../../solutions/day3/workshop3_mcp_server.py) หลังจากลองเขียนเองก่อน)
 
 ---
 

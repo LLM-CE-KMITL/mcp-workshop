@@ -30,7 +30,7 @@
 | 13:00–14:30 | [day1/03-module3-json-api.md](INSTRUCTIONS/day1/03-module3-json-api.md) — Module 3: เรียก API และให้ตอบเป็น JSON |
 | 14:45–16:30 | [day1/04-workshop1-ticket-extractor.md](INSTRUCTIONS/day1/04-workshop1-ticket-extractor.md) — Workshop 1: ตัวแยกข้อมูล Ticket |
 
-**เฉลยวันที่ 1**: ยังไม่มีสำหรับหลักสูตรนี้ — [solutions/day1/](solutions/day1/) เป็นของหลักสูตรเดิม (Lab/โจทย์ชุดก่อนหน้า) ยังไม่ได้ปรับปรุงให้ตรงกับไฟล์ด้านบน
+**เฉลยวันที่ 1**: [solutions/day1/](solutions/day1/) — เปิดหลังจากลองเองแล้วเท่านั้น
 
 ---
 
@@ -46,7 +46,7 @@
 | 14:15–14:45 | [day2/05-module8-memory.md](INSTRUCTIONS/day2/05-module8-memory.md) — Module 8: Memory |
 | 15:00–16:30 | [day2/06-workshop2-noc-agent.md](INSTRUCTIONS/day2/06-workshop2-noc-agent.md) — Workshop 2: ReAct Agent สำหรับ NOC |
 
-**เฉลยวันที่ 2**: `solutions/day2/workshop2_agent.py` คือเฉลยที่ใช้อ้างอิงตรงในเอกสารด้านบนอยู่แล้ว — ส่วน [solutions/day2/README.md](solutions/day2/README.md) และ [solutions/challenges/](solutions/challenges/) เป็นของหลักสูตรเดิม ยังไม่ได้ปรับปรุง
+**เฉลยวันที่ 2**: [solutions/day2/](solutions/day2/) — เปิดหลังจากลองเองแล้วเท่านั้น
 
 ---
 
@@ -59,7 +59,7 @@
 | 10:45–12:00 | [day3/02-module10-security-basics.md](INSTRUCTIONS/day3/02-module10-security-basics.md) — Module 10: ความปลอดภัยพื้นฐาน |
 | 13:00–16:30 | [day3/03-workshop3-mpls-noc-mcp-server.md](INSTRUCTIONS/day3/03-workshop3-mpls-noc-mcp-server.md) — Workshop 3: MPLS NOC MCP Server (13:00–15:30 ลงมือทำ, 15:30–16:30 สรุปและถาม-ตอบ) |
 
-**เฉลยวันที่ 3**: ไม่มีไฟล์แยก — โค้ดจริงใน [apps/mcp-server/](apps/mcp-server/) คือเฉลย/ตัวอย่างสาธิตอ้างอิง (โปรดอ่านเหตุผลที่ [solutions/day3/README.md](solutions/day3/README.md) — เอกสารนี้อ้างอิง Workshop 3A-D ของหลักสูตรเดิม ยังไม่ได้ปรับปรุงให้ตรงกับ Workshop 3 ใหม่ด้านบน)
+**เฉลยวันที่ 3**: [solutions/day3/](solutions/day3/) — `apps/mcp-server/` เป็นตัวอย่างสาธิตอ้างอิง ส่วนเฉลยของไฟล์ที่ต้องเขียนเองอยู่ที่ [solutions/day3/workshop3_mcp_server.py](solutions/day3/workshop3_mcp_server.py) — เปิดหลังจากลองเองแล้วเท่านั้น
 
 ---
 

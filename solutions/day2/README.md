@@ -2,16 +2,17 @@
 
 > ⚠️ อ่านก่อนลอง = เสียโอกาสเรียนรู้ · ดูวิธีใช้ที่ [../README.md](../README.md)
 
-| โจทย์ | เฉลยอยู่ที่ |
+| กิจกรรม | เฉลยอยู่ที่ |
 |---|---|
-| [Lab 2: Intent Gate](../../INSTRUCTIONS/day2/05-lab2-intent-gate.md) | **`apps/agent-api/agent/intent.py`** |
-| [Lab 3: Context Memory](../../INSTRUCTIONS/day2/06-lab3-context-memory.md) | **`apps/agent-api/agent/memory.py`** |
-| [Workshop 2: Agent Loop](../../INSTRUCTIONS/day2/07-workshop2-agent-loop.md) | `workshop2_agent.py` (ในโฟลเดอร์นี้) |
-| โจทย์ที่ 3 และ 4 | [../challenges/](../challenges/) |
+| [Module 5: เขียน ReAct Loop เอง](../../INSTRUCTIONS/day2/03-module5-react-loop.md) | `workshop2_agent.py` (ในโฟลเดอร์นี้) |
+| [Module 6: เครื่องมือจาก 3 ฐานข้อมูล](../../INSTRUCTIONS/day2/04-module6-tools-3-databases.md) | `workshop2_agent.py` (ในโฟลเดอร์นี้) |
+| [Module 7: Intent Gate](../../INSTRUCTIONS/day2/02-module7-intent-gate.md) | **`apps/agent-api/agent/intent.py`** |
+| [Module 8: Memory](../../INSTRUCTIONS/day2/05-module8-memory.md) | **`apps/agent-api/agent/memory.py`** |
+| [Workshop 2: ReAct Agent สำหรับ NOC](../../INSTRUCTIONS/day2/06-workshop2-noc-agent.md) | `workshop2_noc_agent.py` (ในโฟลเดอร์นี้) |
 
 ---
 
-## ทำไม Lab 2 กับ 3 ไม่มีไฟล์แยก
+## ทำไม Module 7 กับ 8 ไม่มีไฟล์แยก
 
 เนื่องจากโค้ดใน `apps/agent-api/agent/` **คือระบบที่ทำงานจริง** และเป็นตัวเดียวกับที่ container เดโมใช้ การคัดลอกมาไว้ที่นี่อีกชุดจะทำให้มีสองที่ที่ต้องแก้ไขเมื่อมีการเปลี่ยนแปลง
 
@@ -19,7 +20,7 @@
 
 ---
 
-## Lab 2 — จุดตัดสินใจที่สำคัญ
+## Module 7 — จุดตัดสินใจที่สำคัญ
 
 ### 4 ประเภท ไม่ใช่ 2
 
@@ -54,7 +55,7 @@ re.compile(r"^\s*(ดูให้|เช็คให้|ตรวจให้|�
 
 ---
 
-## Lab 3 — จุดตัดสินใจที่สำคัญ
+## Module 8 — จุดตัดสินใจที่สำคัญ
 
 ### ตรวจสัญญาณจากถูกไปแพง
 
@@ -79,11 +80,11 @@ re.compile(r"^\s*(ดูให้|เช็คให้|ตรวจให้|�
 APE-NBI-03 ซึ่งมี log flapping ตรงกับช่วงเวลา
 ```
 
-หนึ่งบรรทัดนี้แทนบทสนทนา 4 turn และทำให้ turn 9 ตอบได้โดยไม่ต้องค้นใหม่
+หนึ่งบรรทัดนี้แทนบทสนทนา 4 turn และทำให้ turn ถัดๆ ไปตอบได้โดยไม่ต้องค้นใหม่
 
 ---
 
-## Workshop 2 — `workshop2_agent.py`
+## Workshop 1 (Module 5-6) — `workshop2_agent.py`
 
 ```bash
 uv run solutions/day2/workshop2_agent.py
@@ -95,7 +96,7 @@ uv run solutions/day2/workshop2_agent.py "ทำไมมีลูกค้า�
 
 ### ต่างจาก `apps/agent-api/` อย่างไร
 
-| | Workshop 2 (ไฟล์นี้) | Day 3 (`apps/`) |
+| | `workshop2_agent.py` (ไฟล์นี้) | Day 3 (`apps/`) |
 |---|---|---|
 | เรียก tool | ฟังก์ชัน Python โดยตรง | ผ่าน MCP |
 | ใช้ได้กับ Claude Desktop | ไม่ได้ | **ได้** |
@@ -111,3 +112,38 @@ uv run solutions/day2/workshop2_agent.py "ทำไมมีลูกค้า�
 **`resolve()`** — รูปแบบ `step.1.tickets.*.device_id` คือสิ่งที่ทำให้ผลของขั้นก่อนกลายเป็น argument ของขั้นถัดไปได้อัตโนมัติ หากไม่มี โมเดลต้องคัดลอกค่าเอง ซึ่งมักเกิดความผิดพลาดบ่อย
 
 **`execute()`** — ขั้นที่ไม่ขึ้นต่อกันรันขนานด้วย `asyncio.gather` และใช้ `asyncio.to_thread` เพราะ tool เป็น sync หากเรียกโดยตรงจะบล็อก event loop และไม่เกิดการขนานอย่างแท้จริง
+
+---
+
+## Workshop 2 — `workshop2_noc_agent.py`
+
+```bash
+uv run python -c "
+import asyncio
+from workshop2_noc_agent import run_turn
+asyncio.run(run_turn('demo-session', 'ลูกค้าหลายรายในโซน NBI แจ้งว่าอินเทอร์เน็ตหลุดเป็นช่วงๆ'))
+"
+```
+
+ไฟล์นี้ **ไม่ได้แก้ไข** `workshop2_agent.py` เลยสักบรรทัด — คัดลอก logic ของเครื่องมือ 5 ตัวเดิมมาไว้ในไฟล์ใหม่ แล้วเพิ่ม 3 ส่วนที่ Workshop 2 ต้องการ: เครื่องมือตัวที่ 6 (`search_docs_semantic`), Intent Gate (เรียก `agent.intent.classify()` ก่อนเข้า loop เสมอ), และ Memory (`run_turn(session_id, goal)` ที่ใช้ `agent.memory.get(session_id)` จำบทสนทนาข้าม turn)
+
+### บั๊กจริงที่พบระหว่างทดสอบ — โมเดลไม่เชื่อฟัง field name ของ guided decoding เสมอไป
+
+ทดสอบสถานการณ์ที่ 2 และ 3 พบว่า `decide_next_step()` บางครั้งได้ `ReactDecision` ที่ `tool=None` ทั้งที่ข้อความ `thought` ของโมเดลเองบอกชัดว่าต้องการเรียก tool ต่อ ตรวจสอบแล้วพบว่าโมเดลบางครั้งตอบ field ชื่ออื่นแทน (`action`/`args`, `next_tool`/`parameters` หรือแต่ง `tool_response` ขึ้นมาเอง) ซึ่ง `response_format.json_schema` ของ LLM gateway ที่ใช้ **ปฏิบัติเป็นคำแนะนำ ไม่ใช่การบังคับจริง** เนื่องจาก `ReactDecision.tool`/`.arguments` มีค่า default ทำให้ `model_validate_json` ยอมรับ field ที่ผิดชื่อว่า "ไม่มีอะไรต้องทำ" อย่างเงียบๆ — ยืนยันแล้วว่าเป็นข้อจำกัดของโมเดล/gateway จริง ไม่ใช่บั๊กที่เกิดจากไฟล์นี้ เพราะสามารถทำซ้ำได้กับ `workshop2_agent.py` ต้นฉบับที่ไม่ได้แก้ไขเช่นกัน
+
+วิธีแก้ที่ใช้ในไฟล์นี้ (ไม่ได้แก้ที่ `workshop2_agent.py`):
+1. ทำ alias คีย์ที่พบบ่อย (`action`, `args`, `next_tool`, `parameters`) ให้กลับมาเป็น `tool`/`arguments`
+2. ถ้ายังหาไม่พบ ให้สแกนหาค่า string ที่ตรงกับชื่อ tool จริงในผลลัพธ์ทั้งหมดเป็นทางเลือกสุดท้าย
+3. ครอบ exception ตอน parse JSON ที่ไม่สมบูรณ์ (จาก `max_tokens` ตัดกลางคัน) แล้วให้ loop หยุดอย่างปลอดภัยแทนที่จะ crash พร้อมเพิ่ม `max_tokens` เพื่อลดความถี่ที่จะเกิด
+
+**บทเรียน**: guided decoding ที่ gateway บางตัวให้มาไม่ได้รับประกัน 100% เสมอไป โค้ดฝั่ง client ควรมีชั้นทนทาน (defensive parsing) เผื่อไว้เสมอ ไม่ควรเชื่อว่า schema ที่ส่งไปจะได้ผลลัพธ์ตรง schema กลับมาทุกครั้ง
+
+### ผลการทดสอบ 3 สถานการณ์ (ยืนยันจริงกับฐานข้อมูลจริง)
+
+| สถานการณ์ | ผลลัพธ์ |
+|---|---|
+| 1 · Link ล่ม | เรียก `get_upstream_devices` จริง ไม่ได้หยุดแค่ `search_tickets` — ตรงตามที่โจทย์ต้องการ |
+| 2 · VPN ช้า | `count_log_events(group_by=event_type)` เจอสัญญาณ `LINEPROTO-CRC` 150 ครั้ง — พบแนวโน้มผิดปกติได้แม้ไม่มี ticket |
+| 3 · อุปกรณ์ reboot | เรียกครบทุก tool ที่ควรเรียกรวมถึง `search_docs_semantic` แต่**สรุปผิด**เพราะค้น ticket ด้วย `status="open"` แทน `status="maintenance"` — เป็นข้อจำกัดด้านการให้เหตุผลของโมเดลในสถานการณ์ที่ยากที่สุด ไม่ใช่ข้อบกพร่องของกลไก |
+
+สถานการณ์ที่ 3 คือตัวอย่างจริงว่าทำไมโจทย์นี้ถึงเรียกว่า "กับดักสำคัญที่สุดของ workshop" — แม้ระบบจะเรียก tool ถูกลำดับครบทุกตัว การให้เหตุผลขั้นสุดท้ายก็ยังพลาดได้ถ้า argument ที่เลือกไม่ตรงกับสิ่งที่ต้องการตรวจสอบจริงๆ

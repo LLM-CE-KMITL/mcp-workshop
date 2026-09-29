@@ -27,6 +27,7 @@ load_dotenv()  # ← เพิ่ม ก่อน config อื่น
 
 import httpx
 import psycopg
+from opensearchpy import OpenSearch
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
 PG_DSN = os.getenv("PG_ADMIN_DSN",
@@ -35,6 +36,15 @@ LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "not-needed")
 LLM_MODEL = os.getenv("LLM_MODEL", "qwen/qwen3-30b-a3b")
 GUIDED = os.getenv("LLM_GUIDED_DECODING", "true").lower() == "true"
+
+# Same embedding endpoint + index as Module 2 (solutions/day1/ticket_opensearch_lab.py).
+# Copied rather than imported so this script stays a single self-contained file
+# runnable on its own, exactly like the other reference solutions in this repo.
+OPENSEARCH_URL = os.getenv("OPENSEARCH_URL", "http://localhost:9200")
+EMBEDDING_BASE_URL = os.getenv("EMBEDDING_BASE_URL", "https://openrouter.ai/api/v1")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "baai/bge-m3")
+EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "1024"))
+TICKET_INDEX = "tickets-lab"
 
 VALID_DEVICES = {
     "CR-BKK-01", "CR-BKK-02", "PE-BKK-02", "APE-BKK-05",
@@ -280,6 +290,61 @@ class StructuredExtractor:
 
 
 # --------------------------------------------------------------------------
+# Step 3: find similar historical tickets in the Module 2 index
+# --------------------------------------------------------------------------
+
+def embed_many(texts: list[str]) -> list[list[float]]:
+    """เรียก embedding endpoint แบบเดียวกับ ticket_opensearch_lab.py (Module 2)."""
+    response = httpx.post(
+        f"{EMBEDDING_BASE_URL.rstrip('/')}/embeddings",
+        json={"model": EMBEDDING_MODEL, "input": texts},
+        headers={"Authorization": f"Bearer {LLM_API_KEY}"},
+        timeout=60,
+    )
+    response.raise_for_status()
+    # ต้องเรียงตาม index เอง - API ไม่รับประกันลำดับ (บทเรียนจาก embed.py)
+    ordered = sorted(response.json()["data"], key=lambda d: d["index"])
+    return [d["embedding"] for d in ordered]
+
+
+def find_similar_tickets(extraction: TicketExtraction, top_k: int = 5) -> list[dict]:
+    """kNN search against the `tickets-lab` index (built by Module 2 / lab
+    ticket_opensearch_lab.py) using the freshly-extracted ticket as the query.
+
+    This is the piece that turns Module 2 + Module 3 into one system per the
+    workshop brief: once a raw conversation has been extracted into structured
+    data, we immediately look for historical tickets with a similar symptom so
+    the technician sees whether this has happened before.
+    """
+    query_text = extraction.summary_th
+    if extraction.affected_device:
+        query_text = f"{query_text} ({extraction.affected_device})"
+    query_vector = embed_many([query_text])[0]
+
+    client = OpenSearch(hosts=[OPENSEARCH_URL], http_compress=True, timeout=60)
+    if not client.indices.exists(index=TICKET_INDEX):
+        # Module 2's lab must run first to create/populate this index.
+        return []
+
+    result = client.search(
+        index=TICKET_INDEX,
+        body={
+            "size": top_k,
+            "query": {"knn": {"embedding": {"vector": query_vector, "k": top_k}}},
+        },
+    )
+    return [
+        {
+            "ticket_id": hit["_source"]["ticket_id"],
+            "category": hit["_source"]["category"],
+            "title": hit["_source"]["title"],
+            "score": hit["_score"],
+        }
+        for hit in result["hits"]["hits"]
+    ]
+
+
+# --------------------------------------------------------------------------
 # Run against real tickets
 # --------------------------------------------------------------------------
 
@@ -330,6 +395,28 @@ async def main() -> int:
     print(f"  ใช้ fallback     {sum(1 for _, r in results if r.fallback_used)}")
     print(f"  token รวม        {tokens:,}")
     print(f"  token เฉลี่ย/ใบ   {tokens // max(len(results), 1):,}\n")
+
+    # ---------------------------------------------------------------
+    # Step 3: for the first successfully-extracted ticket, search the
+    # Module 2 index (`tickets-lab`) for similar historical tickets.
+    # ---------------------------------------------------------------
+    first_ok = next(((tid, r) for tid, r in results if r.ok and not r.fallback_used), None)
+    if first_ok is not None:
+        ticket_id, result = first_ok
+        print(f"=== Ticket ที่คล้ายกันสำหรับ {ticket_id} (จาก index 'tickets-lab') ===\n")
+        print(f"  summary_th: {result.data.summary_th}\n")
+        similar = find_similar_tickets(result.data, top_k=5)
+        if not similar:
+            print("  (ไม่พบผลลัพธ์ - ต้องรัน solutions/day1/ticket_opensearch_lab.py "
+                  "เพื่อสร้าง index 'tickets-lab' ก่อน)")
+        else:
+            for item in similar:
+                print(f"  {item['score']:.3f}  {item['ticket_id']}  "
+                      f"[{item['category']}]  {item['title']}")
+        print()
+    else:
+        print("(ไม่มี ticket ที่สกัดสำเร็จให้ค้นหา ticket ที่คล้ายกัน)\n")
+
     return 0
 
 

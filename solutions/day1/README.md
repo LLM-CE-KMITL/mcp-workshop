@@ -4,36 +4,36 @@
 
 | ไฟล์ | เฉลยของ |
 |---|---|
-| `lab1_embed.py` | [Lab 1: สร้าง vector column](../../INSTRUCTIONS/day1/02-lab1-add-vector-column.md) |
-| `workshop1_extractor.py` | [Workshop 1: JSON + Auto-retry](../../INSTRUCTIONS/day1/06-workshop1-json-autoretry.md) |
+| `ticket_opensearch_lab.py` | [Module 2: Embeddings กับ OpenSearch](../../INSTRUCTIONS/day1/02-module2-embeddings-opensearch.md) |
+| `workshop1_extractor.py` | [Workshop 1: ตัวแยกข้อมูล Ticket](../../INSTRUCTIONS/day1/04-workshop1-ticket-extractor.md) |
 
-โจทย์ที่ 1 และ 2 อยู่ที่ [../challenges/](../challenges/)
+Module 1 และ Module 3 เป็นเนื้อหาบรรยาย/สาธิต ไม่มีไฟล์เฉลยแยก
 
 ---
 
 ## วิธีรัน
 
 ```bash
-uv run solutions/day1/lab1_embed.py
+uv run solutions/day1/ticket_opensearch_lab.py
 ```
 
 ```bash
 uv run solutions/day1/workshop1_extractor.py
 ```
 
+**ต้องรันไฟล์แรกก่อนเสมอ** — `workshop1_extractor.py` ค้นหา ticket ที่คล้ายกันจาก index `tickets-lab` ที่ `ticket_opensearch_lab.py` เป็นผู้สร้าง ถ้ายังไม่มี index นี้ ขั้นตอนค้นหาจะคืนค่าว่างเปล่าโดยไม่ error
+
 ---
 
-## 3 จุดที่ผู้เรียนพลาดมากที่สุดใน Lab 1
-
-ทั้งสามจุดถูกกำกับไว้ในโค้ดด้วยคำว่า `PITFALL` พร้อมเหตุผลระบุไว้ ณ จุดที่เกิด
+## 3 จุดที่ผู้เรียนพลาดมากที่สุดใน Module 2
 
 | # | พลาดอะไร | อาการ |
 |---|---|---|
-| 1 | ไม่เรียง response ตาม `index` | **ไม่มี error ใดๆ** แต่ vector ไปผูกกับ ticket ผิดใบ ค้นแล้วได้ผลลัพธ์ที่ไม่ถูกต้อง |
-| 2 | embed แค่ `title` | ค้นพบผลลัพธ์ได้น้อยลงมาก เพราะอาการจริงอยู่ใน `description` |
-| 3 | เรียก API ทีละแถว | 120 แถวใช้เวลาหลายนาทีแทนที่จะเป็น ~20 วินาที |
+| 1 | ไม่เรียง response ตาม `index` ก่อนจับคู่กับข้อความต้นทาง | **ไม่มี error ใดๆ** แต่ vector ไปผูกกับ ticket ผิดใบ ค้นแล้วได้ผลลัพธ์ที่ไม่ถูกต้อง — API ไม่รับประกันลำดับที่ส่งเข้าไป |
+| 2 | กำหนด `dimension` ใน mapping ไม่ตรงกับ `EMBEDDING_DIM` จริง | `INSERT` ล้มเหลวทุกแถวตั้งแต่แถวแรก error ชี้ชัดแต่มักถูกมองข้ามเพราะดูเหมือนปัญหาที่ฐานข้อมูลไม่ใช่ปัญหาที่ mapping |
+| 3 | embed แค่ `title` ไม่รวม `description` | ค้นพบผลลัพธ์ได้น้อยลงมาก เพราะรายละเอียดของอาการมักอยู่ใน `description` ไม่ใช่หัวเรื่อง |
 
-จุดที่ 1 อันตรายที่สุด เนื่องจากระบบยังทำงานได้ปกติทุกอย่าง มีเพียงคำตอบที่ผิดพลาด
+จุดที่ 1 อันตรายที่สุด เนื่องจากระบบยังทำงานได้ปกติทุกอย่าง มีเพียงคำตอบที่ผิดพลาด — ยืนยันได้จริงจากการรัน: `SELECT count(*) FROM tickets` และ `GET tickets-lab/_count` ต้องได้ตัวเลขเท่ากันเป๊ะ (117 ในข้อมูลชุดปัจจุบัน) ถ้าเรียงผิดตัวเลขจะยังเท่ากันแต่เนื้อหาผูกผิดคู่โดยไม่มีสัญญาณเตือนใดๆ
 
 ---
 
@@ -63,3 +63,7 @@ uv run solutions/day1/workshop1_extractor.py
 ### Fallback ต้องไม่ throw
 
 pipeline ที่หยุดทำงานเพราะแถวเดียวเสีย แย่กว่า pipeline ที่ติดธงแล้วทำต่อ
+
+### ขั้นตอนใหม่: `find_similar_tickets()` เชื่อม Module 2 กับ Workshop 1 เข้าด้วยกัน
+
+หลังสกัดข้อมูลสำเร็จ ฟังก์ชันนี้ embed ค่า `summary_th` ที่ได้ ด้วยรูปแบบเดียวกับ `ticket_opensearch_lab.py` แล้วค้นหาด้วย `knn` query กับ index `tickets-lab` — ผลจริงจากการทดสอบแสดงให้เห็นว่าค้นเจอ ticket ที่เกี่ยวข้องได้แม้คำอธิบายที่สกัดมาไม่มีศัพท์เทคนิคปนอยู่เลย (เช่น extraction พูดถึง "video conference หลุดบ่อย" แต่ยังจับคู่กับ ticket ประเภท `intermittent` อื่นๆ ได้ถูกต้องด้วยคะแนน similarity สูง) — นี่คือหลักฐานที่ตอบคำถามว่าทำไมต้องใช้ semantic search แทน keyword matching อย่างเดียว
