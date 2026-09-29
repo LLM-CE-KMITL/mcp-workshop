@@ -10,14 +10,14 @@
 cp .env.example .env
 ```
 
-แก้ค่า LLM ใน `.env` ให้ตรงกับที่ทีมงานแจ้ง:
+แก้ไขค่า LLM ใน `.env` ให้ตรงกับที่ทีมงานแจ้งไว้:
 
 ```
 LLM_BASE_URL=https://openrouter.ai/api/v1
 LLM_API_KEY=sk-or-v1-***Your Key***
 LLM_MODEL=qwen/qwen3-30b-a3b
 ```
-แก้ที่ `.env` ไฟล์เดียวพอ — ทุกโค้ดในโปรเจกต์ (`apps/agent-api/agent/llm.py`, `scripts/*.py`, `solutions/day2/workshop2_agent.py`) อ่านค่าจาก `.env` เองผ่าน `load_dotenv()` ไม่มีจุดไหนต้องแก้ไข key ซ้ำอีก
+แก้ไขที่ไฟล์ `.env` เพียงไฟล์เดียวก็เพียงพอ เนื่องจากโค้ดทั้งหมดในโปรเจกต์ (`apps/agent-api/agent/llm.py`, `scripts/*.py`, `solutions/day2/workshop2_agent.py`) อ่านค่าจาก `.env` ผ่าน `load_dotenv()` โดยตรง จึงไม่มีจุดใดที่ต้องแก้ไข key ซ้ำอีก
 
 ```bash
 docker compose -f docker/docker-compose.yml --env-file .env up -d postgres pgadmin neo4j opensearch opensearch-dashboards mailhog
@@ -25,13 +25,13 @@ docker compose -f docker/docker-compose.yml --env-file .env up -d postgres pgadm
 ```bash
 docker compose -f docker/docker-compose.yml --env-file .env up seeder
 ```
-> ⚠️ **คำสั่งข้างล่างนี้ไม่ต้องรัน** ถ้าเพิ่งเริ่มทำตามขั้นตอนนี้ครั้งแรก — เก็บไว้ใช้เฉพาะตอน**ต้องการล้างข้อมูลทิ้งแล้วเริ่มใหม่** เช่น เจอ error แปลก ๆ ที่แก้ไม่ตก, seed ข้อมูลค้างครึ่งทาง, หรือเปลี่ยนค่าใน `.env` ที่กระทบ schema (เช่น `EMBEDDING_DIM`) แล้วต้องสร้างฐานข้อมูลใหม่ทั้งหมด — รันคำสั่งนี้จะ**ลบข้อมูลทุกอย่างทิ้งถาวร**
+> ⚠️ **ไม่จำเป็นต้องรันคำสั่งด้านล่างนี้** หากเพิ่งเริ่มดำเนินการตามขั้นตอนนี้เป็นครั้งแรก — คำสั่งนี้ใช้เฉพาะกรณี**ต้องการล้างข้อมูลทิ้งแล้วเริ่มต้นใหม่** เช่น พบ error ที่ผิดปกติและแก้ไขไม่ได้, การ seed ข้อมูลค้างอยู่ครึ่งทาง, หรือมีการเปลี่ยนค่าใน `.env` ที่กระทบ schema (เช่น `EMBEDDING_DIM`) จนต้องสร้างฐานข้อมูลใหม่ทั้งหมด — การรันคำสั่งนี้จะ**ลบข้อมูลทั้งหมดทิ้งอย่างถาวร**
 
-สำรอง ***รันคำสั่งด้านล่างเพื่อปิดการทำงานและลบข้อมูลที่ค้างอยู่ในระบบ***
+หากจำเป็น ***ให้รันคำสั่งด้านล่างเพื่อปิดการทำงานและลบข้อมูลที่ค้างอยู่ในระบบ***
 ```bash
 docker compose -f docker/docker-compose.yml --env-file .env down -v
 ```
-คำสั่งนี้จะเปิดทุกบริการ รอจนพร้อม แล้ว seed ข้อมูลให้อัตโนมัติ (ประมาณ 3-5 นาทีครั้งแรก)
+คำสั่งนี้จะเปิดบริการทั้งหมด รอจนพร้อมใช้งาน แล้ว seed ข้อมูลให้โดยอัตโนมัติ (ใช้เวลาประมาณ 3-5 นาทีในการรันครั้งแรก)
 
 ---
 
@@ -41,7 +41,7 @@ docker compose -f docker/docker-compose.yml --env-file .env down -v
 docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python verify.py 
 ```
 
-ต้องขึ้น `ALL CHECKS PASSED` ตัวอย่างผลลัพธ์:
+ผลลัพธ์ต้องแสดง `ALL CHECKS PASSED` ตัวอย่างผลลัพธ์:
 
 ```
 PostgreSQL - tickets, configs, circuits
@@ -53,8 +53,8 @@ Neo4j - topology
   ...
 ```
 
-> `[WARN]` เรื่อง embedding ไม่เป็นไร แปลว่า endpoint ยังต่อไม่ได้
-> ระบบอื่นใช้งานได้ปกติ ค่อยเติมทีหลังด้วย `make embed-tickets`
+> `[WARN]` ที่เกี่ยวกับ embedding ไม่ถือเป็นปัญหา หมายความว่า endpoint ยังเชื่อมต่อไม่ได้เท่านั้น
+> ระบบส่วนอื่นยังใช้งานได้ตามปกติ สามารถเติมข้อมูลภายหลังได้ด้วย `make embed-tickets`
 
 ---
 
@@ -79,21 +79,21 @@ flowchart LR
 
 ---
 
-## 4. ดูข้อมูลด้วยตาก่อนเริ่มเรียน
+## 4. พิจารณาข้อมูลด้วยตาก่อนเริ่มเรียน
 
 ### 4.1 PostgreSQL (pgAdmin)
 
 **http://localhost:5050**
 
-Password (ใส่ตอน login server ที่ลงทะเบียนไว้ 2 ตัว):
+Password (กรอกตอน login เข้า server ที่ลงทะเบียนไว้ 2 ตัว):
 
 ```
 mpls_dev_password
 ```
 
-แล้วลองรันดูให้เห็น "หัวข้อ" ของข้อมูลแต่ละก้อน (9 ตารางทั้งหมด ดูโครงสร้างเต็มได้ที่ `docker/postgres/init/02_schema.sql.template`):
+จากนั้นลองรันคำสั่งเพื่อให้เห็นภาพรวมของข้อมูลแต่ละส่วน (มีทั้งหมด 9 ตาราง ดูโครงสร้างเต็มได้ที่ `docker/postgres/init/02_schema.sql.template`):
 
-ดูตัวอย่าง ticket ดิบ ๆ ก่อน (รวม `embedding` ที่ seed ไว้ให้แล้ว):
+พิจารณาตัวอย่าง ticket ดิบก่อน (รวม `embedding` ที่ seed ไว้ให้แล้ว):
 ```sql
 SELECT * FROM public.tickets LIMIT 10;
 ```
@@ -103,7 +103,7 @@ SELECT * FROM public.tickets LIMIT 10;
 SELECT device_id, site_code, role, model FROM devices ORDER BY site_code, role;
 ```
 
-ticket แบ่งตามหมวด (ภาพรวมว่าลูกค้าแจ้งเรื่องอะไรเข้ามาบ้าง):
+ticket แบ่งตามหมวดหมู่ (ภาพรวมของเรื่องที่ลูกค้าแจ้งเข้ามา):
 ```sql
 SELECT category, count(*) FROM tickets GROUP BY category ORDER BY count(*) DESC;
 ```
@@ -113,14 +113,14 @@ SELECT category, count(*) FROM tickets GROUP BY category ORDER BY count(*) DESC;
 SELECT segment, count(*) FROM customers GROUP BY segment;
 ```
 
-วงจร (circuit) ผูกกับลูกค้าและอุปกรณ์อย่างไร:
+ความสัมพันธ์ระหว่างวงจร (circuit) กับลูกค้าและอุปกรณ์:
 ```sql
 SELECT c.circuit_id, cu.name, c.service_type, c.bandwidth_mbps, c.device_id
 FROM circuits c JOIN customers cu ON cu.customer_id = c.customer_id
 LIMIT 10;
 ```
 
-มุมมองสรุปที่ MCP tools ใช้จริง (join ticket + device + customer ให้แล้ว):
+มุมมองสรุปที่ MCP tools ใช้งานจริง (join ticket, device และ customer ไว้ให้แล้ว):
 ```sql
 SELECT * FROM v_ticket_overview ORDER BY opened_at DESC LIMIT 10;
 ```
@@ -129,13 +129,13 @@ SELECT * FROM v_ticket_overview ORDER BY opened_at DESC LIMIT 10;
 
 **http://localhost:7474**
 
-Password (ใส่ตอน connect, username คือ `neo4j`):
+Password (กรอกตอนเชื่อมต่อ โดย username คือ `neo4j`):
 
 ```
 neo4j_dev_password
 ```
 
-แล้วดูโครงสร้างที่เป็นหัวใจของโจทย์:
+จากนั้นพิจารณาโครงสร้างที่เป็นหัวใจของโจทย์:
 ```cypher
 MATCH p = (l:Device {role:'LPE'})-[:UPLINK_TO]->(a:Device) RETURN p
 ```
@@ -144,13 +144,13 @@ MATCH p = (l:Device {role:'LPE'})-[:UPLINK_TO]->(a:Device) RETURN p
 
 **http://localhost:5601**
 
-ไม่ต้องใส่ password (security plugin ปิดไว้สำหรับ workshop)
+ไม่จำเป็นต้องกรอก password (security plugin ปิดไว้สำหรับ workshop)
 
-ต้อง query ผ่านหน้า **Dev Tools** โดยเฉพาะ (ไม่ใช่หน้าแรก) เข้าตรง ๆ ได้ที่:
+ต้อง query ผ่านหน้า **Dev Tools** โดยเฉพาะ (มิใช่หน้าแรก) สามารถเข้าถึงโดยตรงได้ที่:
 
 **http://localhost:5601/app/dev_tools#/console**
 
-(หรือกดที่ไอคอนเมนู ☰ มุมซ้ายบน → เลื่อนลงหา "Dev Tools" ใต้หมวด Management) แล้วรัน:
+(หรือกดที่ไอคอนเมนู ☰ มุมซ้ายบน แล้วเลื่อนลงหา "Dev Tools" ใต้หมวด Management) จากนั้นรัน:
 
 ```
 GET network-logs-*/_search
@@ -159,9 +159,9 @@ GET network-logs-*/_search
 
 ---
 
-## 5. รันแอปของตัวเอง
+## 5. รันแอปพลิเคชันของตนเอง
 
-เปิด 2 terminal:
+เปิด terminal 2 หน้าต่าง:
 
 ```bash
 uv run uvicorn main:app --app-dir apps/agent-api --reload --port 8080
@@ -171,7 +171,7 @@ uv run uvicorn main:app --app-dir apps/agent-api --reload --port 8080
 uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w
 ```
 
-เปิด http://localhost:8000 แล้วลองถาม *"ticket ที่ยังไม่ปิดมีอะไรบ้าง"*
+เปิด http://localhost:8000 แล้วทดลองถาม *"ticket ที่ยังไม่ปิดมีอะไรบ้าง"*
 
 ---
 
@@ -180,10 +180,10 @@ uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w
 | อาการ | สาเหตุและวิธีแก้ |
 |---|---|
 | OpenSearch restart วนไม่จบ | RAM ที่ให้ Docker น้อยเกินไป → เพิ่มเป็น 8 GB |
-| `make verify` FAIL ทุกข้อ | seed ยังไม่เสร็จ → `make seed` แล้วรอ |
-| Neo4j `ServiceUnavailable` | Neo4j ใช้เวลาบูตนานกว่าตัวอื่น → รอ 30 วินาทีแล้วลองใหม่ |
-| ต่อ LLM ไม่ได้ | ตรวจ VPN, ตรวจ `LLM_BASE_URL` ต้องลงท้ายด้วย `/v1` |
-| Port ชนกัน | มีบริการอื่นใช้ port อยู่ → แก้ที่ `docker/docker-compose.yml` |
+| `make verify` FAIL ทุกข้อ | seed ยังไม่เสร็จสมบูรณ์ → รัน `make seed` แล้วรอจนเสร็จ |
+| Neo4j `ServiceUnavailable` | Neo4j ใช้เวลาบูตนานกว่าบริการอื่น → รอประมาณ 30 วินาทีแล้วลองใหม่ |
+| ต่อ LLM ไม่ได้ | ตรวจสอบ VPN และตรวจสอบว่า `LLM_BASE_URL` ลงท้ายด้วย `/v1` |
+| Port ชนกัน | มีบริการอื่นใช้ port นั้นอยู่ → แก้ไขที่ `docker/docker-compose.yml` |
 | ข้อมูลดูเก่า | `make reseed` เพื่อสร้าง timestamp ใหม่ |
 
 รายละเอียดเพิ่มเติมที่ [reference/troubleshooting.md](../reference/troubleshooting.md)
@@ -205,7 +205,7 @@ uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w
 | `docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo` | เปิดแอปสำเร็จรูป (โหมดจริง) |
 | `$env:DEMO_MODE="replay"; docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo` | เปิดแอปสำเร็จรูป (โหมด replay ไม่ต้องมี LLM) |
 
-## 8. ตารางเปรียบเทียบ Make กับ Windows PowerShell สามารถรัน cat Makefile เพื่อขอดูคำสั่งต่าง ๆ ได้ หากต้องการติดตั้ง Make รัน make install
+## 8. ตารางเปรียบเทียบคำสั่ง Make กับ Windows PowerShell (สามารถรัน `cat Makefile` เพื่อดูคำสั่งทั้งหมดได้ และหากต้องการติดตั้ง Make ให้รัน `make install`)
 
 ---
 

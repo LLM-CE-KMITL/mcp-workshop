@@ -6,7 +6,7 @@
 
 ## โจทย์
 
-ทำให้ agent จากวันที่ 2 เรียกใช้ MCP Server จากขั้นที่แล้ว และเปิดออกเป็น REST API ที่ frontend ใดก็เรียกได้
+ทำให้ agent จากวันที่ 2 เรียกใช้งาน MCP Server จากขั้นตอนก่อนหน้า และเปิดให้บริการเป็น REST API ที่ frontend ใดก็สามารถเรียกใช้ได้
 
 > 🏷️ ป้าย `[3B.x]` หน้าหัวข้อด้านล่าง = จุดที่ต้องเขียน/แก้โค้ดจริงตามสเปก ใช้เลขเดียวกันนี้อ้างอิงตอนถามคำถามหรือขอ hint ได้
 
@@ -20,9 +20,9 @@ flowchart LR
 
 ---
 
-## [3B.1] เปลี่ยนจากเรียกฟังก์ชันตรง เป็นเรียกผ่าน MCP
+## [3B.1] เปลี่ยนจากเรียกฟังก์ชันโดยตรง เป็นเรียกผ่าน MCP
 
-เมื่อวาน agent เรียกฟังก์ชัน Python ตรงๆ วันนี้ต้องเรียกผ่าน MCP apps/agent-api/agent/react.py
+เมื่อวันก่อน agent เรียกใช้ฟังก์ชัน Python โดยตรง แต่วันนี้ต้องเปลี่ยนมาเรียกผ่าน MCP apps/agent-api/agent/react.py
 
 ```python
 result = await asyncio.wait_for(
@@ -30,7 +30,7 @@ result = await asyncio.wait_for(
     timeout=STEP_TIMEOUT_SECONDS,
 ```
 
-**สิ่งที่ได้มาฟรีจากการเปลี่ยน**: tool ชุดเดียวกันนี้ใช้ได้กับ Claude Desktop ทันทีโดยไม่ต้องเขียนอะไรเพิ่ม
+**ประโยชน์ที่ได้รับเพิ่มจากการเปลี่ยนแปลงนี้**: tool ชุดเดียวกันนี้สามารถใช้งานกับ Claude Desktop ได้ทันที โดยไม่ต้องเขียนโค้ดเพิ่มเติม
 
 ### [3B.1.2] รายการ tool ต้องมาจาก MCP ไม่ใช่ hardcode apps/agent-api/agent/react.py
 
@@ -45,7 +45,7 @@ async def run(
     tools = await client.list_tools()
 ```
 
-เพิ่ม tool ใน MCP Server → ทุกรอบตัดสินใจของ ReAct loop รู้จักทันที ไม่ต้องแก้ agent
+เมื่อเพิ่ม tool ใหม่ใน MCP Server ทุกรอบการตัดสินใจของ ReAct loop จะรู้จัก tool นั้นได้ทันที โดยไม่ต้องแก้ไข agent
 
 ---
 
@@ -63,7 +63,7 @@ async def run(
 
 ## [3B.3] Stream เป็น Event ไม่ใช่แค่ข้อความ
 
-**นี่คือจุดตัดสินว่า UI จะดีหรือไม่ดี** รันตามนี้เพื่อทดสอบ
+**จุดนี้เป็นตัวกำหนดคุณภาพของ UI** ให้รันคำสั่งต่อไปนี้เพื่อทดสอบ
 
 `uv run apps/agent-api/main.py `
 
@@ -77,8 +77,8 @@ intent_checked → memory_updated
 → token ... → grounding_checked → usage → done
 ```
 
-ถ้า API คืนแค่ข้อความสุดท้าย UI จะทำได้แค่แสดง spinner
-ถ้าคืน event ครบ UI จะแสดงกระบวนการคิดทั้งหมดได้ apps/agent-api/agent/events.py
+หาก API คืนเพียงข้อความสุดท้าย UI จะทำได้เพียงแสดง spinner
+แต่หากคืน event ครบถ้วน UI จะสามารถแสดงกระบวนการคิดทั้งหมดได้ apps/agent-api/agent/events.py
 
 ```python
 def sse(event_type: EventType, data: Any) -> str:
@@ -92,7 +92,7 @@ def sse(event_type: EventType, data: Any) -> str:
     return f"event: {event_type.value}\ndata: {payload}\n\n"
 ```
 
-> ลืมบรรทัดว่างสองบรรทัดท้าย = stream ค้าง เป็นบั๊กที่เจอบ่อยที่สุด
+> การละเลยบรรทัดว่างสองบรรทัดสุดท้ายจะทำให้ stream ค้าง ซึ่งเป็นข้อผิดพลาดที่พบบ่อยที่สุด
 
 ---
 
@@ -101,14 +101,14 @@ def sse(event_type: EventType, data: Any) -> str:
 ```mermaid
 flowchart TD
     A["1. Intent"] --> B{"in_scope?"}
-    B -->|ไม่| END["ตอบและจบ<br/>ไม่แตะ tool"]
+    B -->|ไม่| END["ตอบและจบ<br/>ไม่เรียกใช้ tool"]
     B -->|ใช่| C["2. Memory / topic shift"]
     C --> D["3. ReAct Loop<br/>(Thought → Action → Observation)"]
     D --> F["4. Synthesize"]
     F --> G["5. Ground"]
 ```
 
-**Intent ต้องมาก่อน Memory เสมอ** — ไม่งั้นคำถามนอกขอบเขตจะไปกระตุ้นการเปลี่ยนหัวข้อ ทำให้ context ที่ผู้ใช้กำลังใช้อยู่ถูกล้างทิ้ง (ดูโจทย์ที่ 4 turn 5)
+**ขั้นตอน Intent ต้องดำเนินการก่อน Memory เสมอ** — หากไม่เป็นเช่นนั้น คำถามที่อยู่นอกขอบเขตจะกระตุ้นให้เกิดการเปลี่ยนหัวข้อ ส่งผลให้ context ที่ผู้ใช้กำลังใช้งานอยู่ถูกล้างทิ้งไปโดยไม่ตั้งใจ (ดูโจทย์ที่ 4 turn 5)
 
 ---
 

@@ -6,7 +6,7 @@
 
 ## เป้าหมาย
 
-เปลี่ยน MCP จากนามธรรมเป็นของที่จับต้องได้ ด้วยการดูข้อความจริงที่วิ่งระหว่าง client กับ server
+ทำให้ MCP ที่เคยเป็นแนวคิดเชิงนามธรรมกลายเป็นสิ่งที่จับต้องได้ ด้วยการพิจารณาข้อความจริงที่รับส่งระหว่าง client กับ server
 
 ---
 
@@ -16,21 +16,21 @@
 uv run python scripts/print_protocol_version.py
 ```
 
-จดเลข `protocolVersion` ไว้ เอกสารทุกฉบับในคอร์สนี้อ้างอิงเลขที่ได้จากคำสั่งนี้ ไม่ได้ hardcode ไว้
+โปรดบันทึกเลข `protocolVersion` ที่ได้ไว้ เนื่องจากเอกสารทุกฉบับในคอร์สนี้อ้างอิงเลขเวอร์ชันจากคำสั่งนี้เสมอ มิได้กำหนดไว้ตายตัวในเอกสาร
 
 ---
 
-## 2. ยิง JSON-RPC ด้วยมือ
+## 2. ส่งคำขอ JSON-RPC ด้วยมือ
 
-รัน server แบบ HTTP ก่อน (คำสั่งนี้เหมือนกันทุก OS):
+เริ่มต้นด้วยการรัน server แบบ HTTP ก่อน (คำสั่งนี้ใช้ได้เหมือนกันในทุกระบบปฏิบัติการ):
 
 ```bash
 uv run python apps/mcp-server/server.py --transport streamable-http --port 9000
 ```
 
-เปิด terminal ใหม่ แล้วทำ 3 อย่างนี้ตามลำดับ — เลือกคอลัมน์ตาม OS ที่ใช้:
+เปิด terminal ใหม่ แล้วดำเนินการ 3 ขั้นตอนต่อไปนี้ตามลำดับ — เลือกคำสั่งตามระบบปฏิบัติการที่ใช้งาน:
 
-### 2.1 ยิง `initialize`
+### 2.1 ส่งคำขอ `initialize`
 
 #### macOS/Linux (curl)
 ```bash
@@ -77,13 +77,13 @@ Write-Output $payload | uv run python apps/mcp-server/server.py --transport stdi
 
 ## 3. ใช้ MCP Inspector
 
-เครื่องมือทางการสำหรับดูและทดสอบ MCP server — เปิด**หน้าเว็บ**ที่มีแท็บ Tools/Resources/Prompts ให้กดทดสอบเอง ไม่ใช่แค่ยิง JSON-RPC ทางเดียวแบบข้อ 2 ด้านบน คำสั่งเดียวกันนี้ใช้ได้ทั้ง macOS/Linux/Windows เพราะเป็นคำสั่ง `npx` (Node.js) ล้วน ไม่ใช่ syntax เฉพาะ shell:
+เครื่องมือที่เป็นทางการสำหรับตรวจสอบและทดสอบ MCP server โดยเปิดเป็น**หน้าเว็บ**ที่มีแท็บ Tools/Resources/Prompts ให้ทดสอบได้โดยตรง ไม่ใช่เพียงการส่งคำขอ JSON-RPC ทางเดียวตามข้อ 2 ด้านบน คำสั่งเดียวกันนี้ใช้ได้ทั้ง macOS/Linux/Windows เนื่องจากเป็นคำสั่ง `npx` (Node.js) ล้วน ไม่ใช่ syntax ที่ผูกกับ shell ใดชนิดหนึ่ง:
 
 ```bash
 npx @modelcontextprotocol/inspector uv run python apps/mcp-server/server.py --transport stdio
 ```
 
-ปกติแต่ละครั้งที่รัน Inspector จะสุ่ม token ใหม่แล้วพิมพ์ deep link ที่มี token ติดมาให้เปิด (กันคนอื่นในเครื่องเดียวกันแอบต่อเข้ามาที่ backend ซึ่ง spawn process ได้) ถ้าเปิด/ปิดบ่อยระหว่างแล็บแล้วรำคาญที่ต้องคัดลอก token ใหม่ทุกรอบ ปิดได้ด้วย `DANGEROUSLY_OMIT_AUTH=true` — **ใช้แค่ตอน dev บนเครื่องตัวเองเท่านั้น อย่าตั้งไว้ถาวรใน shell profile หรือใช้ตอนแชร์เครื่อง/deploy จริง** (ชื่อ `DANGEROUSLY_...` ตั้งใจให้ดูน่ากลัวเพื่อเตือนตรงนี้)
+โดยปกติทุกครั้งที่รัน Inspector จะสุ่ม token ใหม่และแสดง deep link ที่มี token แนบมาให้เปิดใช้งาน (เพื่อป้องกันไม่ให้ผู้อื่นในเครื่องเดียวกันเชื่อมต่อเข้ามาที่ backend ซึ่งสามารถ spawn process ได้) หากต้องเปิด/ปิดบ่อยครั้งระหว่างการทำแล็บและไม่ต้องการคัดลอก token ใหม่ทุกรอบ สามารถปิดการตรวจสอบนี้ได้ด้วย `DANGEROUSLY_OMIT_AUTH=true` — **ใช้เฉพาะเมื่อพัฒนาบนเครื่องของตนเองเท่านั้น ห้ามตั้งค่านี้ไว้ถาวรใน shell profile หรือใช้งานเมื่อแชร์เครื่องร่วมกับผู้อื่นหรือ deploy ใช้งานจริง** (ชื่อตัวแปร `DANGEROUSLY_...` ถูกตั้งใจให้ดูน่าเกรงขาม เพื่อเตือนถึงความเสี่ยงดังกล่าว)
 
 #### macOS/Linux
 ```bash
@@ -95,7 +95,7 @@ DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector uv run python app
 $env:DANGEROUSLY_OMIT_AUTH="true"; npx @modelcontextprotocol/inspector uv run python apps/mcp-server/server.py --transport stdio
 ```
 
-เปิดเบราว์เซอร์ตามที่แจ้ง แล้วลอง:
+เปิดเบราว์เซอร์ตามที่ระบบแจ้งไว้ แล้วดำเนินการดังนี้:
 - แท็บ **Tools** — เรียก `get_upstream_devices` ด้วย `["LPE-NBI-11","LPE-NBI-12","LPE-NBI-13"]`
 - แท็บ **Resources** — อ่าน `clock://now` และ `schema://overview`
 - แท็บ **Prompts** — ดูเทมเพลตที่มี

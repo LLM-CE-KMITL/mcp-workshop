@@ -66,8 +66,8 @@ flowchart TD
 | # | สเตจ | โค้ดจริง | อยู่ใน Lab/Module ไหน |
 |---|---|---|---|
 | 1 | **Intent Gate** — คัดกรองคำถามก่อนแตะฐานข้อมูลหรือ GPU | `agent/intent.py` | [Lab 2 · Intent Gate](05-lab2-intent-gate.md) |
-| 2 | **Memory / Topic Shift** — บันทึกหัวข้อ ตัดสินใจเปลี่ยนเรื่อง สรุปก่อนล้าง context | `agent/memory.py` | [Lab 3 · Context Memory](06-lab3-context-memory.md) · แนวคิดกว้างๆ ที่ [Module 4 §5-6](01-module4-react-memory.md) |
-| 3a | **ReAct Loop** — วน Thought/Action ทีละก้าว พร้อม LoopGuard ป้องกันการวนซ้ำ | `agent/react.py` | [Module 4 §2-4](01-module4-react-memory.md) |
+| 2 | **Memory / Topic Shift** — บันทึกหัวข้อ ตัดสินใจเปลี่ยนเรื่อง สรุปก่อนล้าง context | `agent/memory.py` | [Lab 3 · Context Memory](06-lab3-context-memory.md) · แนวคิดกว้างๆ ที่ [Module 4 หัวข้อ 5-6](01-module4-react-memory.md) |
+| 3a | **ReAct Loop** — วน Thought/Action ทีละก้าว พร้อม LoopGuard ป้องกันการวนซ้ำ | `agent/react.py` | [Module 4 หัวข้อ 2-4](01-module4-react-memory.md) |
 | 3b | **Function Calling** — โมเดลเลือก tool และ argument ส่วนโค้ดของเราเป็นผู้เรียก tool จริง | `agent/mcp_client.py` + `apps/mcp-server/tools/*.py` | [Module 5 · Function Calling](02-module5-function-calling.md) ฝึกปฏิบัติจริงที่ [โจทย์ที่ 3 · Tool Description Battle](03-challenge3-tool-description-battle.md) |
 | 4 | **Synthesizer** — รวมผลลัพธ์เป็นคำตอบเดียวพร้อม citation | `agent/synthesizer.py` | กล่าวถึงในเฉลย [Workshop 2](07-workshop2-agent-loop.md) (บั๊ก citation หลอน) |
 | 5 | **Grounding Verifier** — ตรวจสอบว่าคำตอบมีหลักฐานรองรับก่อนส่งออก | `verifier.py` | [Lab เสริม · Grounding](09-lab-grounding-verification.md) |

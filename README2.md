@@ -1,7 +1,7 @@
 # AI × IP-MPLS Workshop — 3 วัน (Developer Focused)
 
-Workshop สอนพัฒนา **AI Agent + MCP Server** สำหรับงานดูแลโครงข่าย IP-MPLS
-โดยเน้นการเขียนโค้ดเองตั้งแต่ระดับกลไก ไม่พึ่ง framework สำเร็จรูป
+Workshop นี้สอนการพัฒนา **AI Agent + MCP Server** สำหรับงานดูแลโครงข่าย IP-MPLS
+โดยเน้นการเขียนโค้ดเองตั้งแต่ระดับกลไก โดยไม่พึ่งพา framework สำเร็จรูป
 
 > **เป้าหมายปลายทาง**: ภายในบ่ายวันที่ 3 ผู้เรียนจะมี MCP Server ของตัวเองที่ต่อกับ
 > PostgreSQL + Neo4j + OpenSearch และมี AI Agent ที่วางแผนเองว่าจะดึงข้อมูลจากที่ไหนบ้าง
@@ -27,7 +27,7 @@ docker compose -f docker/docker-compose.yml --env-file .env up seeder
 docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python verify.py 
 ```
 
-เปิดใช้งาน:
+บริการที่เปิดใช้งาน:
 
 | บริการ | URL | ใช้ทำอะไร |
 |---|---|---|
@@ -41,7 +41,7 @@ docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder pyth
 
 > **pgAdmin**: ล็อกอินด้วย `workshop@example.com` / `workshop` (ตั้งค่าได้ใน `.env`)
 > มี server ลงทะเบียนไว้แล้ว 2 ตัว — ตัวเต็มสิทธิ์ (`mpls`) และ **ตัวอ่านอย่างเดียวที่ MCP ใช้จริง** (`mcp_reader`)
-> ลองรัน `UPDATE` ด้วยบัญชี `mcp_reader` เพื่อเห็นว่า guardrail ระดับสิทธิ์ทำงานอย่างไร (ใช้ใน Module 8)
+> สามารถทดลองรัน `UPDATE` ด้วยบัญชี `mcp_reader` เพื่อดูว่า guardrail ระดับสิทธิ์ทำงานอย่างไร (ใช้ใน Module 8)
 
 ---
 
@@ -80,7 +80,7 @@ flowchart LR
 | **Neo4j** | Topology, ISIS/CDP neighbor, Interface | "อุปกรณ์นี้ต่อกับอะไร" / "ถ้าล่มกระทบใคร" |
 | **OpenSearch** | Log อุปกรณ์ + Vector (semantic search) | "มี error อะไร" / "เคยเจอปัญหาแบบนี้ไหม" |
 
-**คำถามที่ดีที่สุดคือคำถามที่ตอบด้วยแหล่งเดียวไม่ได้** — นั่นคือเหตุผลที่ต้องมี Agent วางแผน
+**คำถามที่ดีที่สุดคือคำถามที่ตอบด้วยแหล่งข้อมูลเดียวไม่ได้** — จึงจำเป็นต้องมี Agent เป็นผู้วางแผน
 
 ---
 
@@ -102,7 +102,7 @@ flowchart LR
 | Embedding | `baai/bge-m3` | 1024 มิติ — ตรงกับ production |
 | Rerank | `mxbai-rerank` | ลด hallucination |
 
-ทุกตัวคุยผ่าน **OpenAI-compatible protocol** (Ollama หรือ vLLM) → เปลี่ยนโมเดลได้โดยไม่แก้โค้ด
+ทุกตัวสื่อสารผ่าน **OpenAI-compatible protocol** (Ollama หรือ vLLM) → สามารถเปลี่ยนโมเดลได้โดยไม่ต้องแก้โค้ด
 
 ---
 
@@ -170,8 +170,8 @@ flowchart TD
 
 ## 6. เริ่มเรียนที่ไหน
 
-**เปิด [README.md](README.md)** — หน้าแผนที่หลักสูตรฉบับเต็ม
-มีลิงก์ไปทุกเอกสารเรียงตามเวลาจริง ตั้งแต่ก่อนอบรมจนถึงวันที่ 3 รวมเฉลยและเอกสารอ้างอิง
+**เปิดที่ [README.md](README.md)** — หน้าแผนที่หลักสูตรฉบับเต็ม
+ซึ่งมีลิงก์ไปยังทุกเอกสารเรียงตามเวลาจริง ตั้งแต่ก่อนอบรมจนถึงวันที่ 3 รวมทั้งเฉลยและเอกสารอ้างอิง
 
 ---
 
@@ -192,8 +192,8 @@ flowchart TD
 
 ## 8. ความสัมพันธ์กับโครงการ MPLS LLM
 
-Workshop นี้เป็น **แบบจำลองย่อส่วนของสถาปัตยกรรม production จริง** — ทุกชิ้นที่สร้างในห้อง
-มีคู่ของมันในระบบจริง เพื่อให้การติดตามผลวันที่ 30/60/90 มีของให้ตรวจ
+Workshop นี้เป็น **แบบจำลองย่อส่วนของสถาปัตยกรรม production จริง** — ทุกส่วนที่สร้างขึ้นในห้องเรียน
+มีสิ่งที่สอดคล้องกันอยู่ในระบบจริง เพื่อให้การติดตามผลในวันที่ 30/60/90 มีสิ่งที่ตรวจสอบได้อย่างเป็นรูปธรรม
 
 | Workshop | Production |
 |---|---|

@@ -42,7 +42,7 @@ REVOKE CREATE ON SCHEMA public FROM mcp_reader;
 ALTER ROLE mcp_reader SET statement_timeout = '15s';
 ```
 
-**ลองด้วยตัวเองที่ pgAdmin** — ล็อกอินด้วย `mcp_reader` แล้วรัน:
+**สามารถทดสอบได้ด้วยตนเองที่ pgAdmin** — เข้าสู่ระบบด้วยบัญชี `mcp_reader` แล้วรันคำสั่งต่อไปนี้:
 
 ```sql
 UPDATE tickets SET severity = 'low';
@@ -74,7 +74,7 @@ flowchart LR
 
 `redact()` ทำงานกับ **ทุกข้อความที่ออกจาก tool** รวมถึงข้อมูลที่ดึงจากฐานข้อมูล เพราะ config snippet อาจมี SNMP community string ปนอยู่
 
-ลองเอง ([security/guardrails.py:141](../../apps/mcp-server/security/guardrails.py:141)):
+สามารถทดสอบได้ด้วยตนเอง ([security/guardrails.py:141](../../apps/mcp-server/security/guardrails.py:141)):
 
 ```bash
 uv run python -c "
@@ -121,12 +121,12 @@ def refuse(tool: str, reason: str, detail: str = "") -> None:
 ```
 
 สังเกต 2 จุด:
-- `emit()` ใช้ `logging` มาตรฐานของ Python (`audit_log = logging.getLogger("mcp.audit")`) ไม่ใช่เขียนไฟล์เอง — ต่อเข้ากับระบบ log รวมศูนย์ในอนาคตได้โดยไม่ต้องแก้บรรทัดนี้เลย (ตอนนี้ยังไม่ได้ตั้ง handler แยก เลยไปโผล่ปนกับ log ปกติของ server ที่ stderr)
+- `emit()` ใช้ `logging` มาตรฐานของ Python (`audit_log = logging.getLogger("mcp.audit")`) แทนการเขียนไฟล์เอง — จึงสามารถต่อเข้ากับระบบ log รวมศูนย์ในอนาคตได้โดยไม่ต้องแก้ไขบรรทัดนี้เลย (ปัจจุบันยังไม่ได้ตั้งค่า handler แยกต่างหาก จึงปรากฏรวมอยู่กับ log ปกติของ server ที่ stderr)
 - `refuse()` **เรียก `.emit()` ก่อน raise เสมอ** — ไม่ว่าฝั่งที่เรียกจะดัก exception ต่อยังไง audit event ก็ถูกบันทึกไปแล้ว
 
-> ⚠️ **จุดที่คนพลาดบ่อยที่สุด** — เขียน audit log ไว้ที่**จุดเรียกใช้** (เช่น ใน `except` ของแต่ละ tool) แทนที่จะเขียนไว้ *ข้างใน* ฟังก์ชันที่ตัดสินใจปฏิเสธเอง ถ้าทำแบบแรก ทุก tool ใหม่ที่เพิ่มเข้ามาต้องมานั่งจำเขียน audit log ซ้ำเอง ซึ่งลืมง่ายมาก — โครงสร้างที่นี่ (`refuse()` บันทึกเองก่อน raise) ทำให้ไม่มีทางลืม เพราะทุกจุดที่ปฏิเสธต้องเรียกผ่านฟังก์ชันเดียวนี้อยู่แล้ว
+> ⚠️ **ข้อผิดพลาดที่พบบ่อยที่สุด** — เขียน audit log ไว้ที่**จุดเรียกใช้** (เช่น ใน `except` ของแต่ละ tool) แทนที่จะเขียนไว้ *ข้างใน* ฟังก์ชันที่ตัดสินใจปฏิเสธเอง หากทำเช่นนั้น ทุก tool ใหม่ที่เพิ่มเข้ามาต้องเขียน audit log ซ้ำเองทุกครั้ง ซึ่งมีความเสี่ยงสูงที่จะถูกมองข้าม — โครงสร้างในที่นี้ (ให้ `refuse()` บันทึกเองก่อน raise) ช่วยขจัดความเสี่ยงดังกล่าว เนื่องจากทุกจุดที่ปฏิเสธคำขอต้องเรียกผ่านฟังก์ชันนี้อยู่แล้ว
 
-ลองเรียกจริงเองได้ (จะเห็นบรรทัด `WARNING` โผล่ที่ terminal ทันที):
+สามารถทดสอบได้ด้วยตนเอง (จะเห็นบรรทัด `WARNING` ปรากฏขึ้นที่ terminal ทันที):
 
 ```bash
 uv run python -c "
@@ -146,7 +146,7 @@ BLOCKED tool=search_tickets reason=พบคำสั่งที่แก้ไ
 ผู้ใช้เห็นแค่: คำขอนี้ถูกปฏิเสธโดยระบบความปลอดภัย: พบคำสั่งที่แก้ไขข้อมูล. เครื่องมือชุดนี้อ่านข้อมูลได้อย่างเดียว
 ```
 
-บรรทัดแรก (`BLOCKED tool=...`) คือ audit log แบบเต็ม ส่วนบรรทัดที่สองคือสิ่งเดียวที่ผู้ใช้/โมเดลเห็น — เทียบสองบรรทัดนี้แล้วจะเห็นชัดว่า "บันทึกละเอียด" กับ "ข้อความปฏิเสธที่ปลอดภัย" คือคนละอย่างกันจริงๆ
+บรรทัดแรก (`BLOCKED tool=...`) คือ audit log แบบเต็ม ส่วนบรรทัดที่สองคือสิ่งเดียวที่ผู้ใช้/โมเดลเห็น — เมื่อเทียบสองบรรทัดนี้จะเห็นได้อย่างชัดเจนว่า "บันทึกโดยละเอียด" และ "ข้อความปฏิเสธที่ปลอดภัย" เป็นคนละส่วนกันโดยเจตนา
 
 `cap_rows()` ใช้ `AuditEvent` ตัวเดียวกันแต่ `decision="truncated"` แทน `"blocked"` — ดูที่ [security/guardrails.py:93-106](../../apps/mcp-server/security/guardrails.py:93)
 
@@ -161,13 +161,13 @@ BLOCKED tool=search_tickets reason=พบคำสั่งที่แก้ไ
 | deploy แบบ serverless | ทำได้ | **ทำได้ดีกว่า** |
 | ในโครงการนี้ | **เลือกตัวนี้** | — |
 
-**เหตุผลที่เลือก Python**: ฐานข้อมูลทั้ง 3 ตัวมี driver ที่โตเต็มที่ · ทีมที่ดูแล MPLS LLM ใช้ Python อยู่แล้ว · โค้ดวันที่ 1-2 เป็น Python ทั้งหมด ต่อกันได้ทันที
+**เหตุผลที่เลือก Python**: ฐานข้อมูลทั้ง 3 ตัวมี driver ที่สมบูรณ์และมีเสถียรภาพ · ทีมที่ดูแล MPLS LLM ใช้ Python เป็นหลักอยู่แล้ว · โค้ดของวันที่ 1-2 เป็น Python ทั้งหมด จึงสามารถเชื่อมต่อกันได้ทันที
 
 รายละเอียดเปรียบเทียบพร้อมโค้ดตัวอย่างสองภาษา: [reference/sdk-comparison.md](../reference/sdk-comparison.md)
 
 ### FastMCP หรือ SDK ดิบ
 
-โปรเจกต์นี้ใช้ `FastMCP` (อยู่ใน official SDK) เพราะประกาศ tool ด้วย decorator ได้เลย ทำให้เห็น **สิ่งที่สอน** ไม่ใช่ boilerplate — ตัวอย่างจริงจากระบบนี้เอง ([tools/tickets.py:23-53](../../apps/mcp-server/tools/tickets.py:23)):
+โปรเจกต์นี้ใช้ `FastMCP` (อยู่ใน official SDK) เนื่องจากสามารถประกาศ tool ด้วย decorator ได้โดยตรง ทำให้เห็น **สิ่งที่สอน** ไม่ใช่ boilerplate — ตัวอย่างจริงจากระบบนี้เอง ([tools/tickets.py:23-53](../../apps/mcp-server/tools/tickets.py:23)):
 
 ```python
 @mcp.tool(
@@ -200,7 +200,7 @@ def search_tickets(
     """
 ```
 
-type hint กลายเป็น `inputSchema` และ docstring กลายเป็น `description` โดยอัตโนมัติ — ไม่ต้องเขียน schema แยกอีกไฟล์ นี่คือ tool ตัวเดียวกับที่ [โจทย์ที่ 3 (day2)](../day2/03-challenge3-tool-description-battle.md) ให้ฝึกแก้ description มาแล้ว ลองเปิดไฟล์เต็มดูก็ได้ว่า `annotations` มีผลกับ MCP Inspector ยังไง (ดู [Lab 4](02-lab4-jsonrpc-inspect.md))
+type hint กลายเป็น `inputSchema` และ docstring กลายเป็น `description` โดยอัตโนมัติ — ไม่ต้องเขียน schema แยกอีกไฟล์ นี่คือ tool ตัวเดียวกับที่ [โจทย์ที่ 3 (day2)](../day2/03-challenge3-tool-description-battle.md) ให้ฝึกแก้ description มาแล้ว สามารถเปิดไฟล์แบบเต็มเพื่อพิจารณาว่า `annotations` มีผลต่อ MCP Inspector อย่างไร (ดู [Lab 4](02-lab4-jsonrpc-inspect.md))
 
 ---
 
@@ -208,9 +208,9 @@ type hint กลายเป็น `inputSchema` และ docstring กลา�
 
 spec รุ่นใหม่กำหนดให้ MCP server ที่เปิดบนเครือข่ายทำตัวเป็น OAuth Resource Server
 
-โปรเจกต์นี้ **ไม่ทำ** เพราะอยู่ใน internal network และเป้าหมายคือสอน MCP ไม่ใช่สอน OAuth
+โปรเจกต์นี้**ยังไม่ดำเนินการในส่วนนี้** เนื่องจากอยู่ในเครือข่ายภายในองค์กร (internal network) และเป้าหมายของหลักสูตรคือการสอน MCP มิใช่การสอน OAuth
 
-**แต่ต้องรู้ว่าเมื่อขึ้น production จริงต้องมี** โดยเฉพาะเมื่อ NEX จะเรียกใช้ผ่านเครือข่ายองค์กร
+**อย่างไรก็ตาม ต้องทราบว่าเมื่อนำระบบขึ้นใช้งานจริงในระดับ production จำเป็นต้องมีการตรวจสอบสิทธิ์ดังกล่าว** โดยเฉพาะเมื่อ NEX จะเรียกใช้งานผ่านเครือข่ายขององค์กร
 
 ---
 

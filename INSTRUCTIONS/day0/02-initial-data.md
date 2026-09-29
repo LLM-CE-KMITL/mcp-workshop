@@ -1,13 +1,13 @@
 # ตัวอย่างข้อมูลตั้งต้น — หน้าตาจริงหลัง seed
 
-ต่อจาก [01-architecture.md](01-architecture.md) — นี่คือหน้าตาจริงของข้อมูลที่ไหลอยู่ใน 3 ฐานข้อมูลที่เพิ่งเห็นในแผนภาพ (ดึงมาจากระบบที่ seed แล้วจริง) เพื่อให้เห็นภาพก่อนลงมือทำ lab
-ไม่ต้องท่องจำตัวเลข — แค่เข้าใจ**รูปร่าง**ของข้อมูลแต่ละฐาน
+ต่อเนื่องจาก [01-architecture.md](01-architecture.md) — เอกสารนี้แสดงลักษณะจริงของข้อมูลที่ไหลอยู่ในฐานข้อมูลทั้ง 3 ที่ปรากฏในแผนภาพก่อนหน้า (ดึงมาจากระบบที่ seed แล้วจริง) เพื่อให้เห็นภาพก่อนเริ่มลงมือทำ lab
+ไม่จำเป็นต้องจดจำตัวเลข เพียงทำความเข้าใจ**โครงสร้าง**ของข้อมูลแต่ละฐานเป็นสำคัญ
 
 ---
 
 ## 1. PostgreSQL — ตาราง `tickets` (มี `embedding` แล้ว 20 แถวตัวอย่าง)
 
-ตารางนี้คือสภาพ**หลัง**ทำ Lab 1 เสร็จ (ปกติ demo data ship มาพร้อม `embedding` ให้เลย ดู [02-lab1-add-vector-column.md](../day1/02-lab1-add-vector-column.md))
+ตารางนี้แสดงสภาพ**หลัง**การทำ Lab 1 เสร็จสิ้น (โดยปกติ demo data มาพร้อม `embedding` ให้แล้ว ดู [02-lab1-add-vector-column.md](../day1/02-lab1-add-vector-column.md))
 
 | ticket_id | device_id | category | severity | status | title | embedding (dim) |
 |---|---|---|---|---|---|---|
@@ -34,7 +34,7 @@
 
 ### ER Diagram (รวม vector column แล้ว)
 
-9 ตารางทั้งหมด — `tickets.embedding` คือคอลัมน์ vector ที่ Lab 1 ให้สร้างเอง (ในนี้แสดงแบบที่มีอยู่แล้ว):
+มีทั้งหมด 9 ตาราง — `tickets.embedding` คือคอลัมน์ vector ที่ Lab 1 กำหนดให้ผู้เรียนสร้างเอง (ในที่นี้แสดงในสภาพที่มีอยู่แล้ว):
 
 ```mermaid
 erDiagram
@@ -110,14 +110,14 @@ erDiagram
     }
 ```
 
-ดึงตัวอย่างข้อมูลด้วย:
+ดึงตัวอย่างข้อมูลได้ด้วยคำสั่ง:
 ```sql
 SELECT ticket_id, device_id, category, severity, status, left(title, 30),
        vector_dims(embedding) AS emb_dim
 FROM tickets ORDER BY opened_at DESC LIMIT 20;
 ```
 
-`embedding` จริง ๆ คือ array ตัวเลขทศนิยม 1024 ตัว (ตัด 5 ตัวแรกมาให้ดู):
+`embedding` คือ array ของตัวเลขทศนิยมจำนวน 1024 ตัว (แสดงเฉพาะ 5 ตัวแรกเป็นตัวอย่าง):
 ```
 [-0.07439188, 0.0061674505, -0.0688842, -0.011761184, -0.009265519, ...]
 ```
@@ -161,10 +161,10 @@ graph TB
     style LPE13 fill:#2ecc71,color:#fff
 ```
 
-สี = role: แดง `CR` (core), ส้ม `PE` (provider edge), น้ำเงิน `APE` (aggregation), เขียว `LPE` (local/access)
-สังเกต: `LPE-NBI-11/12/13` ทั้ง 3 ตัว uplink ไปที่ `APE-NBI-03` **ตัวเดียวกัน** — นี่คือจุดร่วมที่ scenario S1 (interface flapping) ใช้สอนเรื่อง cross-service diagnosis ดู [04-full-demo.md](04-full-demo.md) ข้อ 2
+สีแสดงบทบาท (role): แดง `CR` (core), ส้ม `PE` (provider edge), น้ำเงิน `APE` (aggregation), เขียว `LPE` (local/access)
+ข้อสังเกต: `LPE-NBI-11/12/13` ทั้ง 3 ตัว uplink ไปยัง `APE-NBI-03` **ตัวเดียวกัน** — นี่คือจุดร่วมที่ scenario S1 (interface flapping) ใช้อธิบายเรื่อง cross-service diagnosis ดู [04-full-demo.md](04-full-demo.md) ข้อ 2
 
-ดึงมาด้วย:
+ดึงข้อมูลได้ด้วยคำสั่ง:
 ```cypher
 MATCH (a:Device)-[r:CONNECTED_TO]->(b:Device)
 RETURN a.device_id, b.device_id, r.bandwidth_mbps ORDER BY a.device_id;
@@ -186,7 +186,7 @@ green  open   network-logs-000001    2000 docs  279.9kb
 
 ### ตัวอย่าง log (`network-logs-*`)
 
-log ปกติ (BASELINE — เหตุการณ์ทั่วไป ไม่มีอะไรผิดปกติ):
+log ปกติ (BASELINE — เหตุการณ์ทั่วไป ไม่มีความผิดปกติ):
 ```json
 {
   "@timestamp": "2026-09-26T15:11:24.390932+07:00",
@@ -217,9 +217,9 @@ log จาก scenario **S1** (interface flapping ที่ `APE-NBI-03` — เ
 }
 ```
 
-field `scenario` บอกว่า log บรรทัดนี้มาจากไฟล์ scenario ไหน (`BASELINE`, `S1`, `S2`, `S3`, `S4`) — มีไว้ให้ debug เท่านั้น ไม่ควรใช้ field นี้ตอนเขียน query จริง (agent จริงไม่รู้จัก field นี้)
+field `scenario` ระบุว่า log บรรทัดนี้มาจากไฟล์ scenario ใด (`BASELINE`, `S1`, `S2`, `S3`, `S4`) — มีไว้สำหรับการ debug เท่านั้น ไม่ควรนำ field นี้ไปใช้ในการเขียน query จริง (agent จริงไม่รู้จัก field นี้)
 
-> ⚠️ **หมายเหตุสำคัญ: วันที่ในตัวอย่างข้างบนจะ "เลื่อน" ทุกครั้งที่รันคำสั่งนี้ใหม่**
+> ⚠️ **หมายเหตุสำคัญ: วันที่ในตัวอย่างข้างต้นจะเปลี่ยนแปลงทุกครั้งที่มีการรันคำสั่งนี้ใหม่**
 > ```bash
 > make reseed
 > ```
@@ -227,9 +227,9 @@ field `scenario` บอกว่า log บรรทัดนี้มาจา�
 > ```bash
 > docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python seed.py --purge
 > ```
-> เพราะทุก timestamp ในระบบคำนวณจาก `anchor_now()` ณ ตอนที่ seed (ดูเหตุผลที่ [data/scenarios.md](../../data/scenarios.md) หัวข้อ 7 และโค้ดที่ [docker/seeder/common.py](../../docker/seeder/common.py)) — ไม่มี timestamp ไหนถูก hardcode ไว้ตายตัว เพื่อให้คำถามแบบ "24 ชั่วโมงที่ผ่านมา" ใช้งานได้เสมอไม่ว่าจะ seed วันไหน
+> เนื่องจากทุก timestamp ในระบบคำนวณจาก `anchor_now()` ณ ขณะที่ seed (ดูเหตุผลที่ [data/scenarios.md](../../data/scenarios.md) หัวข้อ 7 และโค้ดที่ [docker/seeder/common.py](../../docker/seeder/common.py)) — ไม่มี timestamp ใดถูก hardcode ไว้ตายตัว เพื่อให้คำถามลักษณะ "24 ชั่วโมงที่ผ่านมา" ใช้งานได้เสมอไม่ว่าจะ seed วันใดก็ตาม
 >
-> ถ้าต้องการวันที่ตายตัว (เช่นไว้ทำ automated test) ตั้งค่า `DEMO_NOW` ใน `.env` เป็นค่า ISO8601 ก่อน seed:
+> หากต้องการวันที่ตายตัว (เช่น สำหรับทำ automated test) ให้ตั้งค่า `DEMO_NOW` ใน `.env` เป็นค่า ISO8601 ก่อน seed:
 > ```dotenv
 > DEMO_NOW=2026-09-01T09:00:00+07:00
 > ```
@@ -238,4 +238,4 @@ field `scenario` บอกว่า log บรรทัดนี้มาจา�
 
 ## ถัดไป
 
-เตรียมเครื่องให้พร้อมที่ [03-prerequisites.md](03-prerequisites.md)
+เตรียมความพร้อมของเครื่องได้ที่ [03-prerequisites.md](03-prerequisites.md)

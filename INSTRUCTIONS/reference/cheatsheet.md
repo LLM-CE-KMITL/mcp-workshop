@@ -144,7 +144,7 @@ curl -s -X POST http://localhost:9000/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-| method | ทำอะไร |
+| method | หน้าที่ |
 |---|---|
 | `initialize` | เริ่มต้น แลก capabilities |
 | `tools/list` · `tools/call` | รายการ tool · เรียก tool |
@@ -156,11 +156,11 @@ curl -s -X POST http://localhost:9000/mcp \
 
 ## Make
 
-| คำสั่ง | ทำอะไร |
+| คำสั่ง | หน้าที่ |
 |---|---|
 | `make up` / `make down` / `make reset` | เปิด / ปิด / ล้างทั้งหมด |
 | `make verify` | ตรวจข้อมูลครบทั้ง 3 ฐาน |
-| `make reseed` | สร้างข้อมูลใหม่ให้ timestamp สดใหม่ |
+| `make reseed` | สร้างข้อมูลใหม่ให้ timestamp เป็นปัจจุบัน |
 | `make load-logs [FILE=... SHIFT=now]` | โหลด log เข้า OpenSearch |
 | `make api` / `make ui` / `make mcp` | รัน Agent API / Chainlit / MCP Server |
 | `make demo` / `make demo-offline` | เปิดแอปสำเร็จรูป |

@@ -1,11 +1,11 @@
 # Python SDK vs TypeScript SDK
 
-หลักสูตรระบุให้ครอบคลุมการเลือกใช้ SDK ทั้งสองภาษา
-โปรเจกต์นี้ใช้ **Python เป็นภาษาหลัก** เอกสารนี้อธิบายว่าทำไม และ TS ต่างกันอย่างไร
+หลักสูตรกำหนดให้ครอบคลุมการเลือกใช้ SDK ทั้งสองภาษา
+โปรเจกต์นี้ใช้ **Python เป็นภาษาหลัก** เอกสารนี้อธิบายเหตุผลของการเลือกใช้ Python และความแตกต่างจาก TypeScript
 
 ---
 
-## 1. เลือกอย่างไร
+## 1. หลักการเลือกใช้งาน
 
 ```mermaid
 flowchart TD
@@ -27,7 +27,7 @@ flowchart TD
 
 ## 2. เหตุผลที่โปรเจกต์นี้เลือก Python
 
-1. ต้องต่อ PostgreSQL + Neo4j + OpenSearch — driver Python โตเต็มที่ทั้งสามตัว
+1. ต้องต่อ PostgreSQL + Neo4j + OpenSearch — driver ของ Python มีความสมบูรณ์สำหรับทั้งสามระบบ
 2. งาน embedding, tokenizer, evaluation อยู่ในระบบนิเวศ Python
 3. โค้ดวันที่ 1-2 เป็น Python ทั้งหมด ต่อกับวันที่ 3 ได้ทันที
 4. Chainlit เป็น Python ทำให้ทั้ง stack ใช้ภาษาเดียว
@@ -58,7 +58,7 @@ mcp.run(transport="stdio")
 
 type hint กลายเป็น `inputSchema` และ docstring กลายเป็น `description` โดยอัตโนมัติ
 
-### TypeScript (เทียบให้ดู)
+### TypeScript (สำหรับเปรียบเทียบ)
 
 ```typescript
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -91,7 +91,7 @@ server.registerTool(
 await server.connect(new StdioServerTransport());
 ```
 
-### สิ่งที่ต่างกันจริง
+### ความแตกต่างที่สำคัญ
 
 | | Python | TypeScript |
 |---|---|---|
@@ -112,9 +112,9 @@ await server.connect(new StdioServerTransport());
 
 ---
 
-## 5. เขียนสองภาษาพร้อมกันได้ไหม
+## 5. การใช้ทั้งสองภาษาร่วมกัน
 
-ได้ และเป็นเรื่องปกติ — MCP client ต่อได้หลาย server พร้อมกัน
+สามารถทำได้ และเป็นเรื่องปกติ — MCP client เชื่อมต่อกับหลาย server พร้อมกันได้
 
 ```json
 {
@@ -125,4 +125,4 @@ await server.connect(new StdioServerTransport());
 }
 ```
 
-> แต่สำหรับโปรเจกต์เดียวที่ต่อฐานข้อมูลชุดเดียวกัน **ใช้ภาษาเดียวจะดูแลง่ายกว่ามาก**
+> อย่างไรก็ตาม สำหรับโปรเจกต์เดียวที่เชื่อมต่อฐานข้อมูลชุดเดียวกัน **การใช้ภาษาเดียวจะดูแลรักษาได้ง่ายกว่ามาก**

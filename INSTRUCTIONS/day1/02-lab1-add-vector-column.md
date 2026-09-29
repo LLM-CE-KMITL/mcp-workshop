@@ -6,13 +6,13 @@
 
 ## เป้าหมาย
 
-ทำ pipeline ของ semantic search ครบวงจรด้วยมือตัวเอง: เพิ่ม column → สร้าง embedding → backfill → สร้าง index → ค้นหา
+ดำเนินการสร้าง pipeline ของ semantic search ครบวงจรด้วยตนเอง ตั้งแต่การเพิ่ม column, สร้าง embedding, backfill, สร้าง index ไปจนถึงการค้นหา
 
-ระบบตอนนี้ **มี embedding พร้อมใช้อยู่แล้ว** ขั้นแรกของ lab คือลบมันทิ้ง เพื่อให้ได้สร้างเอง
+ระบบในขณะนี้**มี embedding พร้อมใช้งานอยู่แล้ว** ขั้นตอนแรกของ lab นี้คือการลบข้อมูลดังกล่าวออก เพื่อให้ผู้เรียนได้สร้างขึ้นใหม่ด้วยตนเอง
 
 ---
 
-## ขั้นที่ 0 · ดูของเดิมก่อนลบ
+## ขั้นที่ 0 · ตรวจสอบข้อมูลเดิมก่อนลบ
 
 เปิด pgAdmin (http://localhost:5050) รัน:
 
@@ -49,13 +49,13 @@ MATCH (c:Circuit) REMOVE c.embedding;
 MATCH (n) WHERE n.embedding IS NOT NULL RETURN count(n) AS nodes_with_embedding;
 ```
 
-คำสั่งข้างบนนี้ลบ vector ทั้งใน **PostgreSQL และ Neo4j** (ตรงกับที่ `make lab1-reset` ทำให้อัตโนมัติ ถ้าอยากรันทีเดียวแทนการเปิด 2 หน้าต่างก็ใช้คำสั่งนั้นได้เลย)
+คำสั่งข้างต้นลบ vector ทั้งใน **PostgreSQL และ Neo4j** (ตรงกับที่ `make lab1-reset` ดำเนินการให้โดยอัตโนมัติ หากต้องการรันเพียงคำสั่งเดียวแทนการเปิด 2 หน้าต่าง สามารถใช้คำสั่งดังกล่าวได้เช่นกัน)
 
 ลองถามคำถามเดิมอีกครั้ง — ระบบจะตอบว่ายังไม่มี embedding
 
 ---
 
-**ทำไมต้อง 1024** — ต้องตรงกับมิติของโมเดล ถ้าใส่ผิด `INSERT` จะ error ทุกแถว
+**เหตุผลที่ต้องใช้ 1024** — ต้องตรงกับมิติของโมเดล หากกำหนดผิด `INSERT` จะเกิด error ทุกแถว
 
 ```bash
 $headers = @{
@@ -89,7 +89,7 @@ SELECT count(*) AS total, count(embedding) AS embedded FROM tickets;
 
 ## ขั้นที่ 3 · สร้าง embedding และ backfill
 
-เขียน `my_embed.py` เอง (วางไว้ที่ root ของโปรเจกต์) โครงประมาณนี้ — **ทุกค่าตั้งต้นอ่านจาก `.env`** ไม่ hardcode:
+เขียน `my_embed.py` ขึ้นเอง (วางไว้ที่ root ของโปรเจกต์) โดยมีโครงสร้างประมาณนี้ — **ทุกค่าตั้งต้นต้องอ่านจาก `.env`** ไม่ hardcode:
 
 ```python
 import os
@@ -151,13 +151,13 @@ uv run python my_embed.py
 
 ต้องรันจาก root ของโปรเจกต์ (ที่มีไฟล์ `.env` อยู่) ไม่งั้น `load_dotenv()` จะหา `.env` ไม่เจอ และ `API_KEY` จะว่างเปล่า ทำให้ OpenRouter ตอบ `401 Unauthorized`
 
-### 3 จุดที่คนพลาดบ่อย
+### ข้อผิดพลาดที่พบบ่อย 3 ประการ
 
-| พลาด | ผลที่เกิด |
+| ข้อผิดพลาด | ผลที่เกิดขึ้น |
 |---|---|
-| ไม่เรียง `data` ตาม `index` | vector ไปสลับ ticket กัน — **ค้นแล้วผิดโดยไม่มี error** |
-| ยิงทีละแถว | 120 แถวใช้เวลาหลายนาที แทนที่จะเป็นไม่กี่วินาที |
-| embed แค่ `title` | ค้นเจอน้อยลงมาก เพราะรายละเอียดอยู่ใน `description` |
+| ไม่เรียง `data` ตาม `index` | vector ไปสลับ ticket กัน — **ค้นแล้วได้ผลลัพธ์ผิดโดยไม่มี error แจ้งเตือน** |
+| ส่งคำขอทีละแถว | 120 แถวใช้เวลาหลายนาที แทนที่จะเป็นเพียงไม่กี่วินาที |
+| embed เฉพาะ `title` | ค้นเจอน้อยลงมาก เพราะรายละเอียดอยู่ใน `description` |
 
 ---
 
@@ -169,7 +169,7 @@ CREATE INDEX idx_tickets_embedding ON tickets
     WITH (m = 16, ef_construction = 64);
 ```
 
-**สร้าง index หลัง backfill เสมอ** — HNSW ที่สร้างบนตารางว่างแล้วค่อยเติมทีละแถวจะได้กราฟที่คุณภาพแย่กว่าและช้ากว่า
+**ควรสร้าง index หลัง backfill เสมอ** — ดัชนี HNSW ที่สร้างบนตารางว่างแล้วจึงเติมข้อมูลทีละแถวภายหลัง จะได้กราฟที่มีคุณภาพต่ำกว่าและทำงานช้ากว่า
 
 ตรวจสอบว่า index ถูกสร้างจริง (ควรเห็น 1 แถว, `indexdef` มีคำว่า `hnsw`):
 ```sql
@@ -186,7 +186,7 @@ WHERE tablename = 'tickets' AND indexname = 'idx_tickets_embedding';
 SELECT count(*) AS total, count(embedding) AS embedded FROM tickets;
 ```
 
-เขียน `cosine.py` เองเพื่อทดสอบ semantic search ครบวงจร (embed คำถาม → ค้นด้วย `<=>` ใน Postgres โดยตรง) — **อ่านค่าจาก `.env` เหมือน `my_embed.py`** ไม่ hardcode key:
+เขียน `cosine.py` ขึ้นเองเพื่อทดสอบ semantic search ครบวงจร (แปลงคำถามเป็น embedding แล้วค้นด้วย `<=>` ใน Postgres โดยตรง) — **อ่านค่าจาก `.env` เหมือน `my_embed.py`** ไม่ hardcode key:
 
 ```mermaid
 flowchart LR
@@ -244,11 +244,11 @@ with psycopg.connect(PG) as conn:
 uv run python cosine.py
 ```
 
-ticket แถวบนสุดควรเป็นหมวด `intermittent`/`link_down` ที่พูดถึงเน็ตหลุดจริง ๆ ถ้าได้ผลลัพธ์ที่ไม่เกี่ยวข้องเลย ให้เช็คว่า backfill เสร็จสมบูรณ์จริงหรือยัง (ดู query แรกของขั้นนี้)
+ticket แถวบนสุดควรอยู่ในหมวด `intermittent`/`link_down` ที่เกี่ยวข้องกับปัญหาเน็ตหลุดโดยตรง หากได้ผลลัพธ์ที่ไม่เกี่ยวข้องเลย ให้ตรวจสอบว่า backfill เสร็จสมบูรณ์จริงหรือยัง (ดู query แรกของขั้นตอนนี้)
 
 ---
 
-## ขั้นที่ 6 · ทำ Neo4j ด้วย
+## ขั้นที่ 6 · ดำเนินการกับ Neo4j เช่นเดียวกัน
 
 index เดิมถูกลบไปแล้วตั้งแต่ขั้นที่ 1 — สร้างใหม่ให้รองรับ 1024 มิติ:
 
@@ -294,12 +294,12 @@ RETURN node.device_id, score
 
 ## โบนัส
 
-1. **เทียบ keyword กับ semantic** — ค้นคำว่า `circuit drop` ด้วย `LIKE` เทียบกับ vector ผลต่างกันแค่ไหน
+1. **เทียบ keyword กับ semantic** — ค้นคำว่า `circuit drop` ด้วย `LIKE` เทียบกับ vector ผลต่างกันมากน้อยเพียงใด
 2. **ลองใช้ `vector_l2_ops` แทน cosine** แล้วดูว่าอันดับเปลี่ยนไปอย่างไร
 3. **วัดเวลา** — เทียบ query ก่อนและหลังสร้าง index
 
 <details>
-<summary>ติดเกิน 10 นาทีแล้วกดดู</summary>
+<summary>หากใช้เวลาเกิน 10 นาทีแล้วยังไม่สำเร็จ คลิกเพื่อดูเฉลย</summary>
 
 - DDL เต็มอยู่ที่ `scripts/lab/lab1_solution_vector.sql` (`make lab1-solution`)
 - โค้ด backfill อ้างอิงอยู่ที่ `scripts/embed_tickets.py` (`make embed-tickets`)
@@ -310,4 +310,4 @@ RETURN node.device_id, score
 
 ## สิ่งที่ต้องส่ง
 
-`my_embed.py` ของตัวเอง + ผลลัพธ์ query ขั้นที่ 5
+`my_embed.py` ที่เขียนขึ้นเอง พร้อมผลลัพธ์ query ในขั้นที่ 5
