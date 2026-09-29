@@ -1,0 +1,148 @@
+# Module 3 · เรียก API และให้ตอบเป็น JSON
+
+**13:00 – 14:30** (90 นาที) · เป้าหมาย: เข้าใจส่วนประกอบสี่อย่างที่ทำให้เรียกใช้ LLM แล้วได้ผลลัพธ์ที่ระบบ parse ได้เสมอ — system prompt, temperature, JSON Schema และ Pydantic — และเห็นว่ากลไก guided decoding + auto-retry ในโค้ดจริงของโปรเจกต์ทำงานอย่างไร ก่อนไปเขียนเองใน Workshop 1
+
+---
+
+## 1. System Prompt: กำหนดบทบาทและกฎก่อนเริ่มงาน
+
+ข้อความที่ส่งให้ LLM แบ่งเป็น "role" หลายแบบ (`system`, `user`, `assistant`) `system` เป็น role ที่ใช้กำหนดกติกาที่ต้องคงอยู่ตลอดการสนทนา ไม่ใช่คำถามของผู้ใช้ในแต่ละ turn
+
+จุดที่ system prompt สำคัญที่สุดสำหรับ Module นี้: เมื่อบังคับให้โมเดลตอบเป็น JSON ต้องระบุ **schema ที่ต้องการ** ไว้ใน system prompt เสมอ ไม่ใช่หวังให้โมเดลเดาโครงสร้างเอง ตัวอย่างจริงจาก `apps/agent-api/agent/llm.py` (ฟังก์ชัน `complete_structured`) เมื่อ gateway ไม่รองรับการบังคับ schema โดยตรง จะ fallback มาเป็นการฝัง schema ลงใน system message แทน:
+
+```python
+conversation = conversation + [{
+    "role": "system",
+    "content": ("Respond with a single JSON object matching this schema. "
+                "No prose, no markdown fence.\n"
+                + json.dumps(json_schema, ensure_ascii=False)),
+}]
+```
+
+---
+
+## 2. Temperature: ทำไม structured output ต้องใช้ค่าต่ำ
+
+Temperature ควบคุมความสุ่มของคำที่โมเดลเลือกในแต่ละ token — ค่าสูงทำให้คำตอบหลากหลายและสร้างสรรค์กว่า ค่าต่ำทำให้คำตอบเดิมซ้ำเดิมมากที่สุดเมื่อได้ input เดียวกัน
+
+งานที่ต้อง parse เป็น JSON ต้องการความ**คงเส้นคงวา** ไม่ใช่ความคิดสร้างสรรค์ — นี่คือเหตุผลที่ `complete_structured` ใน `agent/llm.py` ตั้งค่า default `temperature=0.0` และตารางบทบาทโมเดลทั้งหมดในโปรเจกต์ (`reference/model-stack.md`) ก็ใช้ temperature 0.0 กับทุกจุดที่ต้องการผลลัพธ์แบบมีโครงสร้าง (Intent, ReAct step, Grounding) ในขณะที่ Synthesizer ซึ่งสร้างคำตอบเป็นข้อความอ่านให้คนใช้ ตั้งไว้ที่ 0.3 เพื่อให้ภาษาลื่นไหลขึ้นโดยยังไม่เปิดให้หลุดจากหลักฐานมากเกินไป
+
+| งาน | temperature | เหตุผล |
+|---|---|---|
+| จำแนก intent / ตัดสินใจ / ตรวจสอบ | `0.0` | ต้องคงเส้นคงวา ทดสอบซ้ำได้ |
+| สกัดข้อมูลเป็น JSON | `0.0` | ต้องการค่าเดิมทุกครั้งที่ input เดิม |
+| สร้างข้อความคำตอบให้คนอ่าน | `0.2–0.3` | ต้องการภาษาที่อ่านลื่น แต่ยังไม่เปิดกว้างจนหลุดหลักฐาน |
+
+---
+
+## 3. JSON Schema และ Pydantic
+
+การบอกโมเดลว่า "ตอบเป็น JSON" เฉย ๆ ไม่พอ ต้องระบุ **โครงสร้างที่แน่นอน** (field ใดบ้าง ชนิดข้อมูลอะไร ค่าไหนที่รับได้) — นี่คือหน้าที่ของ JSON Schema
+
+Pydantic ทำสองอย่างพร้อมกันในบทบาทนี้:
+
+1. **สร้าง JSON Schema จาก class ที่ประกาศเป็นภาษา Python** — `schema.model_json_schema()` แปลง `BaseModel` เป็น JSON Schema ให้อัตโนมัติ ไม่ต้องเขียน schema แยกสองที่
+2. **ตรวจสอบ (validate) ผลลัพธ์ที่โมเดลตอบกลับมา** — `schema.model_validate_json(raw)` จะ raise exception ทันทีถ้า JSON ที่ได้ไม่ตรงกับ schema (field หาย, ชนิดข้อมูลผิด, ค่าที่ enum ไม่รับ)
+
+```python
+from enum import Enum
+from pydantic import BaseModel, Field
+
+class Severity(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+class ExampleSchema(BaseModel):
+    severity: Severity
+    confidence: float = Field(ge=0.0, le=1.0)
+```
+
+ข้อดีของการใช้ `Enum` แทน `str` ธรรมดา: โมเดลถูกจำกัดให้เลือกจากค่าที่กำหนดไว้เท่านั้นตั้งแต่ระดับ schema ไม่ใช่ปล่อยให้ตอบอะไรก็ได้แล้วมาตรวจทีหลัง — ยิ่งจำกัดตั้งแต่ schema เท่าไร โอกาสที่ผลลัพธ์จะ validate ผ่านในรอบแรกยิ่งสูงขึ้นเท่านั้น
+
+---
+
+## 4. Guided Decoding และ Auto-Retry: กลไกจริงใน `agent/llm.py`
+
+การส่ง schema ไปใน system prompt เฉย ๆ เป็นเพียง "คำขอร้อง" โมเดลยังมีโอกาสตอบผิดรูปแบบได้เสมอ **Guided decoding** คือการบังคับที่ระดับ inference engine ให้สร้างได้เฉพาะ token ที่ทำให้ผลลัพธ์ valid ตาม schema เท่านั้น (ผ่านพารามิเตอร์ `response_format` แบบ OpenAI-compatible) ซึ่งเข้มงวดกว่าการขอด้วยคำพูดมาก
+
+`complete_structured()` ใน `apps/agent-api/agent/llm.py` ประกอบทั้งสี่หัวข้อข้างต้นเข้าด้วยกันเป็น pipeline เดียว:
+
+```mermaid
+flowchart TD
+    A["สร้าง JSON Schema จาก Pydantic model"] --> B{"LLM_GUIDED_DECODING=true?"}
+    B -->|ใช่| C["ส่ง response_format=json_schema<br/>(guided decoding)"]
+    B -->|ไม่| D["ฝัง schema ไว้ใน system prompt แทน"]
+    C --> E["เรียก LLM (temperature=0.0)"]
+    D --> E
+    E --> F["ลอก markdown fence ออกถ้ามี"]
+    F --> G{"model_validate_json<br/>ผ่านไหม"}
+    G -->|ผ่าน| H(["คืนค่า instance ที่ validate แล้ว"])
+    G -->|ไม่ผ่าน| I["ส่ง validation error กลับเข้า<br/>conversation เป็น context ใหม่"]
+    I --> J{"ครบ max_retries<br/>แล้วหรือยัง"}
+    J -->|ยัง| E
+    J -->|ครบ| K(["raise ValueError พร้อม error ล่าสุด"])
+```
+
+จุดที่สำคัญที่สุดของกลไก retry นี้: **การ retry ไม่ใช่การขอซ้ำแบบเดิม** แต่ป้อน error message จริงจาก Pydantic กลับเข้าไปเป็นส่วนหนึ่งของบทสนทนา (`role: user`) ให้โมเดลเห็นว่าตัวเองพลาดตรงไหน:
+
+```python
+conversation = conversation + [
+    {"role": "assistant", "content": raw[:1000]},
+    {
+        "role": "user",
+        "content": (
+            f"That did not validate against the schema.\n"
+            f"Error: {last_error}\n"
+            f"Return corrected JSON only."
+        ),
+    },
+]
+```
+
+นี่คือความต่างระหว่าง "retry แบบสุ่มลองใหม่" กับ "retry ที่ฉลาดขึ้นทุกรอบ" — Workshop 1 ในช่วงบ่ายจะให้เขียนกลไกลักษณะนี้เองทั้งหมด
+
+### ทดลองสั้น ๆ
+
+```bash
+uv run python - <<'PY'
+import asyncio
+import sys
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()  # ต้องโหลดก่อน import agent.llm เสมอ - llm.py อ่านค่า env
+                # เป็นค่าคงที่ระดับโมดูลตอน import (BASE_URL/API_KEY/MODEL)
+sys.path.insert(0, str(Path("apps/agent-api")))
+
+from pydantic import BaseModel, Field
+from agent import llm
+
+class QuickCheck(BaseModel):
+    is_thai: bool
+    language_confidence: float = Field(ge=0.0, le=1.0)
+
+async def main():
+    result = await llm.complete_structured(
+        messages=[
+            {"role": "system", "content": "จำแนกว่าข้อความที่ให้มาเป็นภาษาไทยหรือไม่"},
+            {"role": "user", "content": "วงจรที่ไซต์ NBI หลุดตั้งแต่เมื่อคืน"},
+        ],
+        schema=QuickCheck,
+    )
+    print(result.model_dump_json(indent=2))
+
+asyncio.run(main())
+PY
+```
+
+สังเกต log ที่ปรากฏถ้าลอง set `LLM_GUIDED_DECODING=false` ชั่วคราวใน `.env` — จะเห็นว่า schema ถูกฝังในข้อความแทน และมีโอกาส parse ไม่ผ่านสูงขึ้นในรอบแรก
+
+> Module นี้เป็นบรรยาย + ทดลองสั้น ไม่มี lab แยกที่ต้องส่งงาน — ทุกกลไกที่เห็นในหัวข้อ 4 จะถูกนำไปใช้ซ้ำและเขียนขึ้นเองใน Workshop 1 ถัดไป
+
+---
+
+## ต่อไป
+
+→ [Workshop 1: ตัวแยกข้อมูล Ticket](04-workshop1-ticket-extractor.md)

@@ -20,65 +20,44 @@
 
 ---
 
-## วันที่ 1 — ควบคุม LLM ผ่านโค้ด
+## วันที่ 1 — LLM พื้นฐานและการค้นหาเชิงความหมาย
 
 | เวลา | เอกสาร |
 |---|---|
 | ก่อนเริ่ม | [day1/00-day1-overview.md](INSTRUCTIONS/day1/00-day1-overview.md) — ภาพรวมกิจกรรมทั้งวัน: อะไรต่อกับอะไร ตรงไหนต้องลงมือเขียนโค้ด (อ่านก่อนเข้าโมดูลแรก) |
-| 09:00–10:30 | [day1/01-module1-tokenomics-embeddings.md](INSTRUCTIONS/day1/01-module1-tokenomics-embeddings.md) — Tokenomics & Vector Embeddings |
-| 09:50–10:30 | [day1/02-lab1-add-vector-column.md](INSTRUCTIONS/day1/02-lab1-add-vector-column.md) — Lab 1: สร้าง Vector Column ด้วยตัวเอง |
-| 10:45–11:35 | [day1/03-module2-transformer.md](INSTRUCTIONS/day1/03-module2-transformer.md) — โครงสร้างการทำงานของ Transformer |
-| 11:35–12:00 | [day1/04-challenge1-thai-token-audit.md](INSTRUCTIONS/day1/04-challenge1-thai-token-audit.md) — โจทย์ 1: Thai Token Audit |
-| 13:00–14:30 | [day1/05-module3-structured-output.md](INSTRUCTIONS/day1/05-module3-structured-output.md) — API ขั้นสูงและ Structured Output |
-| 14:45–16:00 | [day1/06-workshop1-json-autoretry.md](INSTRUCTIONS/day1/06-workshop1-json-autoretry.md) — Workshop 1: บังคับ JSON พร้อม Auto-retry |
-| 16:00–16:30 | [day1/07-challenge2-schema-under-pressure.md](INSTRUCTIONS/day1/07-challenge2-schema-under-pressure.md) — โจทย์ 2: Schema Under Pressure |
-| เสริม/การบ้าน | [day1/08-lab-ingestion-markdown.md](INSTRUCTIONS/day1/08-lab-ingestion-markdown.md) — Lab เสริม: Ingestion Pipeline (ต่อจาก Lab 1) |
+| 09:00–10:30 | [day1/01-module1-llm-basics.md](INSTRUCTIONS/day1/01-module1-llm-basics.md) — Module 1: LLM ทำงานอย่างไร (Token, ค่าใช้จ่าย, Context Window) |
+| 10:45–12:00 | [day1/02-module2-embeddings-opensearch.md](INSTRUCTIONS/day1/02-module2-embeddings-opensearch.md) — Module 2: Embeddings กับ OpenSearch |
+| 13:00–14:30 | [day1/03-module3-json-api.md](INSTRUCTIONS/day1/03-module3-json-api.md) — Module 3: เรียก API และให้ตอบเป็น JSON |
+| 14:45–16:30 | [day1/04-workshop1-ticket-extractor.md](INSTRUCTIONS/day1/04-workshop1-ticket-extractor.md) — Workshop 1: ตัวแยกข้อมูล Ticket |
 
-**เฉลยวันที่ 1**: [solutions/day1/](solutions/day1/) และ [solutions/challenges/](solutions/challenges/) — เปิดหลังจากลองเองแล้วเท่านั้น
+**เฉลยวันที่ 1**: ยังไม่มีสำหรับหลักสูตรนี้ — [solutions/day1/](solutions/day1/) เป็นของหลักสูตรเดิม (Lab/โจทย์ชุดก่อนหน้า) ยังไม่ได้ปรับปรุงให้ตรงกับไฟล์ด้านบน
 
 ---
 
-## วันที่ 2 — เขียน Agent Loop เอง
+## วันที่ 2 — ReAct Agent วิเคราะห์เหตุเสีย
 
 | เวลา | เอกสาร |
 |---|---|
-| ก่อนเริ่ม | [day2/00-day2-overview.md](INSTRUCTIONS/day2/00-day2-overview.md) — ภาพรวมสถาปัตยกรรม: หนึ่ง turn เดินทางผ่านอะไรบ้าง (อ่านก่อนเข้าโมดูลแรก) |
-| 09:00–10:30 | [day2/01-module4-react-memory.md](INSTRUCTIONS/day2/01-module4-react-memory.md) — วิธีคิดของ Agent (ReAct Pattern) |
-| 10:45–11:35 | [day2/02-module5-function-calling.md](INSTRUCTIONS/day2/02-module5-function-calling.md) — Function Calling & Tool Definition |
-| 11:35–12:00 | [day2/03-challenge3-tool-description-battle.md](INSTRUCTIONS/day2/03-challenge3-tool-description-battle.md) — โจทย์ 3: Tool Description Battle |
-| 13:00–13:45 | [day2/04-module6-multi-agent.md](INSTRUCTIONS/day2/04-module6-multi-agent.md) — Multi-Agent & Orchestration Patterns |
-| 13:45–14:10 | [day2/05-lab2-intent-gate.md](INSTRUCTIONS/day2/05-lab2-intent-gate.md) — Lab 2: Intent Gate |
-| 14:10–14:30 | [day2/06-lab3-context-memory.md](INSTRUCTIONS/day2/06-lab3-context-memory.md) — Lab 3: Context Memory และการตรวจจับเปลี่ยนเรื่อง |
-| 14:45–16:00 | [day2/07-workshop2-agent-loop.md](INSTRUCTIONS/day2/07-workshop2-agent-loop.md) — Workshop 2: เขียน Agent Loop ด้วยตัวเอง |
-| 16:00–16:30 | [day2/08-challenge4-topic-shift-survival.md](INSTRUCTIONS/day2/08-challenge4-topic-shift-survival.md) — โจทย์ 4: Topic Shift Survival |
-| เสริม | [day2/09-lab-grounding-verification.md](INSTRUCTIONS/day2/09-lab-grounding-verification.md) — Lab เสริม: Grounding ตรวจคำตอบก่อนส่งออก |
+| ก่อนเริ่ม | [day2/00-day2-overview.md](INSTRUCTIONS/day2/00-day2-overview.md) — ภาพรวมกิจกรรมทั้งวัน: อะไรต่อกับอะไร ตรงไหนต้องลงมือเขียนโค้ด (อ่านก่อนเข้าโมดูลแรก) |
+| 09:00–10:30 | [day2/01-module4-react-pattern.md](INSTRUCTIONS/day2/01-module4-react-pattern.md) — Module 4: ReAct Pattern |
+| 10:45–12:00 | [day2/02-module5-react-loop.md](INSTRUCTIONS/day2/02-module5-react-loop.md) — Module 5: เขียน ReAct Loop เอง |
+| 13:00–14:30 | [day2/03-module6-tools-3-databases.md](INSTRUCTIONS/day2/03-module6-tools-3-databases.md) — Module 6: เครื่องมือจาก 3 ฐานข้อมูล |
+| 14:45–16:30 | [day2/04-workshop2-noc-agent.md](INSTRUCTIONS/day2/04-workshop2-noc-agent.md) — Workshop 2: ReAct Agent สำหรับ NOC |
 
-**เฉลยวันที่ 2**: [solutions/day2/](solutions/day2/) และ [solutions/challenges/](solutions/challenges/) — เปิดหลังจากลองเองแล้วเท่านั้น
+**เฉลยวันที่ 2**: `solutions/day2/workshop2_agent.py` คือเฉลยที่ใช้อ้างอิงตรงในเอกสารด้านบนอยู่แล้ว — ส่วน [solutions/day2/README.md](solutions/day2/README.md) และ [solutions/challenges/](solutions/challenges/) เป็นของหลักสูตรเดิม ยังไม่ได้ปรับปรุง
 
 ---
 
-## วันที่ 3 — MCP Production
+## วันที่ 3 — MCP Server สำหรับงาน MPLS
 
 | เวลา | เอกสาร |
 |---|---|
 | ก่อนเริ่ม | [day3/00-day3-overview.md](INSTRUCTIONS/day3/00-day3-overview.md) — ภาพรวมกิจกรรมทั้งวัน: อะไรต่อกับอะไร ตรงไหนต้องลงมือเขียนโค้ด (อ่านก่อนเข้าโมดูลแรก) |
-| 09:00–10:15 | [day3/01-module7-mcp-architecture.md](INSTRUCTIONS/day3/01-module7-mcp-architecture.md) — สถาปัตยกรรมเชิงลึกของ MCP |
-| 10:15–10:30 | [day3/02-lab4-jsonrpc-inspect.md](INSTRUCTIONS/day3/02-lab4-jsonrpc-inspect.md) — Lab 4: ดู JSON-RPC ที่วิ่งจริง |
-| 10:45–11:35 | [day3/03-module8-security-sdk.md](INSTRUCTIONS/day3/03-module8-security-sdk.md) — ความปลอดภัยและการเลือก SDK |
-| 11:35–12:00 | [day3/04-challenge5-guardrail-redteam.md](INSTRUCTIONS/day3/04-challenge5-guardrail-redteam.md) — โจทย์ 5: Guardrail Red-team (ทำเป็นคู่) |
-| 13:00–14:00 | [day3/05-workshop3a-mcp-server.md](INSTRUCTIONS/day3/05-workshop3a-mcp-server.md) — Workshop 3A: สร้าง MCP Server ของตัวเอง |
-| 14:00–14:30 | [day3/06-workshop3b-agent-api.md](INSTRUCTIONS/day3/06-workshop3b-agent-api.md) — Workshop 3B: ห่อ Agent เป็น API |
-| 14:30–14:45 | [day3/07-workshop3c-chainlit.md](INSTRUCTIONS/day3/07-workshop3c-chainlit.md) — Workshop 3C: ต่อ Chainlit เข้ากับ Agent API |
-| 14:45–15:00 | [day3/08-workshop3d-connect-clients.md](INSTRUCTIONS/day3/08-workshop3d-connect-clients.md) — Workshop 3D: ต่อกับ Claude Desktop / Claude Code / Cursor |
-| แทรกช่วง WS3/สรุป | [day3/09-lab5-vector-store-comparison.md](INSTRUCTIONS/day3/09-lab5-vector-store-comparison.md) — Lab 5: เทียบ Vector Store ทั้ง 3 ตัว |
-| แทรกช่วง WS3/สรุป | [day3/10-lab6-rerank-pipeline.md](INSTRUCTIONS/day3/10-lab6-rerank-pipeline.md) — Lab 6: Retrieve → Rerank → Generate |
-| เสริม | [day3/11-lab-elicitation.md](INSTRUCTIONS/day3/11-lab-elicitation.md) — Lab: Elicitation (ฟีเจอร์ MCP spec 2025-06-18) |
-| 15:00–15:30 | [day3/12-challenge6-cross-service-diagnosis.md](INSTRUCTIONS/day3/12-challenge6-cross-service-diagnosis.md) — โจทย์ 6: Cross-Service Diagnosis (โจทย์ใหญ่สุด) |
-| ช่วงสรุป (15 นาที) | [day3/13-scale-notes.md](INSTRUCTIONS/day3/13-scale-notes.md) — บันทึกเรื่อง Scale: 10 อุปกรณ์ vs 2,600 อุปกรณ์ |
-| 15:30–16:30 | [day3/14-wrap-up-mpls-llm.md](INSTRUCTIONS/day3/14-wrap-up-mpls-llm.md) — สรุปผลการอบรม และแบ่งงานสำหรับ MPLS LLM |
+| 09:00–10:30 | [day3/01-module7-mcp-intro.md](INSTRUCTIONS/day3/01-module7-mcp-intro.md) — Module 7: MCP คืออะไร (Tools, Resources, Prompts) |
+| 10:45–12:00 | [day3/02-module8-security-basics.md](INSTRUCTIONS/day3/02-module8-security-basics.md) — Module 8: ความปลอดภัยพื้นฐาน |
+| 13:00–16:30 | [day3/03-workshop3-mpls-noc-mcp-server.md](INSTRUCTIONS/day3/03-workshop3-mpls-noc-mcp-server.md) — Workshop 3: MPLS NOC MCP Server (13:00–15:30 ลงมือทำ, 15:30–16:30 สรุปและถาม-ตอบ) |
 
-**เฉลยวันที่ 3**: ไม่มีไฟล์แยก — โค้ดจริงใน [apps/mcp-server/](apps/mcp-server/) และ [apps/agent-api/](apps/agent-api/)
-คือเฉลย โปรดอ่านเหตุผลที่ [solutions/day3/README.md](solutions/day3/README.md)
+**เฉลยวันที่ 3**: ไม่มีไฟล์แยก — โค้ดจริงใน [apps/mcp-server/](apps/mcp-server/) คือเฉลย/ตัวอย่างสาธิตอ้างอิง (โปรดอ่านเหตุผลที่ [solutions/day3/README.md](solutions/day3/README.md) — เอกสารนี้อ้างอิง Workshop 3A-D ของหลักสูตรเดิม ยังไม่ได้ปรับปรุงให้ตรงกับ Workshop 3 ใหม่ด้านบน)
 
 ---
 
