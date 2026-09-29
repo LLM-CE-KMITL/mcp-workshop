@@ -177,6 +177,27 @@ with psycopg.connect(PG_DSN) as conn:
 
 ---
 
+<details>
+<summary>หากใช้เวลาเกิน 30 นาทีแล้วยังไม่สำเร็จ คลิกเพื่อดูเฉลย</summary>
+
+เฉลยเต็มอยู่ที่ [`solutions/day1/`](../../solutions/day1/) — สองไฟล์ `ticket_opensearch_lab.py` (เฉลย Module 2) และ `workshop1_extractor.py` (เฉลย Workshop นี้) ต้องรันตามลำดับเสมอ เพราะไฟล์ที่สองค้นหา ticket ที่คล้ายกันจาก index `tickets-lab` ที่ไฟล์แรกเป็นผู้สร้าง:
+
+```bash
+uv run solutions/day1/ticket_opensearch_lab.py
+```
+
+```bash
+uv run solutions/day1/workshop1_extractor.py
+```
+
+ถ้าเคยรัน `ticket_opensearch_lab.py` ไปแล้วครั้งหนึ่ง (เช็คได้จาก `GET tickets-lab/_count` ใน OpenSearch Dev Tools ว่ามี 117 แถวหรือยัง) ข้ามคำสั่งแรกแล้วรันแค่ `workshop1_extractor.py` ได้เลย
+
+ดูคำอธิบายเจาะลึกจุดที่มักพลาดและเหตุผลของแต่ละดีไซน์ (`_repair_prompt()`, delimiter กัน prompt injection, `model_validator` ตรวจข้ามฟิลด์) ได้ที่ [`solutions/day1/README.md`](../../solutions/day1/README.md)
+
+</details>
+
+---
+
 ## ต่อไป
 
 → [Module 4: ReAct Pattern](../day2/01-module4-react-pattern.md)
