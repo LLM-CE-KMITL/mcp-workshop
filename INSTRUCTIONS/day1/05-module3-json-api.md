@@ -1,6 +1,6 @@
 # Module 3 · เรียก API และให้ตอบเป็น JSON
 
-**13:00 – 14:30** (90 นาที) · เป้าหมาย: เข้าใจส่วนประกอบสี่อย่างที่ทำให้เรียกใช้ LLM แล้วได้ผลลัพธ์ที่ระบบ parse ได้เสมอ — system prompt, temperature, JSON Schema และ Pydantic — และเห็นว่ากลไก guided decoding + auto-retry ในโค้ดจริงของโปรเจกต์ทำงานอย่างไร ก่อนไปเขียนเองใน Workshop 1
+**14:00 – 15:00** (60 นาที) · เป้าหมาย: เข้าใจส่วนประกอบสี่อย่างที่ทำให้เรียกใช้ LLM แล้วได้ผลลัพธ์ที่ระบบ parse ได้เสมอ — system prompt, temperature, JSON Schema และ Pydantic — และเห็นว่ากลไก guided decoding + auto-retry ในโค้ดจริงของโปรเจกต์ทำงานอย่างไร ก่อนไปเขียนเองใน Workshop 1
 
 ---
 
@@ -259,4 +259,4 @@ PY
 
 ## ต่อไป
 
-→ [Workshop 1: ตัวแยกข้อมูล Ticket](04-workshop1-ticket-extractor.md)
+→ [Workshop 1: ตัวแยกข้อมูล Ticket](06-workshop1-ticket-extractor.md)

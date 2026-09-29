@@ -1,6 +1,6 @@
 # Workshop 1 · ตัวแยกข้อมูล Ticket
 
-**14:45 – 16:30** (105 นาที) · เป้าหมาย: เขียน pipeline ที่แยกข้อความแจ้งเหตุดิบให้เป็น JSON โครงสร้างชัดเจนด้วยตัวเอง พร้อมกลไก retry เมื่อผลลัพธ์ผิดรูปแบบ (Module 3) แล้วนำผลลัพธ์นั้นไปค้นหา ticket ประวัติที่คล้ายกันในดัชนีที่สร้างไว้ใน Module 2 — เป็นครั้งแรกของวันที่โมดูลก่อนหน้าถูกนำมาต่อกันเป็นระบบเดียว
+**15:15 – 16:30** (75 นาที) · เป้าหมาย: เขียน pipeline ที่แยกข้อความแจ้งเหตุดิบให้เป็น JSON โครงสร้างชัดเจนด้วยตัวเอง พร้อมกลไก retry เมื่อผลลัพธ์ผิดรูปแบบ (Module 3) แล้วนำผลลัพธ์นั้นไปค้นหา ticket ประวัติที่คล้ายกันในดัชนีที่สร้างไว้ใน Module 2 — เป็นครั้งแรกของวันที่โมดูลก่อนหน้าถูกนำมาต่อกันเป็นระบบเดียว
 
 ---
 
@@ -17,8 +17,8 @@
 ## สิ่งที่ให้มา
 
 - ตาราง `ticket_messages` ใน PostgreSQL — บทสนทนาจริงของแต่ละ ticket (คอลัมน์ `ticket_id`, `author_role`, `message`, `created_at`) อ่านผ่านบัญชี read-only `mcp_reader` (`PG_DSN` ใน `.env.example`)
-- ดัชนี `tickets-lab` บน OpenSearch ที่สร้างไว้แล้วใน [Module 2](02-module2-embeddings-opensearch.md) — ต้องรัน `ticket_opensearch_lab.py` ให้เสร็จก่อนเริ่ม workshop นี้
-- รูปแบบการเรียก LLM และหลักการ guided decoding + auto-retry ที่อธิบายไว้ใน [Module 3](03-module3-json-api.md) — อ้างอิงโครงสร้างจาก `complete_structured()` ใน `apps/agent-api/agent/llm.py` เป็นแนวทางได้ แต่ **ห้าม import ฟังก์ชันนั้นมาใช้ตรง ๆ** ให้เขียน retry loop ของตัวเองเพื่อให้เข้าใจทุกส่วนจริง
+- ดัชนี `tickets-lab` บน OpenSearch ที่สร้างไว้แล้วใน [Module 2](03-module2-embeddings-opensearch.md) — ต้องรัน `ticket_opensearch_lab.py` ให้เสร็จก่อนเริ่ม workshop นี้
+- รูปแบบการเรียก LLM และหลักการ guided decoding + auto-retry ที่อธิบายไว้ใน [Module 3](05-module3-json-api.md) — อ้างอิงโครงสร้างจาก `complete_structured()` ใน `apps/agent-api/agent/llm.py` เป็นแนวทางได้ แต่ **ห้าม import ฟังก์ชันนั้นมาใช้ตรง ๆ** ให้เขียน retry loop ของตัวเองเพื่อให้เข้าใจทุกส่วนจริง
 - ค่าคงที่ประเภท ticket จริงจากตาราง `ticket_categories` (`docker/postgres/init/03_reference_data.sql`): `link_down`, `intermittent`, `slow`, `config`, `maintenance`, `inquiry`
 - ระดับความรุนแรงจริงจาก constraint ของตาราง `tickets`: `low`, `medium`, `high`, `critical`
 - ไซต์ที่มีอยู่จริงในชุดข้อมูล (`day0/01-architecture.md` หัวข้อ 5): `BKK`, `NBI`

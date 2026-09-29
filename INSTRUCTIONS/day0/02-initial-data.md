@@ -7,7 +7,7 @@
 
 ## 1. PostgreSQL — ตาราง `tickets` (มี `embedding` แล้ว 20 แถวตัวอย่าง)
 
-ตารางนี้แสดงสภาพ**หลัง**การทำ Lab 1 เสร็จสิ้น (โดยปกติ demo data มาพร้อม `embedding` ให้แล้ว ดู [02-lab1-add-vector-column.md](../day1/02-lab1-add-vector-column.md))
+ตารางนี้แสดงสภาพ**หลัง**การทำ Lab เสร็จสิ้น (โดยปกติ demo data มาพร้อม `embedding` ให้แล้ว ดู [Lab: Vector ใน PostgreSQL และ Neo4j](../day1/02-lab-pg-neo4j-vectors.md))
 
 | ticket_id | device_id | category | severity | status | title | embedding (dim) |
 |---|---|---|---|---|---|---|

@@ -1,6 +1,6 @@
 # Module 2 · Embeddings กับ OpenSearch
 
-**10:45 – 12:00** (75 นาที) · เป้าหมาย: เข้าใจว่า embedding แปลงข้อความเป็นเวกเตอร์ตัวเลขที่บันทึก "ความหมาย" ไว้ได้อย่างไร และลงมือสร้าง pipeline บันทึก + ค้นหาเวกเตอร์จริงบน OpenSearch ด้วยตัวเอง
+**11:30 – 12:30** (60 นาที) · เป้าหมาย: เข้าใจว่า embedding แปลงข้อความเป็นเวกเตอร์ตัวเลขที่บันทึก "ความหมาย" ไว้ได้อย่างไร และลงมือสร้าง pipeline บันทึก + ค้นหาเวกเตอร์จริงบน OpenSearch ด้วยตัวเอง
 
 ---
 
@@ -286,4 +286,4 @@ Indexed 117 tickets into 'tickets-lab'
 
 ## ต่อไป
 
-→ [Module 3: เรียก API และให้ตอบเป็น JSON](03-module3-json-api.md)
+→ [Lab: Ingestion Pipeline สำหรับเอกสาร Markdown](04-lab-ingestion-markdown.md)
