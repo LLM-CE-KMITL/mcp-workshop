@@ -59,6 +59,68 @@ class ExampleSchema(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
 ```
 
+**ลองให้โมเดลสร้าง JSON ตาม schema นี้จริง**:
+
+```bash
+uv run python - <<'PY'
+import asyncio
+import sys
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv(".env")
+sys.path.insert(0, str(Path("apps/agent-api")))
+
+from enum import Enum
+from pydantic import BaseModel, Field
+from agent import llm
+
+class Severity(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+class ExampleSchema(BaseModel):
+    severity: Severity
+    confidence: float = Field(ge=0.0, le=1.0)
+
+async def main():
+    result = await llm.complete_structured(
+        messages=[
+            {"role": "system", "content": "ประเมินระดับความรุนแรงของเหตุการณ์นี้"},
+            {"role": "user", "content": "ลูกค้าทั้งไซต์ NBI แจ้งว่าอินเทอร์เน็ตหลุดพร้อมกันหมดตั้งแต่เมื่อคืน"},
+        ],
+        schema=ExampleSchema,
+    )
+    print(result.model_dump_json(indent=2))
+
+asyncio.run(main())
+PY
+```
+
+**ผลลัพธ์ที่ควรเห็น**:
+
+```json
+{
+  "severity": "high",
+  "confidence": 0.95
+}
+```
+
+`complete_structured()` คือฟังก์ชันเดียวกับที่ใช้ในสไนป์เป็ต `QuickCheck` ท้ายหัวข้อนี้ — เปลี่ยนแค่ schema กับข้อความที่ส่งเข้าไป โมเดลก็ต้องตอบเป็น `severity`/`confidence` ตาม `ExampleSchema` ทันที ไม่มีทางตอบเป็นรูปแบบอื่น เพราะ guided decoding บังคับไว้ที่ระดับการเลือก token (อธิบายในหัวข้อ 4 ด้านล่าง) ไม่ใช่แค่ขอร้องในคำสั่ง
+
+**ตัวอย่าง JSON ที่ validate ไม่ผ่าน** พร้อมเหตุผล (กรณีไม่ได้ผ่าน guided decoding เช่น โมเดลอื่นที่ไม่รองรับ หรือปิด `LLM_GUIDED_DECODING` ไว้):
+
+```json
+{
+  "severity": "สูง",
+  "confidence": "85%"
+}
+```
+
+ผิด 2 จุดพร้อมกัน: `"สูง"` ไม่ใช่หนึ่งใน 4 ค่าที่ `Severity` enum กำหนดไว้ (`low`/`medium`/`high`/`critical`) ต่อให้ความหมายตรงกันในภาษาไทยก็ตาม และ `"85%"` เป็น string ไม่ใช่ `float` ที่อยู่ในช่วง `0.0-1.0` ตามที่ `Field(ge=0.0, le=1.0)` กำหนด — ข้อความ error ที่ Pydantic โยนออกมาจากทั้งสองจุดนี้คือสิ่งที่ถูกส่งกลับให้โมเดลเห็นในรอบ retry ถัดไป (ตามกลไกในหัวข้อ 4 ด้านล่าง)
+
 ข้อดีของการใช้ `Enum` แทน `str` ธรรมดา: โมเดลถูกจำกัดให้เลือกจากค่าที่กำหนดไว้เท่านั้นตั้งแต่ระดับ schema ไม่ใช่ปล่อยให้ตอบอะไรก็ได้แล้วมาตรวจทีหลัง — ยิ่งจำกัดตั้งแต่ schema เท่าไร โอกาสที่ผลลัพธ์จะ validate ผ่านในรอบแรกยิ่งสูงขึ้นเท่านั้น
 
 ---
