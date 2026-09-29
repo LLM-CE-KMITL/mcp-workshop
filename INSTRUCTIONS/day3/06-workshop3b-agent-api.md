@@ -8,6 +8,8 @@
 
 ทำให้ agent จากวันที่ 2 เรียกใช้ MCP Server จากขั้นที่แล้ว และเปิดออกเป็น REST API ที่ frontend ใดก็เรียกได้
 
+> 🏷️ ป้าย `[3B.x]` หน้าหัวข้อด้านล่าง = จุดที่ต้องเขียน/แก้โค้ดจริงตามสเปก ใช้เลขเดียวกันนี้อ้างอิงตอนถามคำถามหรือขอ hint ได้
+
 ```mermaid
 flowchart LR
     UI["Chainlit / NEX"] -->|HTTP + SSE| API["Agent API"]
@@ -18,7 +20,7 @@ flowchart LR
 
 ---
 
-## 1. เปลี่ยนจากเรียกฟังก์ชันตรง เป็นเรียกผ่าน MCP
+## [3B.1] เปลี่ยนจากเรียกฟังก์ชันตรง เป็นเรียกผ่าน MCP
 
 เมื่อวาน agent เรียกฟังก์ชัน Python ตรงๆ วันนี้ต้องเรียกผ่าน MCP apps/agent-api/agent/react.py
 
@@ -30,7 +32,7 @@ result = await asyncio.wait_for(
 
 **สิ่งที่ได้มาฟรีจากการเปลี่ยน**: tool ชุดเดียวกันนี้ใช้ได้กับ Claude Desktop ทันทีโดยไม่ต้องเขียนอะไรเพิ่ม
 
-### รายการ tool ต้องมาจาก MCP ไม่ใช่ hardcode apps/agent-api/agent/react.py
+### [3B.1.2] รายการ tool ต้องมาจาก MCP ไม่ใช่ hardcode apps/agent-api/agent/react.py
 
 ```python
 async def run(
@@ -59,7 +61,7 @@ async def run(
 
 ---
 
-## 3. Stream เป็น Event ไม่ใช่แค่ข้อความ
+## [3B.3] Stream เป็น Event ไม่ใช่แค่ข้อความ
 
 **นี่คือจุดตัดสินว่า UI จะดีหรือไม่ดี** รันตามนี้เพื่อทดสอบ
 
