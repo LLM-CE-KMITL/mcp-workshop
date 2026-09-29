@@ -106,3 +106,19 @@ token รวม · จำนวนครั้งที่เรียก LLM ·
 ## สิ่งที่ต้องส่ง
 
 Trace ของ ReAct loop (ทุก thought/action/observation) + ผลแต่ละระบบ + คำตอบพร้อม citation + ตัวเลขต้นทุน + ผลคำถามอีก 3 ข้อ
+
+---
+
+## ตรวจคำตอบด้วยเฉลย
+
+**ลองทำเองก่อน** — โจทย์นี้วัดผลด้วยชุดคำถามจริงที่รันผ่าน pipeline เต็ม ไม่ใช่ไฟล์เฉลยแยก ให้ `make api` ให้ agent-api ทำงานอยู่ก่อน แล้ว:
+
+```bash
+make eval
+```
+
+รันคำถามระดับ `L3` (ต้องใช้ 3 ฐานข้อมูลร่วมกัน — ตรงกับโจทย์นี้) ทั้งหมดจาก `data/questions/L3-three-source.yaml` ผ่าน agent-api จริง แล้วเขียนผลไว้ที่ `eval/results/latest.json` (ใช้เวลาไม่กี่นาที เพราะแต่ละคำถามเรียก LLM หลายรอบ)
+
+เปิด `eval/results/latest.json` เทียบกับ "เกณฑ์ผ่าน" ข้างบน — ถ้าคำตอบมี `APE-NBI-03` และ citation ครบตามที่ระบุไว้ แปลว่าผ่าน
+
+ดูเหตุผลเต็มว่าทำไมโจทย์นี้ไม่มีไฟล์เฉลยที่ [solutions/challenges/README.md](../../solutions/challenges/README.md)
