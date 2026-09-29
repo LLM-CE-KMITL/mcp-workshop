@@ -88,16 +88,16 @@ yield EventType.THOUGHT, {"step": step_num, "thought": decision.thought,
 
 ## ขั้นตอนหยุดและรันระบบใหม่เพื่อให้เห็นผลการแก้ไข
 
-| service | คำสั่ง | รองรับ reload อัตโนมัติหรือไม่ |
-|---|---|---|
-| `apps/agent-api` (ไฟล์ที่มี `schemas.py`) | `make api` | ✅ มี `--reload` — บันทึกไฟล์แล้วเห็นผลทันที ไม่ต้อง restart เอง |
-| `apps/chainlit-ui` | `make ui` | ✅ มี `-w` (watch mode) เช่นกัน |
-| `apps/mcp-server` | `make mcp` | ❌ **ไม่มี reload flag** — ต้องกด `Ctrl+C` แล้วรันคำสั่งใหม่ทุกครั้งที่แก้ไขโค้ดส่วนนี้ |
+| service | หยุด (ถ้ากำลังรันอยู่) | คำสั่งรัน | รองรับ reload อัตโนมัติหรือไม่ |
+|---|---|---|---|
+| `apps/agent-api` (ไฟล์ที่มี `schemas.py`) | `Ctrl+C` | `uv run uvicorn main:app --app-dir apps/agent-api --reload --port 8080` | ✅ มี `--reload` — บันทึกไฟล์แล้วเห็นผลทันที ปกติไม่ต้อง `Ctrl+C`/รันใหม่เอง (ใช้ตอนเริ่มต้นครั้งแรก หรือ process ค้างเท่านั้น) |
+| `apps/chainlit-ui` | `Ctrl+C` | `uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w` | ✅ มี `-w` (watch mode) เช่นกัน |
+| `apps/mcp-server` | `Ctrl+C` | `uv run python apps/mcp-server/server.py --transport streamable-http --port 9000` | ❌ **ไม่มี reload flag** — ต้องกด `Ctrl+C` แล้วรันคำสั่งใหม่ทุกครั้งที่แก้ไขโค้ดส่วนนี้ |
 
 **วิธีทดสอบว่าการแก้ไขได้ผลจริง**:
 
 1. แก้ไข `schemas.py` (และ `react.py` หากต้องการใช้ field นั้นจริง) แล้วบันทึกไฟล์
-2. ตรวจสอบ log ของ terminal ที่รัน `make api` ว่าปรากฏข้อความ `Reloading...` หรือ `Application startup complete` ใหม่หรือไม่ (หากไม่ auto-reload ให้ตรวจสอบว่ารันด้วย `--reload` จริงหรือไม่)
+2. ตรวจสอบ log ของ terminal ที่รัน `uv run uvicorn main:app --app-dir apps/agent-api --reload --port 8080` ว่าปรากฏข้อความ `Reloading...` หรือ `Application startup complete` ใหม่หรือไม่ (หากไม่ auto-reload ให้ตรวจสอบว่ารันด้วย `--reload` จริงหรือไม่ ถ้ายังไม่ได้ ให้ `Ctrl+C` แล้วรันคำสั่งเดิมใหม่)
 3. เปิด Chainlit ([http://localhost:8000](http://localhost:8000)) แล้วถามคำถามที่ต้องเข้า ReAct loop เช่น *"ทำไมช่วงนี้มีลูกค้าแจ้งเน็ตหลุดซ้ำๆ หลายราย"*
 4. ตรวจสอบ event `THOUGHT` ที่ส่งออกมา (จาก log ฝั่ง `agent-api` หรือผ่าน MCP Inspector) ว่ามี field ใหม่ (`confidence`) ปรากฏจริงในแต่ละ step หรือไม่
 
