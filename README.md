@@ -60,6 +60,7 @@
 
 | เวลา | เอกสาร |
 |---|---|
+| ก่อนเริ่ม | [day3/00-day3-overview.md](INSTRUCTIONS/day3/00-day3-overview.md) — ภาพรวมกิจกรรมทั้งวัน: อะไรต่อกับอะไร ตรงไหนต้องลงมือเขียนโค้ด (อ่านก่อนเข้าโมดูลแรก) |
 | 09:00–10:15 | [day3/01-module7-mcp-architecture.md](INSTRUCTIONS/day3/01-module7-mcp-architecture.md) — สถาปัตยกรรมเชิงลึกของ MCP |
 | 10:15–10:30 | [day3/02-lab4-jsonrpc-inspect.md](INSTRUCTIONS/day3/02-lab4-jsonrpc-inspect.md) — Lab 4: ดู JSON-RPC ที่วิ่งจริง |
 | 10:45–11:35 | [day3/03-module8-security-sdk.md](INSTRUCTIONS/day3/03-module8-security-sdk.md) — ความปลอดภัยและการเลือก SDK |

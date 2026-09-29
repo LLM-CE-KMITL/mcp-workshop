@@ -8,6 +8,8 @@
 
 ทำให้ UI แสดง **กระบวนการคิดของ agent** ไม่ใช่แค่คำตอบ
 
+> 🏷️ ป้าย `[3C.x]` หน้าหัวข้อด้านล่าง = จุดที่ต้องเขียน/แก้โค้ดจริงตามสเปก ใช้เลขเดียวกันนี้อ้างอิงตอนถามคำถามหรือขอ hint ได้
+
 ---
 
 ## สิ่งที่ต้องแสดง
@@ -27,7 +29,7 @@ flowchart TB
 
 ---
 
-## 1. รับ SSE และแยก event apps/chainlit-ui/app.py 
+## [3C.1] รับ SSE และแยก event apps/chainlit-ui/app.py 
 
 ```python
 async with client.stream("POST", f"{API}/chat", json={...}) as response:
@@ -44,7 +46,7 @@ async with client.stream("POST", f"{API}/chat", json={...}) as response:
 
 ---
 
-## 2. แสดง Step
+## [3C.2] แสดง Step
 
 ```python
 step = cl.Step(name=f"[{n}] {tool}", type="tool")
@@ -57,7 +59,7 @@ await step.__aexit__(None, None, None)
 
 ---
 
-## 3. แสดง Thought แต่ละรอบ
+## [3C.3] แสดง Thought แต่ละรอบ
 
 ไม่มีแผนก้อนเดียวให้วาดเป็นแผนภาพ dependency อีกต่อไป — แต่ละรอบของ ReAct คือ `cl.Step` แยกกัน `apps/chainlit-ui/elements.py`
 
@@ -85,7 +87,7 @@ def thought_view(data: dict) -> str:
 
 ---
 
-## 5. ปุ่มคำถามตัวอย่าง apps/chainlit-ui/app.py 
+## [3C.5] ปุ่มคำถามตัวอย่าง apps/chainlit-ui/app.py 
 
 ```python
 @cl.set_starters

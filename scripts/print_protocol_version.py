@@ -8,6 +8,8 @@ workshop always describes the version participants are actually running.
 
 from __future__ import annotations
 
+import importlib.metadata
+
 
 def main() -> None:
     try:
@@ -17,8 +19,19 @@ def main() -> None:
         print("The `mcp` package is not installed. Run: make install")
         return
 
+    # The `mcp` package does not set a module-level `__version__` - only
+    # `importlib.metadata` (reading the installed distribution's own metadata)
+    # reliably reports it. Falling back to "unknown" when that lookup also
+    # fails is a real "something is wrong here", not the expected case.
+    sdk_version = getattr(mcp, "__version__", None)
+    if sdk_version is None:
+        try:
+            sdk_version = importlib.metadata.version("mcp")
+        except importlib.metadata.PackageNotFoundError:
+            sdk_version = "unknown"
+
     print()
-    print(f"  MCP Python SDK version : {getattr(mcp, '__version__', 'unknown')}")
+    print(f"  MCP Python SDK version : {sdk_version}")
     print(f"  Protocol revision      : {LATEST_PROTOCOL_VERSION}")
     print()
     print("  MCP versions are dates, not release numbers. Notable changes:")

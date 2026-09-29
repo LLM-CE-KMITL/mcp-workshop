@@ -22,27 +22,52 @@ uv run python scripts/print_protocol_version.py
 
 ## 2. ยิง JSON-RPC ด้วยมือ
 
-รัน server แบบ HTTP:
+รัน server แบบ HTTP ก่อน (คำสั่งนี้เหมือนกันทุก OS):
 
 ```bash
 uv run python apps/mcp-server/server.py --transport streamable-http --port 9000
 ```
 
-เปิด terminal ใหม่ แล้วยิง `initialize` เอง:
+เปิด terminal ใหม่ แล้วทำ 3 อย่างนี้ตามลำดับ — เลือกคอลัมน์ตาม OS ที่ใช้:
 
+### 2.1 ยิง `initialize`
+
+#### macOS/Linux (curl)
 ```bash
+curl -X POST http://localhost:9000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"manual","version":"1.0"}}}'
+```
+
+#### Windows (PowerShell)
+```powershell
 Invoke-RestMethod -Uri http://localhost:9000/mcp -Method Post -ContentType "application/json" -Headers @{"Accept"="application/json, text/event-stream"} -Body '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"manual","version":"1.0"}}}'
 ```
 
-ดูรายการ tool:
+### 2.2 ดูรายการ tool
 
+#### macOS/Linux (curl)
 ```bash
+curl -s http://localhost:8080/tools | python3 -m json.tool
+```
+
+#### Windows (PowerShell)
+```powershell
 Invoke-RestMethod -Uri http://localhost:8080/tools -Method Get | ConvertTo-Json -Depth 5
 ```
 
-เรียก tool จริง:
+### 2.3 เรียก tool จริง (ผ่าน stdio transport โดยตรง ไม่ผ่าน HTTP)
 
+#### macOS/Linux (bash)
 ```bash
+payload='{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "workshop-client", "version": "1.0"}}}'
+
+echo "$payload" | uv run python apps/mcp-server/server.py --transport stdio
+```
+
+#### Windows (PowerShell)
+```powershell
 $payload = '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "workshop-client", "version": "1.0"}}}'
 
 Write-Output $payload | uv run python apps/mcp-server/server.py --transport stdio
@@ -52,10 +77,10 @@ Write-Output $payload | uv run python apps/mcp-server/server.py --transport stdi
 
 ## 3. ใช้ MCP Inspector
 
-เครื่องมือทางการสำหรับดูและทดสอบ MCP server:
+เครื่องมือทางการสำหรับดูและทดสอบ MCP server — เปิด**หน้าเว็บ**ที่มีแท็บ Tools/Resources/Prompts ให้กดทดสอบเอง ไม่ใช่แค่ยิง JSON-RPC ทางเดียวแบบข้อ 2 ด้านบน คำสั่งเดียวกันนี้ใช้ได้ทั้ง macOS/Linux/Windows เพราะเป็นคำสั่ง `npx` (Node.js) ล้วน ไม่ใช่ syntax เฉพาะ shell:
 
 ```bash
-$json = '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_upstream_devices", "arguments": {"device_ids": ["LPE-NBI-11", "LPE-NBI-12", "LPE-NBI-13"]}}}'; $initialize = '{"jsonrpc": "2.0", "id": 0, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "cli", "version": "1.0"}}}'; Write-Output "$initialize`n$json" | uv run python apps/mcp-server/server.py --transport stdio
+npx @modelcontextprotocol/inspector uv run python apps/mcp-server/server.py --transport stdio
 ```
 
 เปิดเบราว์เซอร์ตามที่แจ้ง แล้วลอง:

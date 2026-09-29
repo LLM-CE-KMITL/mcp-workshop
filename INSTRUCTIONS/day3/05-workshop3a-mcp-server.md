@@ -16,9 +16,12 @@ flowchart TB
     end
 ```
 
-> **ไม่ต้องเขียนจากศูนย์** — โครงและ tool ตัวอย่าง 1 ตัวมีให้แล้ว
-> ที่เหลือมี `# TODO` กำกับไว้ ให้เติมตาม pattern เดิม
+> **ไม่ต้องเขียนจากศูนย์ทั้งหมด** — `apps/mcp-server/` ตอนนี้คือเฉลยเต็มระบบอยู่แล้ว (ไม่มี `# TODO` ให้ตามเติม)
+> วิธีใช้คือ **สำรองไว้ดูก่อน แล้วเขียนทับของจริงในที่เดิม** — ดูคำสั่งสำรองที่ขั้นที่ 1 ด้านล่าง
+> ใช้ `tools/tickets.py` → `search_tickets` เป็นแม่แบบ (pattern) ของ tool ตัวอื่นที่เหลือ แล้วเทียบกับสำเนาที่สำรองไว้ตอนจบ
 > (เขียนจากศูนย์ทั้งหมดไม่ทันใน 2 ชั่วโมง และไม่ได้สอนอะไรเพิ่ม)
+
+> 🏷️ ป้าย `[3A.x.x]` หน้าหัวข้อด้านล่าง = จุดที่ต้องเขียน/แก้โค้ดจริงตามสเปก ใช้เลขเดียวกันนี้อ้างอิงตอนถามคำถามหรือขอ hint ได้
 
 ---
 
@@ -43,17 +46,25 @@ apps/mcp-server/
 ├── config.py              ตั้งค่าจาก environment
 ├── clock.py               นิยาม "ตอนนี้" จากข้อมูล
 ├── db.py                  การเชื่อมต่อฐานข้อมูล
-├── tools/                 ← เติมงานส่วนใหญ่ที่นี่
+├── tools/                 ← เขียนทับงานส่วนใหญ่ที่นี่
 ├── resources/             ← และที่นี่
 ├── prompts/
 └── security/guardrails.py
 ```
 
+**ก่อนแก้ไฟล์ใดๆ ให้สำรองไว้เทียบตอนจบก่อน**:
+
+```bash
+cp -r apps/mcp-server /tmp/mcp-server-reference
+```
+
+จากนี้ `apps/mcp-server/` คือพื้นที่ที่เขียนทับเองได้เต็มที่ — ถ้าติดตรงไหนเปิด `/tmp/mcp-server-reference` ดูได้ แต่พยายามเขียนเองก่อนเปิดดู
+
 ---
 
 ## ขั้นที่ 2 · Resource Setup (20 นาที)
 
-### 2.1 เปิด schema ให้ AI อ่าน apps/mcp-server/resources/schemas.py
+### [3A.2.1] เปิด schema ให้ AI อ่าน apps/mcp-server/resources/schemas.py
 
 ```python
 @mcp.resource("schema://postgres")
@@ -65,7 +76,7 @@ def postgres_schema() -> str:
 
 **ทำไมต้องมี comment** — comment ในฐานข้อมูลคือคำอธิบายที่โมเดลใช้ตัดสินใจ ถ้า column ชื่อ `mtu` ไม่มี comment โมเดลอาจไม่รู้ว่ามันสำคัญกับ adjacency
 
-### 2.2 `clock://now`apps/mcp-server/resources/clock_resource.py
+### [3A.2.2] `clock://now`apps/mcp-server/resources/clock_resource.py
 
 ```python
 @mcp.resource("clock://now")
@@ -75,7 +86,7 @@ def now() -> str:
 
 **ทดสอบ**: ถามระบบว่า *"log ปีที่แล้วเป็นยังไง"* — ต้องตอบว่าข้อมูลมีแค่ 30 วัน ไม่ใช่แต่งขึ้น
 
-### 2.3 ระบบไฟล์จำลอง apps/mcp-server/resources/files.py
+### [3A.2.3] ระบบไฟล์จำลอง apps/mcp-server/resources/files.py
 
 ```python
 @mcp.resource("files://index")
@@ -100,11 +111,11 @@ files://read/../../../etc/passwd
 
 ## ขั้นที่ 3 · Tool Setup (25 นาที)
 
-### 3.1 Tool ดึงข้อมูล (มีตัวอย่างให้แล้ว)
+### [3A.3.1] Tool ดึงข้อมูล (มีตัวอย่างให้แล้ว)
 
-ดู `tools/tickets.py` → `search_tickets` เป็นแม่แบบ แล้วเติมที่เหลือตาม `# TODO`
+ดู `tools/tickets.py` → `search_tickets` เป็นแม่แบบ แล้วเขียน tool ที่เหลือของกลุ่มนี้เองในสไตล์เดียวกัน (ชื่อ, guardrail, annotations)
 
-### 3.2 Tool รันสคริปต์ — จุดที่อันตรายที่สุด apps/mcp-server/tools/reports.py
+### [3A.3.2] Tool รันสคริปต์ — จุดที่อันตรายที่สุด apps/mcp-server/tools/reports.py
 
 ```python
 ALLOWED_SCRIPTS = {
@@ -129,7 +140,7 @@ def run_report_script(name: str, params: dict | None = None) -> dict:
 | มี timeout | สคริปต์ค้างจะกินทรัพยากรตลอดไป |
 | จำกัด output | output ยาวจะท่วม context |
 
-### 3.3 Tool สร้างรายงาน
+### [3A.3.3] Tool สร้างรายงาน
 
 ```python
 @mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": False})
@@ -140,7 +151,7 @@ def generate_report(title: str, format: str = "markdown", range: str = "last_7d"
 
 ---
 
-## ขั้นที่ 4 · เพิ่ม Guardrail (10 นาที)
+## [3A.4] ขั้นที่ 4 · เพิ่ม Guardrail (10 นาที)
 
 ต้องมีครบทั้ง 5 ชั้นตาม Module 8:
 
