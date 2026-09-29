@@ -26,12 +26,9 @@ from dotenv import load_dotenv  # ← เพิ่ม
 load_dotenv()  # ← เพิ่ม ก่อน config อื่น
 
 import httpx
-import psycopg
 from opensearchpy import OpenSearch
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
-PG_DSN = os.getenv("PG_ADMIN_DSN",
-                   "postgresql://mpls:mpls_dev_password@localhost:5432/mplsdb")
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "not-needed")
 LLM_MODEL = os.getenv("LLM_MODEL", "qwen/qwen3-30b-a3b")
@@ -345,29 +342,47 @@ def find_similar_tickets(extraction: TicketExtraction, top_k: int = 5) -> list[d
 
 
 # --------------------------------------------------------------------------
-# Run against real tickets
+# Run against example conversations
 # --------------------------------------------------------------------------
+#
+# ticket_messages ในฐานข้อมูลจริงแทบไม่เคยพูดถึงรหัสอุปกรณ์หรือไซต์เลย
+# (device_id/site_code ถูกเก็บเป็น metadata แยกในตาราง tickets ไม่ใช่ในบทสนทนา)
+# ทำให้ affected_device/affected_site ได้ null ทุกใบเสมอถ้า query จริง -
+# array คงที่นี้ล้อรูปแบบเดียวกับ query เดิม (role: message ต่อบรรทัด ต่อ
+# ticket) แต่ตั้งใจใส่รหัสอุปกรณ์/ไซต์ไว้ตรงๆ ใน TK-DEMO-01, 02, 03, 05 (ให้
+# ลุ้นว่าโมเดลจะจับได้ไหม) และไม่ใส่เลยใน TK-DEMO-04, 06 (ต้องได้ null เสมอ
+# เพราะ schema สั่งห้ามเดา) - รันจริงแล้วพบว่าโมเดลจับ device/site ได้ไม่
+# ครบทุกใบที่มีคำตอบอยู่จริง (เช่น พลาด "APE-BKK-05" ใน 02 บางรอบ) ซึ่งเป็น
+# เรื่องปกติของ LLM ไม่ใช่บั๊ก - ตัวเลขที่ได้จริงจึงอาจต่างกันไปในแต่ละรอบ
+# ที่รัน แต่ TK-DEMO-04 กับ 06 ต้องได้ null ทั้งคู่เสมอไม่ว่ารันกี่ครั้ง
 
-def load_conversations(limit: int = 20) -> list[tuple[str, str]]:
-    with psycopg.connect(PG_DSN) as conn:
-        cur = conn.cursor()
-        cur.execute(
-            """SELECT t.ticket_id,
-                      string_agg(m.author_role || ': ' || m.message,
-                                 E'\n' ORDER BY m.created_at)
-               FROM tickets t
-               JOIN ticket_messages m ON m.ticket_id = t.ticket_id
-               GROUP BY t.ticket_id
-               ORDER BY t.ticket_id
-               LIMIT %s""",
-            (limit,),
-        )
-        return cur.fetchall()
+SAMPLE_CONVERSATIONS: list[tuple[str, str]] = [
+    ("TK-DEMO-01",
+     "customer: อุปกรณ์ LPE-NBI-11 ที่ไซต์ NBI เน็ตหลุดเป็นช่วงๆ ตั้งแต่เมื่อคืนครับ\n"
+     "engineer: รับทราบครับ กำลังตรวจสอบ LPE-NBI-11 ให้ทันที"),
+    ("TK-DEMO-02",
+     "customer: circuit ที่ APE-BKK-05 ไซต์ BKK ช้าผิดปกติตั้งแต่บ่ายนี้ครับ\n"
+     "engineer: ขอเวลาตรวจสอบ throughput ที่ APE-BKK-05 ก่อนครับ"),
+    ("TK-DEMO-03",
+     "engineer: เปลี่ยนอุปกรณ์ PE-NBI-04 ที่ไซต์ NBI เสร็จแล้ว แต่ link ยังไม่ขึ้นครับ\n"
+     "engineer: ตรวจ optical power แล้วปกติ ขอให้ทีม core ช่วยดูอีกที"),
+    ("TK-DEMO-04",
+     "customer: ใช้งาน video conference แล้วหลุดบ่อยมากครับ วันละ 5-6 ครั้ง\n"
+     "engineer: รับเรื่องแล้วครับ จะตรวจสอบ circuit ให้ กรุณาแจ้งเวลาที่หลุดล่าสุดด้วยครับ"),
+    ("TK-DEMO-05",
+     "engineer: แจ้งแผนงาน maintenance window ที่ CR-BKK-01 ไซต์ BKK เวลา 22:00-02:00 ครับ\n"
+     "system: Maintenance window opened\n"
+     "engineer: อัปเกรดเสร็จเรียบร้อย ตรวจสอบ adjacency กลับมา Up ปกติครับ"),
+    ("TK-DEMO-06",
+     "customer: เน็ตกระตุกครับ โหลดไฟล์ค้างกลางทาง\n"
+     "engineer: ทดสอบ ping 500 packet ไม่ drop เลยครับ throughput ได้เต็ม speed ขอปิดเคสก่อนนะครับ\n"
+     "customer: ok ครับ แต่ถ้าเป็นอีกจะแจ้งใหม่"),
+]
 
 
 async def main() -> int:
     extractor = StructuredExtractor(TicketExtraction)
-    conversations = load_conversations(20)
+    conversations = SAMPLE_CONVERSATIONS
 
     print(f"\n=== Workshop 1: สกัดข้อมูลจาก {len(conversations)} ticket ===\n")
     print(f"  guided decoding: {GUIDED}\n")

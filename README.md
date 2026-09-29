@@ -32,6 +32,7 @@
 | 12:30–13:00 | [day1/05-lab-ingestion-markdown.md](INSTRUCTIONS/day1/05-lab-ingestion-markdown.md) — Lab: Ingestion Pipeline สำหรับเอกสาร Markdown |
 | 14:00–15:00 | [day1/06-module3-json-api.md](INSTRUCTIONS/day1/06-module3-json-api.md) — Module 3: เรียก API และให้ตอบเป็น JSON |
 | 15:15–16:30 | [day1/07-workshop1-ticket-extractor.md](INSTRUCTIONS/day1/07-workshop1-ticket-extractor.md) — Workshop 1: ตัวแยกข้อมูล Ticket |
+| เสริม (ไม่บังคับ) | [day1/08-summary-json-template-in-app.md](INSTRUCTIONS/day1/08-summary-json-template-in-app.md) — สรุป: แก้ JSON Template ของ Agent จริงใน App ต้องแก้ไฟล์ไหน ตัวอย่างการแก้ และต้อง stop/run อะไรถึงเห็นผล |
 
 **เฉลยวันที่ 1**: [solutions/day1/](solutions/day1/) — เปิดหลังจากลองเองแล้วเท่านั้น
 

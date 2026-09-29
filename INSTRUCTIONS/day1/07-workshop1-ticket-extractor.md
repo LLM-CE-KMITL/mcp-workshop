@@ -85,7 +85,7 @@ class ExtractionResult(BaseModel):
 
 ```mermaid
 flowchart TD
-    A["ข้อความต้นทางจาก ticket_messages"] --> B["เรียก LLM พร้อม Schema ใน system prompt"]
+    A["ข้อความต้นทาง<br/>(array ตัวอย่าง ล้อรูปแบบ ticket_messages)"] --> B["เรียก LLM พร้อม Schema ใน system prompt"]
     B --> C{"validate ด้วย<br/>TicketExtraction ผ่านไหม"}
     C -->|ผ่าน| D(["ExtractionResult(ok=True, data=...)"])
     C -->|ไม่ผ่าน| E["บันทึก error +<br/>ส่ง error กลับเข้า conversation"]
@@ -105,73 +105,142 @@ flowchart TD
 2. ยิง kNN query เข้า index `tickets-lab` แบบเดียวกับ Module 2 (`{"size": N, "query": {"knn": {"embedding": {"vector": [...], "k": N}}}}`)
 3. แสดงผล ticket ที่ใกล้เคียงที่สุด 3 อันดับแรก พร้อมคะแนน
 
-### 4. ทดสอบด้วยข้อมูลจริงจาก Postgres
+### 4. ทดสอบด้วย array ของข้อความตัวอย่าง
+
+ตาราง `ticket_messages` จริงแทบไม่เคยพูดถึงรหัสอุปกรณ์หรือไซต์ตรง ๆ เลย (ดูหัวข้อ "สถานการณ์" ด้านบน) ทำให้ `affected_device`/`affected_site` ได้ `null` ทุกใบเสมอถ้าทดสอบด้วยข้อมูลจริงล้วน ๆ — แทนที่จะ query จาก Postgres ตรง ๆ ให้สร้าง **array คงที่** ของบทสนทนาตัวอย่างขึ้นเอง โดยตั้งใจใส่รหัสอุปกรณ์/ไซต์ไว้ในบางใบด้วย เพื่อให้เห็นพฤติกรรมทั้งสองแบบในการรันเดียว:
 
 ```python
-import psycopg
-
-with psycopg.connect(PG_DSN) as conn:
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT t.ticket_id,
-               string_agg(m.author_role || ': ' || m.message, E'\\n' ORDER BY m.created_at) AS conversation
-        FROM tickets t
-        JOIN ticket_messages m ON m.ticket_id = t.ticket_id
-        GROUP BY t.ticket_id
-        ORDER BY t.ticket_id
-        LIMIT 5
-    """)
-    rows = cur.fetchall()
+SAMPLE_CONVERSATIONS: list[tuple[str, str]] = [
+    ("TK-DEMO-01",
+     "customer: อุปกรณ์ LPE-NBI-11 ที่ไซต์ NBI เน็ตหลุดเป็นช่วงๆ ตั้งแต่เมื่อคืนครับ\n"
+     "engineer: รับทราบครับ กำลังตรวจสอบ LPE-NBI-11 ให้ทันที"),
+    ("TK-DEMO-02",
+     "customer: circuit ที่ APE-BKK-05 ไซต์ BKK ช้าผิดปกติตั้งแต่บ่ายนี้ครับ\n"
+     "engineer: ขอเวลาตรวจสอบ throughput ที่ APE-BKK-05 ก่อนครับ"),
+    ("TK-DEMO-03",
+     "engineer: เปลี่ยนอุปกรณ์ PE-NBI-04 ที่ไซต์ NBI เสร็จแล้ว แต่ link ยังไม่ขึ้นครับ\n"
+     "engineer: ตรวจ optical power แล้วปกติ ขอให้ทีม core ช่วยดูอีกที"),
+    ("TK-DEMO-04",
+     "customer: ใช้งาน video conference แล้วหลุดบ่อยมากครับ วันละ 5-6 ครั้ง\n"
+     "engineer: รับเรื่องแล้วครับ จะตรวจสอบ circuit ให้ กรุณาแจ้งเวลาที่หลุดล่าสุดด้วยครับ"),
+    ("TK-DEMO-05",
+     "engineer: แจ้งแผนงาน maintenance window ที่ CR-BKK-01 ไซต์ BKK เวลา 22:00-02:00 ครับ\n"
+     "system: Maintenance window opened\n"
+     "engineer: อัปเกรดเสร็จเรียบร้อย ตรวจสอบ adjacency กลับมา Up ปกติครับ"),
+    ("TK-DEMO-06",
+     "customer: เน็ตกระตุกครับ โหลดไฟล์ค้างกลางทาง\n"
+     "engineer: ทดสอบ ping 500 packet ไม่ drop เลยครับ throughput ได้เต็ม speed ขอปิดเคสก่อนนะครับ\n"
+     "customer: ok ครับ แต่ถ้าเป็นอีกจะแจ้งใหม่"),
+]
 ```
 
-รันทั้ง pipeline ผ่านบทสนทนาจริงอย่างน้อย 5 ticket แล้วสังเกตว่า field ไหนได้ `null` บ่อยที่สุด (เช่น `affected_device` เมื่อบทสนทนาไม่เคยพูดถึงรหัสอุปกรณ์ตรง ๆ — ดูคำอธิบายในหัวข้อ "วิธีอ่านผลลัพธ์นี้" ด้านล่างว่าทำไม `null` ในกรณีนี้ถึงเป็นคำตอบที่ถูกต้อง ไม่ใช่โมเดลเดาไม่ตรง)
+รูปแบบข้อความยังคงล้อกับที่เคย query จากตาราง `ticket_messages` เป๊ะ (`role: message` ต่อบรรทัด ต่อ ticket) เพียงแต่เขียนขึ้นเองแทนที่จะดึงจากฐานข้อมูล — รันทั้ง pipeline ผ่าน array นี้แล้วสังเกตว่า field ไหนได้ `null` และใบไหนสกัดรหัสอุปกรณ์/ไซต์ได้จริง (ดูคำอธิบายในหัวข้อ "วิธีอ่านผลลัพธ์นี้" ด้านล่างว่าทำไม `null` บางใบถึงเป็นคำตอบที่ถูกต้อง ไม่ใช่โมเดลเดาไม่ตรง)
 
 ### ผลลัพธ์ที่ควรเห็น
 
 ```
-=== Workshop 1: สกัดข้อมูลจาก 20 ticket ===
+=== Workshop 1: สกัดข้อมูลจาก 6 ticket ===
 
   guided decoding: True
 
   ticket        ok   retry  tokens   ms     category
   --------------------------------------------------------------
-  TK-25-00001   yes  1      377      2885   config
-  TK-25-00002   yes  1      400      2869   intermittent
-  TK-25-00003   yes  1      344      3002   maintenance
-  ...
-  TK-25-00020   yes  1      301      2841   maintenance
+  TK-DEMO-01    yes  1      395      1507   inquiry
+  TK-DEMO-02    yes  1      367      1552   slow
+  TK-DEMO-03    yes  1      390      1641   link_down
+  TK-DEMO-04    yes  1      355      1401   config
+  TK-DEMO-05    yes  1      364      1546   maintenance
+  TK-DEMO-06    yes  1      400      1760   intermittent
 
   --------------------------------------------------------------
-  สำเร็จ           20/20
+  สำเร็จ           6/6
   ต้อง retry       0
   ใช้ fallback     0
-  token รวม        6,528
-  token เฉลี่ย/ใบ   326
+  token รวม        2,271
+  token เฉลี่ย/ใบ   378
 
-=== Ticket ที่คล้ายกันสำหรับ TK-25-00001 (จาก index 'tickets-lab') ===
+=== Input (ข้อความต้นทาง) → Output (JSON) รายใบ ===
 
-  summary_th: การใช้งาน video conference พบว่ามีการหลุดบ่อย ประมาณ 5-6 ครั้งต่อวัน
+--- TK-DEMO-01 ---
+[input]
+  customer: อุปกรณ์ LPE-NBI-11 ที่ไซต์ NBI เน็ตหลุดเป็นช่วงๆ ตั้งแต่เมื่อคืนครับ
+  engineer: รับทราบครับ กำลังตรวจสอบ LPE-NBI-11 ให้ทันที
+[output]
+  {
+    "category": "inquiry",
+    "severity": "medium",
+    "affected_device": "LPE-NBI-11",
+    "affected_site": "NBI",
+    "summary_th": "อุปกรณ์ LPE-NBI-11 ที่ไซต์ NBI เน็ตหลุดเป็นช่วงๆ ตั้งแต่เมื่อคืน",
+    "customer_impact": "เน็ตหลุดเป็นช่วงๆ",
+    "confidence": 0.9
+  }
 
-  0.817  TK-25-00004  [intermittent]  หลุดบ่อยช่วงบ่าย
-  0.816  TK-25-00001  [intermittent]  อินเทอร์เน็ตหลุดเป็นช่วงๆ ตั้งแต่เมื่อวาน
-  0.761  TK-25-00005  [intermittent]  เน็ตหลุดซ้ำ เคสเดิมที่เคยแจ้งไว้
-  0.755  TK-25-00003  [intermittent]  circuit drop ซ้ำๆ กระทบระบบ POS
-  0.740  TK-25-00102  [slow]  latency สูงผิดปกติช่วงเย็น
+--- TK-DEMO-02 ---
+[input]
+  customer: circuit ที่ APE-BKK-05 ไซต์ BKK ช้าผิดปกติตั้งแต่บ่ายนี้ครับ
+  engineer: ขอเวลาตรวจสอบ throughput ที่ APE-BKK-05 ก่อนครับ
+[output]
+  {
+    "category": "slow",
+    "severity": "medium",
+    "affected_device": null,
+    "affected_site": "BKK",
+    "summary_th": "circuit ที่ APE-BKK-05 ไซต์ BKK ช้าผิดปกติตั้งแต่บ่ายนี้",
+    "customer_impact": "ช้าผิดปกติตั้งแต่บ่ายนี้",
+    "confidence": 0.7
+  }
+
+--- TK-DEMO-03 ---
+[input]
+  engineer: เปลี่ยนอุปกรณ์ PE-NBI-04 ที่ไซต์ NBI เสร็จแล้ว แต่ link ยังไม่ขึ้นครับ
+  engineer: ตรวจ optical power แล้วปกติ ขอให้ทีม core ช่วยดูอีกที
+[output]  (รูปแบบเดียวกับด้านบน — category: link_down, affected_device: "PE-NBI-04", affected_site: "NBI")
+
+--- TK-DEMO-04 ---
+[input]
+  customer: ใช้งาน video conference แล้วหลุดบ่อยมากครับ วันละ 5-6 ครั้ง
+  engineer: รับเรื่องแล้วครับ จะตรวจสอบ circuit ให้ กรุณาแจ้งเวลาที่หลุดล่าสุดด้วยครับ
+[output]  (category: config, affected_device: null, affected_site: null)
+
+--- TK-DEMO-05 ---
+[input]
+  engineer: แจ้งแผนงาน maintenance window ที่ CR-BKK-01 ไซต์ BKK เวลา 22:00-02:00 ครับ
+  system: Maintenance window opened
+  engineer: อัปเกรดเสร็จเรียบร้อย ตรวจสอบ adjacency กลับมา Up ปกติครับ
+[output]  (category: maintenance, affected_device: null, affected_site: null — พลาดจับ "CR-BKK-01"/"BKK" ทั้งที่ข้อความระบุตรงๆ)
+
+--- TK-DEMO-06 ---
+[input]
+  customer: เน็ตกระตุกครับ โหลดไฟล์ค้างกลางทาง
+  engineer: ทดสอบ ping 500 packet ไม่ drop เลยครับ throughput ได้เต็ม speed ขอปิดเคสก่อนนะครับ
+  customer: ok ครับ แต่ถ้าเป็นอีกจะแจ้งใหม่
+[output]  (category: intermittent, affected_device: null, affected_site: null)
+
+=== Ticket ที่คล้ายกันสำหรับ TK-DEMO-01 (จาก index 'tickets-lab') ===
+
+  summary_th: อุปกรณ์ LPE-NBI-11 ที่ไซต์ NBI เน็ตหลุดเป็นช่วงๆ ตั้งแต่เมื่อคืน
+
+  0.826  TK-25-00001  [intermittent]  อินเทอร์เน็ตหลุดเป็นช่วงๆ ตั้งแต่เมื่อวาน
+  0.789  TK-25-00005  [intermittent]  เน็ตหลุดซ้ำ เคสเดิมที่เคยแจ้งไว้
+  0.788  TK-25-00002  [intermittent]  เน็ตกระตุกเป็นช่วง ใช้งานไม่ต่อเนื่อง
+  0.776  TK-25-00004  [intermittent]  หลุดบ่อยช่วงบ่าย
+  0.763  TK-25-00006  [config]  ISIS adjacency ไม่ขึ้นหลังเปลี่ยนอุปกรณ์
 ```
 
 **วิธีอ่านผลลัพธ์นี้**:
 
 - คอลัมน์ `retry` ในตารางแสดงค่า `attempts` (จำนวนครั้งที่พยายามทั้งหมด) ไม่ใช่จำนวนครั้งที่ retry — ค่า `1` หมายถึง**สำเร็จตั้งแต่ความพยายามแรก ไม่ต้อง retry เลย** ถ้าต้อง retry จริงค่านี้จะเป็น `2` ขึ้นไป
-- **`สำเร็จ 20/20` และ `ต้อง retry 0` เป็นไปได้ในบางรอบการรัน** — การที่โมเดลตอบผิด schema หรือไม่คือเรื่องที่ไม่แน่นอน (ขึ้นกับ guided decoding และความกำกวมของข้อความแต่ละใบ) หากรันแล้วไม่เห็น retry เกิดขึ้นเลยสักครั้ง ให้ลองรันซ้ำหลายรอบ หรือปิด `LLM_GUIDED_DECODING` ชั่วคราวเพื่อเพิ่มโอกาสเห็นกรณีที่ต้องแก้ไข — เกณฑ์ผ่านข้อที่ต้องมี retry อย่างน้อย 1 ครั้งจึงอาจต้องใช้ความพยายามมากกว่าหนึ่งรอบการรันจึงจะพบ
-- **ผลค้นหา ticket ที่คล้ายกัน** แสดงให้เห็นว่าแม้ `summary_th` ที่สกัดได้จะใช้คำว่า "video conference" (ไม่ใช่ศัพท์เครือข่าย) ระบบก็ยังค้นเจอ ticket ที่แท้จริงพูดถึงอาการเดียวกันด้วยคำคนละชุด ("หลุดบ่อยช่วงบ่าย", "เน็ตหลุดซ้ำ") ยืนยันว่าการเชื่อม Workshop 1 เข้ากับ index ของ Module 2 ทำงานได้จริง
-- **`affected_device` และ `affected_site` เป็น `null` แทบทุกใบ (หรือทุกใบ) — เป็นเรื่องปกติ ไม่ใช่บั๊ก** ตาราง `tickets` มีคอลัมน์ `device_id`/`site_code` ตั้งไว้ครบทุกแถวอยู่แล้ว (เช่น `LPE-NBI-11`, `NBI`) แต่นั่นเป็น metadata ที่เก็บแยกต่างหาก — บทสนทนาจริงใน `ticket_messages` ที่ extractor อ่านแทบไม่เคยพูดถึงรหัสอุปกรณ์หรือชื่อไซต์ตรง ๆ เลย ลูกค้าพูดถึงแต่อาการ (เช่น "หลุดบ่อยมากครับ") ไม่พูดถึง "LPE-NBI-11" เมื่อ schema สั่งไว้ชัดเจนว่า "ถ้าข้อความไม่ได้ระบุอุปกรณ์ชัดเจน ให้เป็น null ห้ามเดา" การได้ `null` แทบทุกใบจึงเป็น**คำตอบที่ถูกต้อง** — พิสูจน์ว่า extractor ไม่ hallucinate ข้อมูลที่ไม่มีอยู่ในข้อความ ไม่ใช่สัญญาณว่า pipeline ทำงานผิดพลาด
+- **`สำเร็จ 6/6` และ `ต้อง retry 0` เป็นไปได้ในบางรอบการรัน** — การที่โมเดลตอบผิด schema หรือไม่คือเรื่องที่ไม่แน่นอน (ขึ้นกับ guided decoding และความกำกวมของข้อความแต่ละใบ) หากรันแล้วไม่เห็น retry เกิดขึ้นเลยสักครั้ง ให้ลองรันซ้ำหลายรอบ หรือปิด `LLM_GUIDED_DECODING` ชั่วคราวเพื่อเพิ่มโอกาสเห็นกรณีที่ต้องแก้ไข — เกณฑ์ผ่านข้อที่ต้องมี retry อย่างน้อย 1 ครั้งจึงอาจต้องใช้ความพยายามมากกว่าหนึ่งรอบการรันจึงจะพบ
+- **ผลค้นหา ticket ที่คล้ายกัน** แสดงให้เห็นว่าแม้ `summary_th` ที่สกัดได้จะพูดถึง "LPE-NBI-11 ที่ไซต์ NBI" (ไม่ตรงกับคำในหัวข้อ ticket เก่าเป๊ะ) ระบบก็ยังค้นเจอ ticket ที่แท้จริงพูดถึงอาการเดียวกันด้วยคำคนละชุด ("หลุดบ่อยช่วงบ่าย", "เน็ตหลุดซ้ำ") ยืนยันว่าการเชื่อม Workshop 1 เข้ากับ index ของ Module 2 ทำงานได้จริง
+- **`affected_device`/`affected_site` สกัดได้บางใบ เป็น `null` บางใบ — ทั้งสองแบบถูกต้องได้** `TK-DEMO-01` และ `TK-DEMO-03` ใส่รหัสอุปกรณ์/ไซต์ไว้ตรง ๆ ในข้อความและโมเดลจับได้ถูกทั้งคู่ แต่ `TK-DEMO-02` (มี `APE-BKK-05` อยู่จริง) กลับได้ `affected_device: null` ทั้งที่ `affected_site: BKK` จับได้ — โมเดลพลาดจับรหัสอุปกรณ์บางครั้งแม้ข้อความจะบอกตรง ๆ นี่คือความไม่สมบูรณ์แบบปกติของ LLM ไม่ใช่บั๊กของ pipeline ส่วน `TK-DEMO-04` และ `TK-DEMO-06` ไม่มีรหัสอุปกรณ์/ไซต์ในข้อความเลย จึงต้องได้ `null` ทั้งคู่เสมอไม่ว่ารันกี่ครั้ง (schema สั่งห้ามเดา) — ถ้าเห็นค่าอื่นที่ไม่ใช่ `null` ใน `TK-DEMO-04`/`06` แปลว่าโมเดล hallucinate ซึ่งเป็นปัญหาจริง
 
 ---
 
 ## เกณฑ์ผ่าน
 
 - [ ] ฟังก์ชัน extract คืนค่า `ExtractionResult` เสมอ ไม่ raise exception ออกมาแม้แต่ครั้งเดียว แม้ LLM จะตอบผิดรูปแบบทุกรอบจนครบ `max_retries`
-- [ ] ทดสอบกับ ticket จริงอย่างน้อย 5 ใบจากตาราง `ticket_messages` ได้ครบ พร้อม `attempts` และ `errors` ที่บันทึกไว้ถูกต้อง
+- [ ] ทดสอบกับข้อความตัวอย่างอย่างน้อย 5 ชุด (array คงที่ที่เขียนเอง ล้อรูปแบบเดียวกับ `ticket_messages`) ได้ครบ พร้อม `attempts` และ `errors` ที่บันทึกไว้ถูกต้อง — อย่างน้อย 2 ชุดต้องมีรหัสอุปกรณ์/ไซต์ระบุตรง ๆ ในข้อความ และอย่างน้อย 1 ชุดต้องไม่มีเลย เพื่อให้เห็นทั้งสองพฤติกรรมของ `affected_device`/`affected_site`
 - [ ] มีอย่างน้อย 1 กรณีที่เห็น retry เกิดขึ้นจริง (`attempts > 1`) พร้อมอธิบายได้ว่ารอบแรกผิดตรงไหน และ error message ที่ส่งกลับไปช่วยแก้ได้อย่างไร
 - [ ] เมื่อสกัดสำเร็จ ค้นหา ticket ที่คล้ายกันจากดัชนี `tickets-lab` ได้อย่างน้อย 3 รายการ พร้อมคะแนนความคล้าย
 - [ ] รัน pipeline ทั้งหมดได้ด้วยคำสั่งเดียว เช่น `uv run python workshop1_extractor.py`
@@ -211,3 +280,5 @@ uv run solutions/day1/workshop1_extractor.py
 ## ต่อไป
 
 → [Module 4: ReAct Pattern](../day2/01-module4-react-pattern.md)
+
+เสริม (ไม่บังคับ): [สรุป Day 1: แก้ JSON Template ของ Agent จริงใน App](08-summary-json-template-in-app.md) — ต่อยอดจาก schema ที่เพิ่งเขียนใน Workshop นี้ ไปดูว่า schema จริงที่ agent ใช้อยู่ทุกวันอยู่ที่ไฟล์ไหน แก้ยังไง
