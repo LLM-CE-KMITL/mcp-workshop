@@ -12,18 +12,44 @@ Module 3 และ Workshop 1 สอนหลักการบังคับ�
 
 ## ไฟล์หลักที่ต้องทราบ: `apps/agent-api/schemas.py`
 
-ทุก schema ที่ agent จริงบังคับให้ LLM ตอบตามรวมอยู่ในไฟล์นี้ไฟล์เดียว:
+schema ส่วนใหญ่ที่ agent จริงบังคับให้ LLM ตอบตามรวมอยู่ในไฟล์นี้ — **ยกเว้น `RoutingDecision`** ที่ประกาศแยกอยู่ใน `agent/orchestrator.py` เอง (ดูหมายเหตุท้ายตาราง):
 
-| Schema | ใช้ที่ไฟล์ | ทำหน้าที่ |
-|---|---|---|
-| `IntentResult` | `agent/intent.py` | จัดประเภทคำถามผู้ใช้ก่อนเข้า ReAct loop (Module 7 วันที่ 2) |
-| `ReactDecision` | `agent/react.py` | หนึ่งรอบ Thought → Action ของ ReAct loop — รูปแบบเดียวกับ Workshop 1 |
-| `StepResult` | `agent/react.py` | บันทึกผลแต่ละ step หลังเรียก tool |
-| `GroundingVerdict` | `agent/grounding.py` | ตรวจสอบว่าคำตอบสุดท้ายมีหลักฐานรองรับจริงหรือไม่ |
-| `TopicState` / `MemorySnapshot` | `agent/memory.py` | โครงสร้าง memory ข้ามเทิร์น |
-| `ChatRequest` / `Usage` | `main.py` | รูปร่างของ request/response ใน REST API |
+| Schema | ใช้ที่ไฟล์ | ทำหน้าที่ | ใช้งานจริงใน `/chat` ไหม |
+|---|---|---|---|
+| `IntentResult` | `agent/intent.py` | จัดประเภทคำถามผู้ใช้ก่อนเข้า ReAct loop (Module 7 วันที่ 2) | ✅ ทุก request |
+| `ReactDecision` | `agent/react.py` | หนึ่งรอบ Thought → Action ของ ReAct loop — รูปแบบเดียวกับ Workshop 1 | ✅ ทุก step ของ loop |
+| `StepResult` | `agent/react.py` | บันทึกผลแต่ละ step หลังเรียก tool | ✅ ทุก step ของ loop |
+| `GroundingVerdict` | `agent/grounding.py` | ตรวจสอบว่าคำตอบสุดท้ายมีหลักฐานรองรับจริงหรือไม่ | ✅ ท้ายสุดของทุก request |
+| `TopicState` / `MemorySnapshot` | `agent/memory.py` | โครงสร้าง memory ข้ามเทิร์น | ✅ ใช้ตลอด session |
+| `ChatRequest` / `Usage` | `main.py` | รูปร่างของ request/response ใน REST API | ✅ ทุก request |
+| `RoutingDecision` (อยู่ใน `orchestrator.py` ไม่ใช่ `schemas.py`) | `agent/orchestrator.py` | ออกแบบไว้สำหรับจัดเส้นทางคำถามไปยัง specialist (tickets/topology/logs) | ❌ **ไม่ได้ถูกเรียกจากที่ไหนเลย** — ไม่มีไฟล์ใด import `orchestrator` แม้แต่จุดเดียว เป็นโค้ดที่เขียนไว้แต่ไม่ได้ต่อเข้า pipeline จริง |
 
 **ไม่มี schema ใดใน `apps/` ที่เกี่ยวข้องกับการสกัด ticket แบบ `TicketExtraction` ของ Workshop 1** — หากต้องการให้ agent จริงสกัด ticket ได้ในลักษณะเดียวกัน จำเป็นต้องเขียน schema ใหม่เพิ่มลงในไฟล์นี้เอง ระบบไม่มีให้โดยอัตโนมัติ
+
+---
+
+## Flow ของ JSON ที่ถูกบังคับ ผ่าน module ต่างๆ
+
+หนึ่งคำถามจากผู้ใช้ไม่ได้ผ่าน `complete_structured()` แค่จุดเดียว — เส้นทางจริงของ request หนึ่งครั้ง (`POST /chat`) ผ่าน 3 จุดบังคับ JSON เรียงกัน คั่นด้วยช่วงที่เป็น**ข้อความธรรมดา ไม่ถูกบังคับ schema**:
+
+```mermaid
+flowchart TD
+    A["ผู้ใช้พิมพ์คำถามใน Chainlit"] --> B["POST /chat<br/>main.py: run_turn()"]
+    B --> C["🔒 complete_structured(..., IntentResult)<br/>agent/intent.py"]
+    C -->|"GENERAL_KNOWLEDGE"| D["ตอบตรงๆ แบบ stream token<br/>ไม่ผ่าน JSON schema อีกเลย - จบ"]
+    C -->|"NEEDS_CLARIFICATION / OUT_OF_SCOPE"| E["ตอบปฏิเสธ/ถามกลับ - จบ"]
+    C -->|"IN_SCOPE"| F["react.run() เริ่ม ReAct loop"]
+    F --> G["🔒 complete_structured(..., ReactDecision)<br/>agent/react.py - วนซ้ำทุก step"]
+    G -->|"tool ไม่เป็น null"| H["เรียก tool ผ่าน MCP client<br/>(tool call ปกติ ไม่ใช่ JSON ที่ถูกบังคับ)"]
+    H --> G
+    G -->|"tool เป็น null (พร้อมตอบ)"| I["synthesizer.synthesize_stream()<br/>ตอบเป็นข้อความ stream ทีละ token<br/>ไม่ผ่าน JSON schema"]
+    I --> J["🔒 complete_structured(..., GroundingVerdict)<br/>agent/grounding.py"]
+    J --> K["ส่งคำตอบ + event ทั้งหมดกลับ Chainlit ผ่าน SSE"]
+
+    L["agent/orchestrator.py<br/>RoutingDecision"] -.->|"ไม่มีใคร import module นี้"| M["ไม่อยู่ใน flow ข้างบนเลย - dead code"]
+```
+
+**สังเกต**: จุดที่มี 🔒 คือจุดที่ LLM **ถูกบังคับ** ให้ตอบ JSON ตาม schema (guided decoding) มี 3 จุด (`IntentResult` → `ReactDecision` ×N รอบ → `GroundingVerdict`) ส่วนคำตอบสุดท้ายที่ผู้ใช้เห็นจริง ๆ (`synthesizer.synthesize_stream`) กลับ**ไม่ได้**ถูกบังคับ schema — เป็นข้อความธรรมดาที่ stream ออกมาทีละ token เหมือน ChatGPT ปกติ เหตุผลคือคำตอบสุดท้ายต้องเป็นภาษาธรรมชาติอ่านง่าย ไม่ใช่ข้อมูลโครงสร้างที่ระบบอื่นต้องเอาไปประมวลผลต่อแบบ `IntentResult`/`ReactDecision`/`GroundingVerdict`
 
 ---
 
