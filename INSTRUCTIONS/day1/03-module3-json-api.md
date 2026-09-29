@@ -112,8 +112,10 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()  # ต้องโหลดก่อน import agent.llm เสมอ - llm.py อ่านค่า env
-                # เป็นค่าคงที่ระดับโมดูลตอน import (BASE_URL/API_KEY/MODEL)
+load_dotenv(".env")  # ต้องโหลดก่อน import agent.llm เสมอ - llm.py อ่านค่า env
+                      # เป็นค่าคงที่ระดับโมดูลตอน import (BASE_URL/API_KEY/MODEL)
+                      # ต้องระบุ path ตรงๆ เพราะรันผ่าน stdin (heredoc) ทำให้
+                      # load_dotenv() แบบไม่ระบุ path หา caller ไม่เจอแล้ว error
 sys.path.insert(0, str(Path("apps/agent-api")))
 
 from pydantic import BaseModel, Field
