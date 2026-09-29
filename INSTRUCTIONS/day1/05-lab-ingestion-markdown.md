@@ -100,7 +100,7 @@ for idx, chunk in enumerate(chunks):
 
 ### 2.4 ทดสอบว่าค้นเจอ
 
-ถาม Chainlit หรือ MCP Inspector: *"ถ้า BGP หลุดควรตรวจอะไรก่อน"* — ต้องเจอ runbook ที่เพิ่งเพิ่มเข้าไป
+ถาม Chainlit หรือ MCP Inspector: *"ใน runbook ถ้า BGP หลุดควรตรวจอะไรก่อน"* — ต้องเจอ runbook ที่เพิ่งเพิ่มเข้าไป
 
 ---
 
@@ -173,7 +173,7 @@ from opensearchpy import OpenSearch
 
 EMB = os.getenv('EMBEDDING_BASE_URL', 'https://openrouter.ai/api/v1').rstrip('/') + '/embeddings'
 r = httpx.post(EMB, json={'model': os.getenv('EMBEDDING_MODEL','baai/bge-m3'),
-                           'input': ['BGP หลุดควรตรวจอะไรก่อน']},
+                           'input': ['ใน runbook ถ้า BGP หลุดควรตรวจอะไรก่อน']},
                headers={'Authorization': f\"Bearer {os.getenv('LLM_API_KEY','not-needed')}\"}, timeout=60)
 vec = r.json()['data'][0]['embedding']
 
@@ -184,15 +184,15 @@ for hit in res['hits']['hits']:
 "
 ```
 
-**ผลลัพธ์ที่ควรเห็น** (ทดสอบด้วยคำค้นที่ใกล้เคียงเรื่อง `interface flap`):
+**ผลลัพธ์ที่ควรเห็น** (รันจริงตอนเตรียมเอกสารนี้ ด้วยคำค้น `"ใน runbook ถ้า BGP หลุดควรตรวจอะไรก่อน"`):
 
 ```
-0.8542195 ขั้นตอนตรวจสอบ optical power
-0.80352074 การวินิจฉัยปัญหาเน็ตหลุดเป็นช่วง (intermittent drop)
-0.7801685 ขั้นตอนตรวจสอบ optical power
+0.8981886 ขั้นตอนตรวจสอบเมื่อ BGP session หลุด
+0.8107747 ขั้นตอนตรวจสอบเมื่อ BGP session หลุด
+0.79327786 ขั้นตอนตรวจสอบเมื่อ BGP session หลุด
 ```
 
-เอกสารของตัวเองควรขึ้นเป็นอันดับต้นๆ ถ้าคำค้นตรงกับหัวข้อที่เขียนไว้ — ถ้าไม่เจอเลย ให้ตรวจว่า ingestion รอบล่าสุดรันผ่านจริงและไม่มี error
+เอกสารของตัวเองจากขั้นที่ 2.1 ขึ้นเป็นอันดับต้นๆ ทั้งสามอันดับ เพราะคำค้นตรงกับหัวข้อที่เขียนไว้โดยตรง — ถ้าไม่เจอเลย ให้ตรวจว่า ingestion รอบล่าสุดรันผ่านจริงและไม่มี error
 
 ---
 
