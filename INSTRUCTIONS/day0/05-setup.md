@@ -221,3 +221,10 @@ uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w
 | `make load-logs` | docker compose -f docker/docker-compose.yml --env-file .env run --rm loader python load_logs.py |
 | `make demo` | docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo |
 | `make demo-offline` | $env:DEMO_MODE="replay"; docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo |
+| `make lab1-reset` | `Get-Content scripts/lab/lab1_reset_vector.sql \| docker exec -i mpls-postgres psql -U mpls -d mplsdb` ตามด้วย `Get-Content scripts/lab/lab1_reset_vector.cypher \| docker exec -i mpls-neo4j cypher-shell -u neo4j -p neo4j_dev_password` |
+| `make lab1-solution` | `(Get-Content scripts/lab/lab1_solution_vector.sql) -replace '__EMBEDDING_DIM__','1024' \| docker exec -i mpls-postgres psql -U mpls -d mplsdb` |
+| `make embed-tickets` | `uv run python scripts/embed_tickets.py` |
+| `make embed-devices` | `uv run python scripts/embed_devices.py` |
+| `make vector-compare` | `uv run python scripts/compare_vector_stores.py` |
+
+**หมายเหตุสำคัญ**: `<` ใช้ redirect stdin ไม่ได้ใน PowerShell (ต่างจาก `make`/bash) ต้องใช้ `Get-Content <ไฟล์> | <คำสั่ง>` แทนเสมอเวลาป้อนไฟล์ `.sql`/`.cypher` เข้า `docker exec -i`
