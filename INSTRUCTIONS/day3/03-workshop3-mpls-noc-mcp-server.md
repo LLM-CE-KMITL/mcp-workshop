@@ -106,7 +106,7 @@ def search_tickets(status: str | None = None, days: int = 7,
 ```
 *(`solutions/day2/workshop2_agent.py:64-93`)*
 
-ห่อด้วย `@mcp.tool` ตามแบบที่ `apps/mcp-server/tools/tickets.py:23-39` ทำไว้ — **นำ logic ข้างในของฟังก์ชันเดิมมาใช้ต่อได้เลย ไม่ต้องเขียนใหม่** สิ่งที่เปลี่ยนมีแค่การเติม decorator, annotations และ docstring ที่ปรับให้เป็นคำแนะนำสำหรับโมเดล (ไม่ใช่คอมเมนต์สำหรับนักพัฒนา ตามหลักการที่อธิบายไว้ใน Module 7 ข้อ 2.1):
+ห่อด้วย `@mcp.tool` ตามแบบที่ `apps/mcp-server/tools/tickets.py:23-39` ทำไว้ — **นำ logic ข้างในของฟังก์ชันเดิมมาใช้ต่อได้เลย ไม่ต้องเขียนใหม่** สิ่งที่เปลี่ยนมีแค่การเติม decorator, annotations และ docstring ที่ปรับให้เป็นคำแนะนำสำหรับโมเดล (ไม่ใช่คอมเมนต์สำหรับนักพัฒนา ตามหลักการที่อธิบายไว้ใน Module 9 ข้อ 2.1):
 
 ```python
 @mcp.tool(
@@ -183,13 +183,53 @@ def diagnose_shared_upstream(range: str = "last_14d") -> str:
 4. สรุปว่ามีอุปกรณ์ต้นทางร่วมหรือไม่ พร้อมระบุว่าข้อสรุปมาจากขั้นตอนใด"""
 ```
 
-การออกแบบ Prompt ที่ดีคือการบังคับ**ลำดับ**การสืบสวน (ดู Module 7 ข้อ 2.3) ไม่ใช่การเขียนคำถามซ้ำสิ่งที่ผู้ใช้พิมพ์มาแล้ว
+การออกแบบ Prompt ที่ดีคือการบังคับ**ลำดับ**การสืบสวน (ดู Module 9 ข้อ 2.3) ไม่ใช่การเขียนคำถามซ้ำสิ่งที่ผู้ใช้พิมพ์มาแล้ว
+
+---
+
+## ตรวจสอบด้วยตนเองก่อนเปิด Claude Desktop
+
+ก่อนเสียเวลาตั้งค่า `claude_desktop_config.json` ให้ตรวจก่อนว่าไฟล์ของตนเองประกาศ tool/resource/prompt ครบตามที่ตั้งใจจริงหรือไม่ ด้วยสคริปต์สั้นๆ นี้ (ไม่ต้องรอ Claude Desktop มาบอก):
+
+```bash
+uv run python -c "
+import asyncio
+import workshop3_mcp_server as w
+
+async def main():
+    tools = await w.mcp.list_tools()
+    resources = await w.mcp.list_resources()
+    prompts = await w.mcp.list_prompts()
+    print('TOOLS:', [t.name for t in tools])
+    print('RESOURCES:', [str(r.uri) for r in resources])
+    print('PROMPTS:', [p.name for p in prompts])
+
+asyncio.run(main())
+"
+```
+
+### ผลลัพธ์ที่ควรเห็น
+
+```
+TOOLS: ['search_tickets', 'get_upstream_devices', 'count_log_events', 'export_report', 'send_notification', 'search_docs_semantic']
+RESOURCES: ['schema://noc']
+PROMPTS: ['diagnose_shared_upstream']
+```
+
+**วิธีอ่านผลลัพธ์นี้**:
+
+- ต้องเห็น `TOOLS` ครบ **6 ชื่อ** ตรงตามตารางในหัวข้อ 4 — ถ้าขาดตัวไหน แปลว่า `@mcp.tool` decorator ยังไม่ได้ครอบฟังก์ชันนั้น หรือฟังก์ชันนั้นยัง comment ปิดอยู่ในโครงจากหัวข้อ 3
+- `RESOURCES` ต้องมี `schema://noc` หนึ่งรายการ (ไม่ใช่ `schema://postgres` ของ `apps/mcp-server/` ซึ่งเป็นคนละไฟล์กัน)
+- `PROMPTS` ต้องมี `diagnose_shared_upstream` หนึ่งรายการ ชื่อต้องตรงกับที่ `@mcp.prompt` กำหนดไว้เป๊ะ เพราะ Claude Desktop จะใช้ชื่อนี้แสดงในเมนู Prompt โดยตรง
+- ขั้นนี้ตรวจแค่ว่า **ประกาศ** ครบ ยังไม่ได้ยืนยันว่าตรรกะภายในแต่ละ tool ทำงานถูกต้องกับฐานข้อมูลจริง — การยืนยันนั้นเกิดขึ้นตอนทดสอบผ่าน Claude Desktop ในหัวข้อถัดไป
+
+หากพบ warning บรรทัดแรกเกี่ยวกับ `pydantic_settings`/`IncompleteFieldDefinitionWarning` ตอนรันคำสั่งข้างบน ไม่ต้องกังวล เป็น warning เดียวกับที่เกิดตอน import `apps/mcp-server` เช่นกัน ไม่เกี่ยวกับโค้ดที่เพิ่งเขียน
 
 ---
 
 ## 7. 13:00–15:30 ทดสอบผ่าน Claude Desktop
 
-เพิ่ม entry ใหม่ใน `claude_desktop_config.json` ชี้ไปที่ไฟล์ของตนเอง (โครงสร้างเดียวกับ Module 7 ข้อ 3.2 แต่เปลี่ยนปลายทาง):
+เพิ่ม entry ใหม่ใน `claude_desktop_config.json` ชี้ไปที่ไฟล์ของตนเอง (โครงสร้างเดียวกับ Module 9 ข้อ 3.2 แต่เปลี่ยนปลายทาง):
 
 ```json
 {

@@ -152,6 +152,42 @@ async def run_turn(session_id: str, goal: str) -> None:
 
 **สิ่งที่ต้องสังเกตใน trace**: Agent ต้องไม่หยุดอยู่แค่ผลจาก `search_tickets` (ซึ่งจะเห็น ticket กระจายอยู่คนละอุปกรณ์ปลายทาง) แต่ต้องเรียก `get_upstream_devices` เพื่อหาจุดร่วมที่ ticket ไม่ได้เอ่ยถึง แล้วยืนยันด้วย `count_log_events` ก่อนสรุปและส่งเมล
 
+#### ผลลัพธ์ที่ควรเห็น (ตัวอย่างจริงจากการรัน)
+
+```
+[Intent Gate] ผ่าน (IntentLabel.IN_SCOPE, decided_by=fast_path)
+[Memory] เปลี่ยนหัวข้อ: ยังไม่มีหัวข้อ - เริ่มหัวข้อแรก
+[ReAct loop]
+  1. คิด: ... ต้องตรวจสอบว่ามีอุปกรณ์ upstream ร่วมกันหรือไม่
+     เรียก get_upstream_devices({})
+      -> ล้มเหลว: TypeError: get_upstream_devices() missing 1 required positional argument: 'device_ids'
+  2. คิด: ต้องการ device_ids เพื่อเรียก get_upstream_devices แต่ยังไม่มีข้อมูล ต้องหา device_ids ก่อน
+     เรียก search_tickets({"status": "open", "days": 14})
+      -> สำเร็จ 48 ms
+  3. คิด: พบ device_ids จาก ticket ที่เกี่ยวข้องกับ NBI: LPE-NBI-12, PE-NBI-04, LPE-NBI-13 ...
+     เรียก get_upstream_devices({"device_ids": ["LPE-NBI-12", "PE-NBI-04", "LPE-NBI-13"]})
+      -> สำเร็จ 86 ms
+  4. คิด: พบอุปกรณ์ upstream ร่วมที่อุปกรณ์ลูกค้าทั้งสามพึ่งพา คือ APE-NBI-03, PE-NBI-01, CR-BKK-01 ...
+     เรียก count_log_events({"days": 14, "group_by": "device_id"})
+      -> สำเร็จ 91 ms
+  ...
+  6. หยุด: เรียก count_log_events ด้วย argument เดิมซ้ำ
+  ...
+  8. เรียก search_tickets({"status": "open", "days": 14, "site_code": "NBI"})
+      -> ล้มเหลว: TypeError: search_tickets() got an unexpected keyword argument 'site_code'
+
+[สรุป] ... สาเหตุร่วมคือ APE-NBI-03, PE-NBI-01, CR-BKK-01 (PostgreSQL: ticket TK-25-00018, TK-25-00005, TK-25-00003) ...
+
+  5/8 เครื่องมือสำเร็จ · trace: data/reports/trace-ลูกค้าหลายรายในโซน-nbi-...json
+```
+
+**วิธีอ่านผลลัพธ์นี้**:
+
+- **รอบที่ 1 ล้มเหลวเพราะโมเดลเรียก tool โดยไม่ใส่ argument ที่จำเป็นเลย** และ**รอบที่ 8 ล้มเหลวเพราะโมเดลใส่ argument ที่ไม่มีอยู่จริง** (`site_code` ไม่ใช่ parameter ของ `search_tickets`) — ทั้งสองกรณีนี้**ไม่ใช่บั๊ก** แต่เป็นพฤติกรรมจริงของโมเดลที่ agent ต้องรับมือได้ สังเกตว่า error กลายเป็น observation ของรอบถัดไปทันที (ตามหลักการที่ Module 4 สอนไว้) แล้วโมเดลก็ปรับตัวเองได้ในรอบถัดมาโดยไม่ทำให้ทั้งโปรแกรม crash
+- **รอบที่ 6 ถูก `LoopGuard` หยุดเพราะเรียก tool เดิมด้วย argument เดิมซ้ำ** — ยืนยันว่ากลไกป้องกัน loop จากวันก่อนหน้ายังทำงานอยู่แม้จะเพิ่มเครื่องมือและ Intent Gate/Memory เข้ามาแล้ว
+- **`5/8 เครื่องมือสำเร็จ`** ไม่ใช่ 8/8 เสมอไป และการรันครั้งนี้ไม่ได้ไปถึงขั้น `send_notification` เลย (หยุดที่การสรุปหลังเจอ error ซ้ำ) — เป็นผลลัพธ์ที่สมเหตุสมผล ไม่ใช่ความล้มเหลว เพราะเป้าหมายหลักของสถานการณ์นี้ (หา upstream ร่วม) สำเร็จแล้ว หากรันของตนเองแล้วได้ผลต่างจากนี้ (เช่น ไปถึง `send_notification` จริง หรือ error คนละจุด) ก็เป็นเรื่องปกติ เพราะการตัดสินใจของโมเดลไม่ตายตัวทุกครั้งที่รัน
+- คำตอบสุดท้ายอ้างอิงแหล่งที่มาแบบ `(PostgreSQL: ticket TK-25-...)` ตามที่ `SYNTH_PROMPT` กำหนดไว้ — ให้ตรวจสอบว่าเลข ticket ที่อ้างถึงมีอยู่จริงในหลักฐานที่เรียกมาจริง ไม่ใช่เลขที่โมเดลแต่งขึ้น
+
 ### สถานการณ์ที่ 2 — VPN ช้า (ทดสอบการตรวจจับเชิงรุกโดยไม่มี ticket)
 
 > "ลูกค้า Enterprise ที่ใช้บริการ MPLS-VPN ผ่านอุปกรณ์ `PE-BKK-02` แจ้งว่าความเร็วลดลงเรื่อยๆ ตลอดเดือนที่ผ่านมา ทั้งที่ยังไม่มีใครเปิด ticket แจ้งปัญหานี้อย่างเป็นทางการ ช่วยตรวจสอบสุขภาพของอุปกรณ์ตัวนี้ว่ามีแนวโน้มผิดปกติหรือไม่"
