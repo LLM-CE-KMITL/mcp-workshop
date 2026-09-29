@@ -134,4 +134,4 @@ def check(self, tool: str, arguments: dict) -> str | None:
 
 ## ต่อไป
 
-→ [Module 6: เครื่องมือจาก 3 ฐานข้อมูล](03-module6-tools-3-databases.md) — Lab นี้ใช้เครื่องมือเดียว โมดูลถัดไปขยายไปสู่การห่อ query จริงจาก PostgreSQL, Neo4j และ OpenSearch ให้เป็น tool ที่ครบชุดสำหรับ Workshop 2
+→ [Module 6: เครื่องมือจาก 3 ฐานข้อมูล](04-module6-tools-3-databases.md) — Lab นี้ใช้เครื่องมือเดียว โมดูลถัดไปขยายไปสู่การห่อ query จริงจาก PostgreSQL, Neo4j และ OpenSearch ให้เป็น tool ที่ครบชุดสำหรับ Workshop 2

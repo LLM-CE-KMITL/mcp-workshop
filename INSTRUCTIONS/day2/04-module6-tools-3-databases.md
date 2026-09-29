@@ -1,6 +1,6 @@
 # Module 6 · เครื่องมือจาก 3 ฐานข้อมูล
 
-**13:00 – 14:30** (90 นาที) · เป้าหมาย: ห่อ query จริงของ PostgreSQL, Neo4j และ OpenSearch ให้เป็น Tool ที่ ReAct loop เรียกได้ และเขียน Tool Description ที่ทำให้โมเดลเลือกเครื่องมือถูกตัว — ผลลัพธ์ของโมดูลนี้คือชุดเครื่องมือที่ Workshop 2 (ช่วงบ่าย) จะนำไปประกอบเป็น Agent ตัวเต็ม
+**13:00 – 14:15** (75 นาที) · เป้าหมาย: ห่อ query จริงของ PostgreSQL, Neo4j และ OpenSearch ให้เป็น Tool ที่ ReAct loop เรียกได้ และเขียน Tool Description ที่ทำให้โมเดลเลือกเครื่องมือถูกตัว — ผลลัพธ์ของโมดูลนี้คือชุดเครื่องมือที่ Workshop 2 (ช่วงบ่าย) จะนำไปประกอบเป็น Agent ตัวเต็ม
 
 ---
 
@@ -170,4 +170,4 @@ def search_docs_semantic(query: str, top_k: int = 5) -> dict:
 
 ## ต่อไป
 
-→ [Workshop 2: ReAct Agent สำหรับ NOC](04-workshop2-noc-agent.md) — ประกอบเครื่องมือทั้ง 6 ตัว (5 ตัวจากไฟล์เฉลย + `search_docs_semantic` ที่เพิ่งออกแบบ) เข้ากับ ReAct loop จาก Module 5 แล้วทดสอบกับโจทย์จริง 3 สถานการณ์
+→ [Module 8: Memory](05-module8-memory.md) — ก่อนประกอบเป็น Agent เต็มรูปแบบใน Workshop 2 ต้องรู้ก่อนว่าจะจำบทสนทนาข้าม turn อย่างไรโดยไม่ให้ context บวมจนเกินงบ

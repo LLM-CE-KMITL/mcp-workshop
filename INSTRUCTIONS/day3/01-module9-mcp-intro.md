@@ -1,4 +1,4 @@
-# Module 7 · MCP คืออะไร
+# Module 9 · MCP คืออะไร
 
 **09:00 – 10:30** (90 นาที) · เป้าหมาย: เข้าใจว่า MCP แก้ปัญหาอะไรที่การเรียกฟังก์ชัน Python ตรง ๆ ในวันที่ 2 แก้ไม่ได้ รู้จักสามองค์ประกอบหลัก (Tools / Resources / Prompts) ผ่านโค้ดจริงที่ใช้งานได้อยู่แล้วในโปรเจกต์นี้ และลงมือต่อ MCP Server ตัวนั้นเข้ากับ Claude Desktop ด้วยตนเอง
 
@@ -175,4 +175,4 @@ uv run python apps/mcp-server/server.py --transport stdio
 
 ## ต่อไป
 
-→ [Module 8: ความปลอดภัยพื้นฐาน](02-module8-security-basics.md)
+→ [Module 10: ความปลอดภัยพื้นฐาน](02-module10-security-basics.md)

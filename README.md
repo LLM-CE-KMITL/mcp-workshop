@@ -39,10 +39,12 @@
 | เวลา | เอกสาร |
 |---|---|
 | ก่อนเริ่ม | [day2/00-day2-overview.md](INSTRUCTIONS/day2/00-day2-overview.md) — ภาพรวมกิจกรรมทั้งวัน: อะไรต่อกับอะไร ตรงไหนต้องลงมือเขียนโค้ด (อ่านก่อนเข้าโมดูลแรก) |
-| 09:00–10:30 | [day2/01-module4-react-pattern.md](INSTRUCTIONS/day2/01-module4-react-pattern.md) — Module 4: ReAct Pattern |
-| 10:45–12:00 | [day2/02-module5-react-loop.md](INSTRUCTIONS/day2/02-module5-react-loop.md) — Module 5: เขียน ReAct Loop เอง |
-| 13:00–14:30 | [day2/03-module6-tools-3-databases.md](INSTRUCTIONS/day2/03-module6-tools-3-databases.md) — Module 6: เครื่องมือจาก 3 ฐานข้อมูล |
-| 14:45–16:30 | [day2/04-workshop2-noc-agent.md](INSTRUCTIONS/day2/04-workshop2-noc-agent.md) — Workshop 2: ReAct Agent สำหรับ NOC |
+| 09:00–10:00 | [day2/01-module4-react-pattern.md](INSTRUCTIONS/day2/01-module4-react-pattern.md) — Module 4: ReAct Pattern |
+| 10:00–10:30 | [day2/02-module7-intent-gate.md](INSTRUCTIONS/day2/02-module7-intent-gate.md) — Module 7: Intent Gate |
+| 10:45–12:00 | [day2/03-module5-react-loop.md](INSTRUCTIONS/day2/03-module5-react-loop.md) — Module 5: เขียน ReAct Loop เอง |
+| 13:00–14:15 | [day2/04-module6-tools-3-databases.md](INSTRUCTIONS/day2/04-module6-tools-3-databases.md) — Module 6: เครื่องมือจาก 3 ฐานข้อมูล |
+| 14:15–14:45 | [day2/05-module8-memory.md](INSTRUCTIONS/day2/05-module8-memory.md) — Module 8: Memory |
+| 15:00–16:30 | [day2/06-workshop2-noc-agent.md](INSTRUCTIONS/day2/06-workshop2-noc-agent.md) — Workshop 2: ReAct Agent สำหรับ NOC |
 
 **เฉลยวันที่ 2**: `solutions/day2/workshop2_agent.py` คือเฉลยที่ใช้อ้างอิงตรงในเอกสารด้านบนอยู่แล้ว — ส่วน [solutions/day2/README.md](solutions/day2/README.md) และ [solutions/challenges/](solutions/challenges/) เป็นของหลักสูตรเดิม ยังไม่ได้ปรับปรุง
 
@@ -53,8 +55,8 @@
 | เวลา | เอกสาร |
 |---|---|
 | ก่อนเริ่ม | [day3/00-day3-overview.md](INSTRUCTIONS/day3/00-day3-overview.md) — ภาพรวมกิจกรรมทั้งวัน: อะไรต่อกับอะไร ตรงไหนต้องลงมือเขียนโค้ด (อ่านก่อนเข้าโมดูลแรก) |
-| 09:00–10:30 | [day3/01-module7-mcp-intro.md](INSTRUCTIONS/day3/01-module7-mcp-intro.md) — Module 7: MCP คืออะไร (Tools, Resources, Prompts) |
-| 10:45–12:00 | [day3/02-module8-security-basics.md](INSTRUCTIONS/day3/02-module8-security-basics.md) — Module 8: ความปลอดภัยพื้นฐาน |
+| 09:00–10:30 | [day3/01-module9-mcp-intro.md](INSTRUCTIONS/day3/01-module9-mcp-intro.md) — Module 9: MCP คืออะไร (Tools, Resources, Prompts) |
+| 10:45–12:00 | [day3/02-module10-security-basics.md](INSTRUCTIONS/day3/02-module10-security-basics.md) — Module 10: ความปลอดภัยพื้นฐาน |
 | 13:00–16:30 | [day3/03-workshop3-mpls-noc-mcp-server.md](INSTRUCTIONS/day3/03-workshop3-mpls-noc-mcp-server.md) — Workshop 3: MPLS NOC MCP Server (13:00–15:30 ลงมือทำ, 15:30–16:30 สรุปและถาม-ตอบ) |
 
 **เฉลยวันที่ 3**: ไม่มีไฟล์แยก — โค้ดจริงใน [apps/mcp-server/](apps/mcp-server/) คือเฉลย/ตัวอย่างสาธิตอ้างอิง (โปรดอ่านเหตุผลที่ [solutions/day3/README.md](solutions/day3/README.md) — เอกสารนี้อ้างอิง Workshop 3A-D ของหลักสูตรเดิม ยังไม่ได้ปรับปรุงให้ตรงกับ Workshop 3 ใหม่ด้านบน)
