@@ -1,12 +1,12 @@
-# Lab · Vector ใน Neo4j
+# Module 2b · Vector ใน Neo4j
 
-**11:05 – 11:30** (25 นาที) · ต่อจาก [Lab: Vector ใน PostgreSQL](02-lab-pg-vectors.md)
+**11:05 – 11:30** (25 นาที) · ต่อจาก [Module 2a: Vector ใน PostgreSQL](02-module2a-pg-vec.md)
 
 ---
 
 ## เป้าหมาย
 
-ทำสิ่งเดียวกับ Lab ก่อนหน้าอีกครั้ง แต่คราวนี้ใน Neo4j ซึ่งเก็บ vector เป็น **property ของ node โดยตรง** ไม่ใช่คอลัมน์แยกแบบ PostgreSQL
+ทำสิ่งเดียวกับ Module 2a ก่อนหน้าอีกครั้ง แต่คราวนี้ใน Neo4j ซึ่งเก็บ vector เป็น **property ของ node โดยตรง** ไม่ใช่คอลัมน์แยกแบบ PostgreSQL
 
 ระบบในขณะนี้ **มี embedding พร้อมใช้งานอยู่แล้ว** เช่นกัน ขั้นตอนแรกของ lab นี้คือการลบข้อมูลดังกล่าวออก เพื่อให้ผู้เรียนได้สร้างขึ้นใหม่ด้วยตนเอง
 
@@ -38,7 +38,7 @@ MATCH (c:Circuit) REMOVE c.embedding;
 MATCH (n) WHERE n.embedding IS NOT NULL RETURN count(n) AS nodes_with_embedding;
 ```
 
-หมายเหตุ: `make lab1-reset` ลบ vector ทั้งใน PostgreSQL และ Neo4j พร้อมกันในคำสั่งเดียว หากทำ [Lab: Vector ใน PostgreSQL](02-lab-pg-vectors.md) ด้วย `make lab1-reset` มาแล้ว Neo4j ถูกลบไปพร้อมกันแล้วเช่นกัน — ขั้นตอนนี้สำหรับกรณีที่ลบเฉพาะฝั่ง PostgreSQL ด้วย SQL ตรงๆ มาก่อน
+หมายเหตุ: `make lab1-reset` ลบ vector ทั้งใน PostgreSQL และ Neo4j พร้อมกันในคำสั่งเดียว หากทำ [Module 2a: Vector ใน PostgreSQL](02-module2a-pg-vec.md) ด้วย `make lab1-reset` มาแล้ว Neo4j ถูกลบไปพร้อมกันแล้วเช่นกัน — ขั้นตอนนี้สำหรับกรณีที่ลบเฉพาะฝั่ง PostgreSQL ด้วย SQL ตรงๆ มาก่อน
 
 ลองค้นหา Device ที่คล้ายกันผ่าน MCP Inspector อีกครั้ง — ระบบจะตอบว่ายังไม่มี vector index
 
@@ -80,7 +80,7 @@ SHOW VECTOR INDEXES YIELD name, state WHERE name IN ['device_embedding', 'circui
 
 ข้อความที่ต้อง embed ไม่ใช่ทั้ง node แต่เป็นฟิลด์ `profile_text` ที่ seed ไว้ให้แล้ว — ตัวอย่างจริง: `"CR-BKK-01 is a core router carrying backbone transit between sites. Located at site BKK. Management address 10.10.0.1. Interfaces: Hu0/0/0/0, Hu0/0/0/1, Hu0/0/0/2."`
 
-แทนที่จะเขียนเองเหมือน `my_embed.py` ใน Lab PostgreSQL รอบนี้ใช้สคริปต์อ้างอิงที่มีอยู่แล้วได้เลย (โค้ดตัวอย่างอยู่ใน [`docker/seeder/seed_neo4j.py`](../../docker/seeder/seed_neo4j.py) — วนทั้ง `Device` และ `Circuit` ในลูปเดียว เพราะ logic เหมือนกันทุกประการ ต่างแค่ label):
+แทนที่จะเขียนเองเหมือน `my_embed.py` ใน Module 2a รอบนี้ใช้สคริปต์อ้างอิงที่มีอยู่แล้วได้เลย (โค้ดตัวอย่างอยู่ใน [`docker/seeder/seed_neo4j.py`](../../docker/seeder/seed_neo4j.py) — วนทั้ง `Device` และ `Circuit` ในลูปเดียว เพราะ logic เหมือนกันทุกประการ ต่างแค่ label):
 
 ```bash
 uv run python scripts/embed_devices.py
@@ -124,7 +124,7 @@ RETURN node.device_id AS id, score
 
 อุปกรณ์ตัวเองได้คะแนนสูงสุดเสมอ (ใกล้ 1.0) ตามด้วย `CR-BKK-02` ซึ่งเป็น core router เหมือนกัน — เป็นหลักฐานว่า embedding จับ "บทบาทของอุปกรณ์" ได้ ไม่ใช่แค่จับชื่อที่คล้ายกัน
 
-ลองถามคำถามเดิมจากขั้นที่ 0 ของ [Lab: Vector ใน PostgreSQL](02-lab-pg-vectors.md) ผ่าน Chainlit อีกครั้ง — ตอนนี้ระบบควรตอบ semantic search ได้ครบทั้งสองฐานข้อมูลแล้ว
+ลองถามคำถามเดิมจากขั้นที่ 0 ของ [Module 2a: Vector ใน PostgreSQL](02-module2a-pg-vec.md) ผ่าน Chainlit อีกครั้ง — ตอนนี้ระบบควรตอบ semantic search ได้ครบทั้งสองฐานข้อมูลแล้ว
 
 ---
 
@@ -186,4 +186,4 @@ RETURN node.device_id AS id, score;
 
 ## ต่อไป
 
-→ [Module 2: Embeddings กับ OpenSearch](04-module2-embeddings-opensearch.md) — ฐานข้อมูลตัวที่ 3 ที่เก็บ vector ได้ และเป็นตัวที่ production เลือกใช้เป็นหลัก
+→ [Module 2c: Embeddings กับ OpenSearch](04-module2c-opensearch-vec.md) — ฐานข้อมูลตัวที่ 3 ที่เก็บ vector ได้ และเป็นตัวที่ production เลือกใช้เป็นหลัก

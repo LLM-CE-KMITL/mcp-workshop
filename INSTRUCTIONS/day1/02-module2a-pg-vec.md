@@ -1,4 +1,4 @@
-# Lab · Vector ใน PostgreSQL
+# Module 2a · Vector ใน PostgreSQL
 
 **10:30 – 11:05** (35 นาที) · ต่อจาก Module 1
 
@@ -10,7 +10,7 @@
 
 ระบบในขณะนี้ **มี embedding พร้อมใช้งานอยู่แล้ว** ขั้นตอนแรกของ lab นี้คือการลบข้อมูลดังกล่าวออก เพื่อให้ผู้เรียนได้สร้างขึ้นใหม่ด้วยตนเอง
 
-ต่อด้วย [Lab: Vector ใน Neo4j](03-lab-neo4j-vectors.md) ที่ใช้หลักการเดียวกันนี้ แต่ในฐานข้อมูลกราฟซึ่งเก็บ vector คนละแบบ
+ต่อด้วย [Module 2b: Vector ใน Neo4j](03-module2b-neo4j-vec.md) ที่ใช้หลักการเดียวกันนี้ แต่ในฐานข้อมูลกราฟซึ่งเก็บ vector คนละแบบ
 
 ---
 
@@ -39,7 +39,7 @@ FROM information_schema.columns
 WHERE table_name = 'tickets' AND column_name = 'embedding';
 ```
 
-หมายเหตุ: `make lab1-reset` ลบ vector ทั้งใน **PostgreSQL และ Neo4j** พร้อมกันในคำสั่งเดียว (Neo4j จะลบเองอีกครั้งใน [Lab: Vector ใน Neo4j](03-lab-neo4j-vectors.md)) หากต้องการรันเพียงคำสั่งเดียวแทนการเปิด pgAdmin สามารถใช้คำสั่งนี้ได้เช่นกัน
+หมายเหตุ: `make lab1-reset` ลบ vector ทั้งใน **PostgreSQL และ Neo4j** พร้อมกันในคำสั่งเดียว (Neo4j จะลบเองอีกครั้งใน [Module 2b: Vector ใน Neo4j](03-module2b-neo4j-vec.md)) หากต้องการรันเพียงคำสั่งเดียวแทนการเปิด pgAdmin สามารถใช้คำสั่งนี้ได้เช่นกัน
 
 ลองถามคำถามเดิมอีกครั้ง — ระบบจะตอบว่ายังไม่มี embedding
 
@@ -307,4 +307,4 @@ LIMIT 5;
 
 ## ต่อไป
 
-→ [Lab: Vector ใน Neo4j](03-lab-neo4j-vectors.md)
+→ [Module 2b: Vector ใน Neo4j](03-module2b-neo4j-vec.md)

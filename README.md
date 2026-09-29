@@ -26,9 +26,9 @@
 |---|---|
 | ก่อนเริ่ม | [day1/00-day1-overview.md](INSTRUCTIONS/day1/00-day1-overview.md) — ภาพรวมกิจกรรมทั้งวัน: อะไรต่อกับอะไร ตรงไหนต้องลงมือเขียนโค้ด (อ่านก่อนเข้าโมดูลแรก) |
 | 09:00–10:15 | [day1/01-module1-llm-basics.md](INSTRUCTIONS/day1/01-module1-llm-basics.md) — Module 1: LLM ทำงานอย่างไร (Token, ค่าใช้จ่าย, Context Window) |
-| 10:30–11:05 | [day1/02-lab-pg-vectors.md](INSTRUCTIONS/day1/02-lab-pg-vectors.md) — Lab: Vector ใน PostgreSQL |
-| 11:05–11:30 | [day1/03-lab-neo4j-vectors.md](INSTRUCTIONS/day1/03-lab-neo4j-vectors.md) — Lab: Vector ใน Neo4j |
-| 11:30–12:30 | [day1/04-module2-embeddings-opensearch.md](INSTRUCTIONS/day1/04-module2-embeddings-opensearch.md) — Module 2: Embeddings กับ OpenSearch |
+| 10:30–11:05 | [day1/02-module2a-pg-vec.md](INSTRUCTIONS/day1/02-module2a-pg-vec.md) — Module 2a: Vector ใน PostgreSQL |
+| 11:05–11:30 | [day1/03-module2b-neo4j-vec.md](INSTRUCTIONS/day1/03-module2b-neo4j-vec.md) — Module 2b: Vector ใน Neo4j |
+| 11:30–12:30 | [day1/04-module2c-opensearch-vec.md](INSTRUCTIONS/day1/04-module2c-opensearch-vec.md) — Module 2c: Embeddings กับ OpenSearch |
 | 12:30–13:00 | [day1/05-lab-ingestion-markdown.md](INSTRUCTIONS/day1/05-lab-ingestion-markdown.md) — Lab: Ingestion Pipeline สำหรับเอกสาร Markdown |
 | 14:00–15:00 | [day1/06-module3-json-api.md](INSTRUCTIONS/day1/06-module3-json-api.md) — Module 3: เรียก API และให้ตอบเป็น JSON |
 | 15:15–16:30 | [day1/07-workshop1-ticket-extractor.md](INSTRUCTIONS/day1/07-workshop1-ticket-extractor.md) — Workshop 1: ตัวแยกข้อมูล Ticket |

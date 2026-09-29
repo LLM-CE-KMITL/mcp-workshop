@@ -212,4 +212,4 @@ tiktoken_error_pct (config): -12.8%
 
 ## ต่อไป
 
-→ [Lab: Vector ใน PostgreSQL](02-lab-pg-vectors.md)
+→ [Module 2a: Vector ใน PostgreSQL](02-module2a-pg-vec.md)

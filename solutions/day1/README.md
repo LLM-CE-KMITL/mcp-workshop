@@ -4,10 +4,10 @@
 
 | ไฟล์ | เฉลยของ |
 |---|---|
-| `ticket_opensearch_lab.py` | [Module 2: Embeddings กับ OpenSearch](../../INSTRUCTIONS/day1/04-module2-embeddings-opensearch.md) |
+| `ticket_opensearch_lab.py` | [Module 2c: Embeddings กับ OpenSearch](../../INSTRUCTIONS/day1/04-module2c-opensearch-vec.md) |
 | `workshop1_extractor.py` | [Workshop 1: ตัวแยกข้อมูล Ticket](../../INSTRUCTIONS/day1/07-workshop1-ticket-extractor.md) |
 
-Module 1 และ Module 3 เป็นเนื้อหาบรรยาย/สาธิต ไม่มีไฟล์เฉลยแยก — Lab: Vector ใน PostgreSQL ([`02-lab-pg-vectors.md`](../../INSTRUCTIONS/day1/02-lab-pg-vectors.md)), Lab: Vector ใน Neo4j ([`03-lab-neo4j-vectors.md`](../../INSTRUCTIONS/day1/03-lab-neo4j-vectors.md)) และ Lab: Ingestion Pipeline เอกสาร Markdown ([`05-lab-ingestion-markdown.md`](../../INSTRUCTIONS/day1/05-lab-ingestion-markdown.md)) ก็ไม่มีไฟล์เฉลยแยกเช่นกัน เพราะทั้งสาม Lab อ้างอิงสคริปต์ที่ทำงานได้จริงอยู่แล้วที่ `scripts/embed_tickets.py`, `scripts/embed_devices.py` และ `scripts/ingest_docs.py`
+Module 1 และ Module 3 เป็นเนื้อหาบรรยาย/สาธิต ไม่มีไฟล์เฉลยแยก — Module 2a: Vector ใน PostgreSQL ([`02-module2a-pg-vec.md`](../../INSTRUCTIONS/day1/02-module2a-pg-vec.md)), Module 2b: Vector ใน Neo4j ([`03-module2b-neo4j-vec.md`](../../INSTRUCTIONS/day1/03-module2b-neo4j-vec.md)) และ Lab: Ingestion Pipeline เอกสาร Markdown ([`05-lab-ingestion-markdown.md`](../../INSTRUCTIONS/day1/05-lab-ingestion-markdown.md)) ก็ไม่มีไฟล์เฉลยแยกเช่นกัน เพราะทั้งสามอ้างอิงสคริปต์ที่ทำงานได้จริงอยู่แล้วที่ `scripts/embed_tickets.py`, `scripts/embed_devices.py` และ `scripts/ingest_docs.py`
 
 ---
 
@@ -25,7 +25,7 @@ uv run solutions/day1/workshop1_extractor.py
 
 ---
 
-## 3 จุดที่ผู้เรียนพลาดมากที่สุดใน Module 2
+## 3 จุดที่ผู้เรียนพลาดมากที่สุดใน Module 2c
 
 | # | พลาดอะไร | อาการ |
 |---|---|---|
@@ -64,6 +64,6 @@ uv run solutions/day1/workshop1_extractor.py
 
 pipeline ที่หยุดทำงานเพราะแถวเดียวเสีย แย่กว่า pipeline ที่ติดธงแล้วทำต่อ
 
-### ขั้นตอนใหม่: `find_similar_tickets()` เชื่อม Module 2 กับ Workshop 1 เข้าด้วยกัน
+### ขั้นตอนใหม่: `find_similar_tickets()` เชื่อม Module 2c กับ Workshop 1 เข้าด้วยกัน
 
 หลังสกัดข้อมูลสำเร็จ ฟังก์ชันนี้ embed ค่า `summary_th` ที่ได้ ด้วยรูปแบบเดียวกับ `ticket_opensearch_lab.py` แล้วค้นหาด้วย `knn` query กับ index `tickets-lab` — ผลจริงจากการทดสอบแสดงให้เห็นว่าค้นเจอ ticket ที่เกี่ยวข้องได้แม้คำอธิบายที่สกัดมาไม่มีศัพท์เทคนิคปนอยู่เลย (เช่น extraction พูดถึง "video conference หลุดบ่อย" แต่ยังจับคู่กับ ticket ประเภท `intermittent` อื่นๆ ได้ถูกต้องด้วยคะแนน similarity สูง) — นี่คือหลักฐานที่ตอบคำถามว่าทำไมต้องใช้ semantic search แทน keyword matching อย่างเดียว

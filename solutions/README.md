@@ -37,7 +37,9 @@ flowchart TD
 | กิจกรรม | เฉลยอยู่ที่ |
 |---|---|
 | Module 1 · LLM ทำงานอย่างไร | ใช้ `apps/agent-api/agent/tokenizer.py` ที่มีอยู่แล้ว ไม่มีไฟล์เฉลยแยก |
-| Module 2 · Embeddings กับ OpenSearch | [`day1/ticket_opensearch_lab.py`](day1/ticket_opensearch_lab.py) |
+| Module 2a · Vector ใน PostgreSQL | ไม่มีไฟล์เฉลยแยก (อ้างอิงสคริปต์ `scripts/embed_tickets.py`) |
+| Module 2b · Vector ใน Neo4j | ไม่มีไฟล์เฉลยแยก (อ้างอิงสคริปต์ `scripts/embed_devices.py`) |
+| Module 2c · Embeddings กับ OpenSearch | [`day1/ticket_opensearch_lab.py`](day1/ticket_opensearch_lab.py) |
 | Workshop 1 · ตัวแยกข้อมูล Ticket | [`day1/workshop1_extractor.py`](day1/workshop1_extractor.py) |
 | Module 4-6 · ReAct Pattern / ReAct Loop / เครื่องมือ 3 ฐานข้อมูล | [`day2/workshop2_agent.py`](day2/workshop2_agent.py) |
 | Module 7 · Intent Gate | `apps/agent-api/agent/intent.py` |
