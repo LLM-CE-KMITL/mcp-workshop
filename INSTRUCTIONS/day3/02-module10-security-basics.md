@@ -52,6 +52,30 @@ ALTER ROLE mcp_reader SET idle_in_transaction_session_timeout = '30s';
 
 ทำให้ query ที่โมเดลสร้างขึ้นแล้ววนไม่รู้จบไม่สามารถยึด connection ไว้ตลอดไปได้
 
+**ตัวอย่างรันได้ทันที** — ลองสั่ง `DELETE` ตรงๆ ด้วยบัญชี `mcp_reader` เอง (ไม่ผ่าน MCP server หรือโมเดลเลย) เพื่อพิสูจน์ว่าฐานข้อมูลปฏิเสธเองจริงๆ ไม่ใช่แค่โค้ดฝั่ง server ที่ปฏิเสธ:
+
+```bash
+uv run python -c "
+import psycopg
+dsn = 'postgresql://mcp_reader:mcp_reader_password@localhost:5432/mplsdb'
+with psycopg.connect(dsn) as conn:
+    cur = conn.cursor()
+    try:
+        cur.execute(\"DELETE FROM tickets WHERE ticket_id = 'TK-25-00005'\")
+        print('ลบสำเร็จ (ไม่ควรเกิดขึ้น!)')
+    except Exception as exc:
+        print(f'{type(exc).__name__}: {exc}')
+"
+```
+
+**ผลลัพธ์จริง** (รันจริงตอนเตรียมเอกสารนี้):
+
+```
+InsufficientPrivilege: permission denied for table tickets
+```
+
+สังเกตว่า error นี้มาจาก PostgreSQL เอง (`InsufficientPrivilege`) ไม่ใช่ exception ที่โค้ด Python จงใจ raise ขึ้นมา — ต่อให้ไม่มีโค้ด Python สักบรรทัดเดียวมาดักไว้ก่อน คำสั่ง `DELETE` นี้ก็จะถูกปฏิเสธอยู่ดี นี่คือความหมายของ "guardrail ที่บังคับในสิทธิ์ฐานข้อมูลเป็นกฎที่บังคับใช้จริง" ตามหัวข้อ 1
+
 ---
 
 ## 3. ไฟล์ `.env` — แยกความลับออกจากโค้ด
@@ -119,6 +143,28 @@ _SECRET_NAME = r"[\w-]*(?:password|passwd|secret|api[_-]?key|token|credential)s?
 
 ตัว `[\w-]*` นำหน้าคือส่วนสำคัญ: ถ้าเขียน regex แบบไร้เดียงสาว่า `\bpassword\b` มันจะ**ไม่** match คำว่า `PG_PASSWORD` เลย เพราะขีดล่าง (`_`) ถือเป็น word character การขึ้นต้นด้วย `\b` (word boundary) จึงไม่เกิดขึ้นตรงกลางคำแบบนั้น ผลคือรหัสผ่านที่ตั้งชื่อตามแบบที่ใช้จริงในโปรเจกต์นี้ (`PG_PASSWORD`, `NEO4J_PASSWORD`) จะรั่วไหลออกไปได้โดยไม่มีใครรู้ตัว — นี่คือบั๊กที่พบจริงตอนเขียนเทสของโปรเจกต์นี้ (บันทึกไว้ที่ `solutions/day3/README.md:50`)
 
+**ตัวอย่างรันได้ทันที** — เทียบ regex ไร้เดียงสากับ regex ที่ใช้จริง กับข้อความเดียวกัน:
+
+```bash
+uv run python -c "
+import re
+naive = re.compile(r'\bpassword\b', re.IGNORECASE)
+real = re.compile(r'(?i)\b([\w-]*(?:password|passwd|secret|api[_-]?key|token|credential)s?)\s*[:=]\s*\S+')
+text = 'PG_PASSWORD=hunter2 NEO4J_PASSWORD=neo4j_dev_password'
+print('naive regex เจอ:', naive.findall(text))
+print('regex ที่ใช้จริง เจอ:', real.findall(text))
+"
+```
+
+**ผลลัพธ์จริง** (รันจริงตอนเตรียมเอกสารนี้):
+
+```
+naive regex เจอ: []
+regex ที่ใช้จริง เจอ: ['PG_PASSWORD', 'NEO4J_PASSWORD']
+```
+
+`naive` หาไม่เจอเลยสักคำ — ถ้าใช้ pattern นี้จริง ทั้ง `PG_PASSWORD` และ `NEO4J_PASSWORD` จะหลุดออกไปแบบไม่มีการเตือนใดๆ ทั้งที่ชื่อมันก็บอกอยู่ตรงๆ ว่าเป็นรหัสผ่าน
+
 ### เหตุใดต้องมีกรณีสำหรับ dict แยกต่างหาก
 
 ```python
@@ -127,6 +173,26 @@ _SECRET_KEY_RE = re.compile(rf"(?i)^{_SECRET_NAME}$")
 *(`guardrails.py:138`)*
 
 ในโครงสร้างแบบ `{"password": "hunter2"}` ไม่มี string เดี่ยว ๆ ที่มีทั้งชื่อฟิลด์และค่าอยู่ในตัวเดียวกันให้ pattern ด้านบนจับได้ `redact_deep` จึงตรวจสอบ **ชื่อ key เอง** ก่อนตัดสินใจว่าค่าของมันควรถูกซ่อนทั้งหมดหรือไม่ (`guardrails.py:163-170`)
+
+**ตัวอย่างรันได้ทันที** — ทดสอบ `redact_deep` กับ dict ที่มีทั้ง key ชื่อ `password` และ string ที่ซ่อนอยู่ใน list ข้างในอีกที:
+
+```bash
+uv run python -c "
+import sys
+sys.path.insert(0, 'apps/mcp-server')
+from security.guardrails import redact_deep
+data = {'device_id': 'CR-BKK-01', 'password': 'hunter2', 'notes': ['snmp-server community public_snmp_read RO']}
+print(redact_deep(data))
+"
+```
+
+**ผลลัพธ์จริง** (รันจริงตอนเตรียมเอกสารนี้):
+
+```
+{'device_id': 'CR-BKK-01', 'password': '[REDACTED]', 'notes': ['snmp-server community: [REDACTED] RO']}
+```
+
+`device_id` ผ่านมาเฉยๆ เพราะไม่ใช่ชื่อ key หรือค่าที่หน้าตาเหมือนความลับ ส่วน `password` ถูกซ่อนทั้งค่าเพราะชื่อ key เข้าเงื่อนไข `_SECRET_KEY_RE` และ string ที่ซ้อนอยู่ใน list ก็ยังถูกไล่ตรวจต่อได้ (เพราะ `redact_deep` เรียกตัวเองซ้ำเข้าไปใน list ด้วย) — ยืนยันว่าการซ่อนข้อมูลทำงานได้ไม่ว่าความลับจะอยู่ตื้นหรือลึกแค่ไหนในโครงสร้าง
 
 ### ที่ที่ฟังก์ชันนี้ถูกเรียกใช้จริง
 
