@@ -171,6 +171,34 @@ asyncio.run(main())
 
 ---
 
+## 4. ส่วนขยาย: Long-term Memory — คนละกลไกกับด้านบนทั้งหมด
+
+Section 1-3 ทั้งหมดคือ **short-term memory** (`memory.py`) ซึ่งออกแบบให้ "ลืม" โดยตั้งใจ — เก็บอยู่แค่ในหน่วยความจำของ process (`_SESSIONS` dict) และหายไปทันทีที่ restart หรือจบ session
+
+`apps/agent-api/agent/memory_longterm.py` คือกลไกคนละแบบ ออกแบบไว้สำหรับข้อเท็จจริงที่ควรอยู่ **ถาวรข้าม session** โดย reuse pgvector infrastructure ตัวเดียวกับ [Module 2a วันที่ 1](../day1/02-module2a-pg-vec.md) เก็บเป็น embedding ไว้ในตาราง `agent_memory` (PostgreSQL) แทนที่จะเก็บในหน่วยความจำ:
+
+```mermaid
+flowchart TD
+    subgraph R["บันทึก: remember()"]
+        direction TB
+        F1["ข้อสรุปที่ agent ตัดสินใจว่าควรจำไว้ข้ามวัน<br/>เช่น 'APE-NBI-03 มีปัญหา optical power ซ้ำๆ'"] --> E1["_embed()"]
+        E1 --> W["INSERT ลงตาราง agent_memory<br/>(session_id, kind, content, entities[], embedding)"]
+    end
+
+    subgraph C["ค้นคืน: recall()"]
+        direction TB
+        Q["คำถามใหม่ในอนาคต<br/>(session ไหนก็ได้ ไม่ผูกกับ session เดิม)"] --> E2["_embed()"]
+        E2 --> S["ORDER BY embedding &lt;=&gt; query_vector<br/>(หลักการเดียวกับ pgvector ใน Module 2a วันที่ 1)"]
+        S --> TOP["ข้อเท็จจริงเก่าที่ใกล้เคียงที่สุด"]
+    end
+
+    W -.->|"เก็บไว้ถาวรในตาราง<br/>ข้าม session และข้าม restart"| S
+```
+
+**สถานะปัจจุบัน**: ไม่มีไฟล์ใดใน `apps/agent-api` เรียกใช้ `memory_longterm.py` เลย — เป็นกลไกที่ออกแบบไว้แต่ยังไม่ถูกเชื่อมเข้ากับ `main.py` จริง (ลักษณะเดียวกับ `orchestrator.py` ที่พบใน [สรุป Day 1](../day1/08-summary-json-template-in-app.md)) การจะนำมาใช้จริงต้องเรียก `remember()` หลังตอบคำถามสำเร็จ (เช่น ในขั้นตอน grounding) และเรียก `recall()` ก่อนเริ่ม ReAct loop เพื่อดึงข้อเท็จจริงเก่าที่เกี่ยวข้องมาเป็น context เพิ่ม
+
+---
+
 ## แบบฝึกหัด: ทดสอบ Memory กับบทสนทนา 3 turn
 
 ```bash
