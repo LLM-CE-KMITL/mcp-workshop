@@ -3,7 +3,7 @@
 โฟลเดอร์นี้ถูก expose ผ่าน MCP Resource `files://index` และ `files://read/{path}`
 แบบ **อ่านอย่างเดียวและอยู่ใน sandbox**
 
-ใช้สอน Workshop 3 ส่วน Resource Setup — การเปิดให้ AI อ่านระบบไฟล์อย่างปลอดภัย
+ใช้สอน Workshop 4 ส่วน Resource Setup — การเปิดให้ AI อ่านระบบไฟล์อย่างปลอดภัย
 
 ## กติกาความปลอดภัย 3 ข้อ
 

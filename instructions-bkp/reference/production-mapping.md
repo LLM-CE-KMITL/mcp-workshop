@@ -75,7 +75,7 @@ flowchart TB
 | แปลงเอกสารเป็น Markdown + embed | pipeline ใน `seed_opensearch.py` และ lab ingestion |
 | ท่อข้อมูลจาก API / NEX | `docker/loader/` เป็นต้นแบบ (ต้องเปลี่ยนเป็น Filebeat) |
 | Health Check 3 ฐาน | **`make verify` ใช้เป็น acceptance test ได้โดยตรง** |
-| MCP เป็นตัวกลาง | **แกนของ Workshop 3 และ Workshop 4 ทั้งหมด** |
+| MCP เป็นตัวกลาง | **แกนของ Workshop 3 ทั้งหมด** |
 
 ### ครั้งที่ 2 (60 วัน) — Integration & Evaluation
 

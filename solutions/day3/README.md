@@ -2,37 +2,44 @@
 
 > ⚠️ อ่านก่อนลอง = เสียโอกาสเรียนรู้ · ดูวิธีใช้ที่ [../README.md](../README.md)
 
-**ไม่มีไฟล์เฉลยแยกในโฟลเดอร์นี้โดยตั้งใจ** — เพราะเฉลยของวันที่ 3 คือระบบที่ทำงานอยู่จริง
+`apps/mcp-server/` คือระบบ MCP Server ที่ทำงานสมบูรณ์อยู่แล้ว ใช้เป็นเฉลยอ้างอิงของ Workshop 4 — **แต่ไม่ใช่สิ่งที่ต้องแก้ไขโดยตรง** งานจริงของ Workshop 4 คือเขียนไฟล์ `workshop4_mcp_server.py` ของตนเองที่ root ของโปรเจกต์แยกต่างหาก ซึ่งเฉลยของไฟล์นั้นอยู่ที่ [`workshop4_mcp_server.py`](workshop4_mcp_server.py) ในโฟลเดอร์นี้
 
-| โจทย์ | เฉลยอยู่ที่ |
+**Workshop 3 ต่างจากกิจกรรมอื่น**: ตั้งใจให้แก้ `apps/mcp-server/` โดยตรง (ไม่มีไฟล์แยกต่างหาก) จึง**ไม่มีไฟล์เฉลยแยกในโฟลเดอร์นี้** — โค้ดคำตอบทั้งหมด (ไฟล์ `apps/mcp-server/tools/customers.py` ที่ต้องสร้างใหม่ และ 2 บรรทัดที่ต้องเพิ่มใน `apps/mcp-server/server.py`) อยู่ในเนื้อหาของ [03-workshop3-customer-directory.md](../../INSTRUCTIONS/day3/03-workshop3-customer-directory.md) เองทั้งหมด คัดลอกจากที่นั่นได้ตรงๆ
+
+| กิจกรรม | เฉลยอยู่ที่ |
 |---|---|
-| [Workshop 3A: MCP Server](../../INSTRUCTIONS/day3/05-workshop3a-mcp-server.md) | `apps/mcp-server/` |
-| [Workshop 3B: Agent API](../../INSTRUCTIONS/day3/06-workshop3b-agent-api.md) | `apps/agent-api/main.py` |
-| [Workshop 3C: Chainlit](../../INSTRUCTIONS/day3/07-workshop3c-chainlit.md) | `apps/chainlit-ui/` |
-| [โจทย์ที่ 5: Guardrail Red-team](../../INSTRUCTIONS/day3/04-challenge5-guardrail-redteam.md) | `tests/test_guardrails.py` |
-| [โจทย์ที่ 6: Cross-Service](../../INSTRUCTIONS/day3/12-challenge6-cross-service-diagnosis.md) | `uv run python eval/run_eval.py` |
+| [Module 9: MCP คืออะไร](../../INSTRUCTIONS/day3/01-module9-mcp-intro.md) | `apps/mcp-server/` (สาธิตโดยวิทยากร) |
+| [Module 10: ความปลอดภัยพื้นฐาน](../../INSTRUCTIONS/day3/02-module10-security-basics.md) | `apps/mcp-server/security/guardrails.py`, `docker/postgres/init/99_readonly_role.sql` |
+| [Workshop 3: Customer Directory MCP Server](../../INSTRUCTIONS/day3/03-workshop3-customer-directory.md) | อยู่ในเนื้อหาของเอกสารกิจกรรมเอง (ดูด้านบน) |
+| [Workshop 4: MPLS NOC MCP Server](../../INSTRUCTIONS/day3/04-workshop4-mpls-noc-mcp-server.md) | [`workshop4_mcp_server.py`](workshop4_mcp_server.py) |
 
 ---
 
-## วิธีทำ Workshop 3 ให้ได้ประโยชน์เต็มที่
-
-โค้ดใน `apps/` ทำงานได้อยู่แล้วและเป็นตัวเดียวกับที่ container เดโมใช้
-หากเปิดอ่านก่อนเริ่ม จะเหลือเพียงการคัดลอกโค้ด
-
-**แนวทางที่ควรทำแทน**
+## วิธีรัน
 
 ```bash
-cp -r apps/mcp-server /tmp/mcp-server-reference
+uv run python -c "
+import ast
+ast.parse(open('solutions/day3/workshop4_mcp_server.py').read())
+print('syntax OK')
+"
 ```
 
-แล้วเขียนโค้ดของตนเองใน `apps/mcp-server/` โดยเริ่มจาก:
+เปิดใช้งานจริงผ่าน MCP Inspector หรือ Claude Desktop ตามขั้นตอนใน [Workshop 4](../../INSTRUCTIONS/day3/04-workshop4-mpls-noc-mcp-server.md) — ตัวไฟล์เองรอ client มาเชื่อมต่อผ่าน stdio (`mcp.run(transport="stdio")`) จึงไม่มี output ให้ดูจากการรันตรงๆ ด้วยตัวเอง
 
-1. `server.py` + `config.py` + `db.py` — โครงพื้นฐาน
-2. `tools/tickets.py` เพียง **1 tool** ให้ทำงานได้ก่อน
-3. ทดสอบด้วย MCP Inspector ให้ผ่าน
-4. แล้วค่อยเติมที่เหลือตาม pattern เดิม
+Workshop 3 ทดสอบคนละแบบ (ผ่าน Chainlit UI เพราะแก้ `apps/mcp-server/` ตัวจริงโดยตรง) ดูขั้นตอนที่ [03-workshop3-customer-directory.md หัวข้อ 3](../../INSTRUCTIONS/day3/03-workshop3-customer-directory.md)
 
-เมื่อเสร็จสิ้นให้เทียบกับ `/tmp/mcp-server-reference`
+---
+
+## `workshop4_mcp_server.py` มีอะไรบ้าง
+
+| ส่วนประกอบ | จำนวน | มาจากไหน |
+|---|---|---|
+| `@mcp.tool` | 6 ตัว | logic คัดลอกจาก `solutions/day2/workshop2_agent.py` (5 ตัวแรก) และ `solutions/day2/workshop2_noc_agent.py` (`search_docs_semantic`) |
+| `@mcp.resource` | 1 ตัว (`schema://noc`) | เขียนใหม่ตามแบบ `apps/mcp-server/resources/schemas.py` โดยเป็น dict คงที่ ไม่ query สดจากฐานข้อมูล |
+| `@mcp.prompt` | 1 ตัว (`diagnose_shared_upstream`) | เวอร์ชันย่อของ `apps/mcp-server/prompts/templates.py` ที่ตัดขั้นตอนที่พึ่ง tool ซึ่งไม่ได้สร้างในวันนี้ออก |
+
+ยืนยันแล้วว่าเรียก `mcp.list_tools()`/`list_resources()`/`list_prompts()` ได้ผลลัพธ์ครบ 6/1/1 ตามที่ออกแบบไว้ และตรรกะภายในของแต่ละ tool ทำงานได้จริงกับ Postgres/Neo4j/OpenSearch/MailHog ที่รันอยู่จริง (ไม่ใช่ mock)
 
 ---
 

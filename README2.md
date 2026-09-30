@@ -129,8 +129,9 @@ flowchart TD
     subgraph D3["วันที่ 3 — MCP Production"]
         M7[M7 MCP Architecture] --> M8[M8 Security + SDK]
         M8 --> C5{{โจทย์ 5<br/>Guardrail Red-team}}
-        C5 --> W3[Workshop 3<br/>MCP Server จริง]
-        W3 --> C6{{โจทย์ 6<br/>Cross-Service Diagnosis}}
+        C5 --> W3[Workshop 3<br/>Customer Directory MCP]
+        W3 --> W4[Workshop 4<br/>MCP Server จริง]
+        W4 --> C6{{โจทย์ 6<br/>Cross-Service Diagnosis}}
     end
 
     D1 --> D2 --> D3
