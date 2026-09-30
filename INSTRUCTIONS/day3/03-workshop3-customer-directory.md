@@ -2,7 +2,7 @@
 
 **13:00 – 13:45** (45 นาที) · เป้าหมาย: เพิ่ม **tool เดียว** — `list_customers_by_segment` — เข้าไปใน `apps/mcp-server/` ตัวจริงที่ระบบทั้งหมดใช้งานร่วมกัน สำหรับ list รายชื่อลูกค้าตาม segment ที่ป้อนเข้ามา โดยต้อง**ตรวจสอบ (validate) ค่า segment ให้อยู่ในสามค่าที่กำหนดเท่านั้นก่อนใช้งานจริง**: `"Enterprise"`, `"SME"`, `"Government"`
 
-**ข้อแตกต่างจากกิจกรรมอื่นในหลักสูตรนี้**: ทุก Workshop ก่อนหน้านี้ (1, 2, และ Workshop 4 ที่ตามมา) ให้สร้างไฟล์แยกต่างหากของตนเอง ห้ามแก้ระบบอ้างอิง — แต่ Workshop นี้ตั้งใจให้**แก้ `apps/mcp-server/` โดยตรง** เพื่อฝึกความรู้สึกของการเพิ่มความสามารถเข้าไปในระบบที่ใช้งานจริงอยู่แล้ว (production-style) ถือเป็นข้อยกเว้นเฉพาะกิจกรรมนี้เท่านั้น
+**ข้อแตกต่างจากกิจกรรมอื่นในหลักสูตรนี้**: ทุก Workshop ก่อนหน้านี้ (1, 2, และ Workshop 4 ที่ตามมา) ให้สร้างไฟล์แยกต่างหากของตนเอง ห้ามแก้ระบบอ้างอิง — แต่ Workshop นี้ตั้งใจให้**แก้ระบบจริงโดยตรงทั้ง `apps/mcp-server/` (เพิ่ม tool) และ `apps/agent-api/` (ขยายขอบเขตของ Intent Gate)** เพื่อฝึกความรู้สึกของการเพิ่มความสามารถเข้าไปในระบบที่ใช้งานจริงอยู่แล้ว (production-style) ถือเป็นข้อยกเว้นเฉพาะกิจกรรมนี้เท่านั้น
 
 ---
 
@@ -132,11 +132,49 @@ customers.register(mcp)  # เพิ่มบรรทัดนี้สำห�
 - เช็คด้วย `in` กับ tuple โดยตรง (`segment not in ALLOWED_SEGMENTS`) ไม่ใช่ `.lower()` หรือ normalize ค่าก่อนเช็ค — ตั้งใจให้ต้องพิมพ์ตัวพิมพ์ใหญ่เล็กตรงตามที่กำหนดไว้ทุกประการ
 - ห่อผลลัพธ์ด้วย `guardrails.redact_deep(...)` ก่อน return เสมอ ตามธรรมเนียมเดียวกับทุก tool อื่นในระบบ (Module 10 หัวข้อ 4) แม้ข้อมูลลูกค้าจะไม่น่ามีความลับซ่อนอยู่ก็ตาม — ทำให้เป็นนิสัยเดียวกันทุก tool ดีกว่าต้องจำว่า tool ไหนต้องห่อบ้าง
 
+### ขั้นที่ 3 — ขยายขอบเขตของ Intent Gate (จำเป็น ไม่ใช่ตัวเลือก)
+
+ทำถึงขั้นที่ 2 แล้วลองถามผ่าน Chainlit UI ทันที คำถามอย่าง *"ขอรายชื่อลูกค้า sme"* จะ**ถูกปฏิเสธก่อนถึง tool เลย** ด้วยข้อความ "คำถามนี้อยู่นอกขอบเขตของระบบ" — ไม่ใช่บั๊กของ tool ที่เพิ่งเขียน แต่เป็นเพราะ **Intent Gate จาก Module 7 (วันที่ 2)** ที่คั่นอยู่หน้า ReAct loop ใน `apps/agent-api/agent/intent.py` ยังไม่รู้จักความสามารถใหม่นี้เลย
+
+`SYSTEM_PROMPT` ของ Intent Gate (`apps/agent-api/agent/intent.py:141-144`) ระบุขอบเขตของระบบไว้ตรงๆ ว่าตอบได้เรื่องอะไรบ้าง:
+
+```
+device configuration, physical topology, routing adjacencies, device logs,
+equipment health, customer circuits and operational runbooks.
+```
+
+สังเกตว่ามีแค่ **"customer circuits"** (วงจรของลูกค้า) ไม่มี "รายชื่อลูกค้าตาม segment" เลย — โมเดลที่ทำหน้าที่ตัดสินใจ scope จึงมองว่าคำถามเกี่ยวกับ "รายชื่อลูกค้า" เป็นเรื่อง business/sales data ไม่ใช่เรื่องโครงข่าย แล้วปฏิเสธไปอย่างสมเหตุสมผลตามขอบเขตเดิมที่กำหนดไว้ (ทดสอบแล้วจริงตอนเตรียมเอกสารนี้ — ได้ `label: OUT_OF_SCOPE, reason: "...falls under business data or sales information, not network operations"`)
+
+**นี่คือบทเรียนสำคัญของ Workshop นี้**: การเพิ่ม tool ใหม่เข้าไปใน MCP server อย่างเดียวไม่พอ — ถ้าระบบมี Intent Gate คั่นอยู่ด้านหน้า (แบบใน `apps/agent-api/`) ต้องขยายขอบเขตที่ Intent Gate รู้จักด้วย ไม่เช่นนั้น tool จะ "มีอยู่จริงแต่เรียกไม่ถึง" ตลอดไป
+
+แก้ `apps/agent-api/agent/intent.py` บรรทัด 142-143 จาก:
+
+```python
+device configuration, physical topology, routing adjacencies, device logs,
+equipment health, customer circuits and operational runbooks. It covers exactly
+```
+
+เป็น:
+
+```python
+device configuration, physical topology, routing adjacencies, device logs,
+equipment health, customer circuits, the customer directory (listing
+customers by segment: Enterprise, SME, Government) and operational runbooks.
+It covers exactly
+```
+
+**ผลลัพธ์จริง** (ทดสอบเปรียบเทียบก่อน/หลังแก้ตอนเตรียมเอกสารนี้ ด้วยคำถามเดียวกัน):
+
+```
+ก่อนแก้: label=OUT_OF_SCOPE  reason="...falls under business data or sales information, not network operations"
+หลังแก้: label=IN_SCOPE      reason="...covered under the customer directory in the network operations data"
+```
+
 ---
 
 ## 3. ทดสอบผ่าน Chainlit UI
 
-ไม่ต้องเรียก tool ด้วยสคริปต์แยกและไม่ต้องตั้งค่า client ใหม่เลย — เพราะ `apps/agent-api/agent/mcp_client.py:34-40` เรียก `build_server()` จากไฟล์ `apps/mcp-server/server.py` ที่เพิ่งแก้ไปตรงๆ ทุกครั้ง (โหมด `in_process` ซึ่งเป็นค่าเริ่มต้นระหว่างทำ lab ตามคอมเมนต์ที่ `mcp_client.py:7-9`) ดังนั้นทันทีที่บันทึกไฟล์ทั้งสองในขั้นที่ 1-2 เสร็จ **agent ทั้งระบบจะเห็นและเรียก tool ใหม่นี้ได้ทันที** โดยไม่ต้องแก้โค้ดฝั่ง `agent-api` แม้แต่บรรทัดเดียว
+เรียก tool ด้วยการถามผ่าน UI ตรงๆ ไม่ต้องเขียนสคริปต์แยกและไม่ต้องตั้งค่า client ใหม่เลย — เพราะ `apps/agent-api/agent/mcp_client.py:34-40` เรียก `build_server()` จากไฟล์ `apps/mcp-server/server.py` ที่เพิ่งแก้ไปตรงๆ ทุกครั้ง (โหมด `in_process` ซึ่งเป็นค่าเริ่มต้นระหว่างทำ lab ตามคอมเมนต์ที่ `mcp_client.py:7-9`) ดังนั้นทันทีที่บันทึกไฟล์ทั้งสามในขั้นที่ 1-3 เสร็จ **agent ทั้งระบบจะเห็นและเรียก tool ใหม่นี้ได้ทันที**
 
 เปิดสองเทอร์มินัลแยกกัน:
 
@@ -167,13 +205,15 @@ uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w
 ## เกณฑ์ผ่าน (Definition of Done)
 
 - [ ] `apps/mcp-server/server.py` import และเรียก `customers.register(mcp)` แล้ว รันด้วย `uv run uvicorn main:app --app-dir apps/agent-api --reload --port 8080` ไม่มี error ตอน build server
+- [ ] แก้ `apps/agent-api/agent/intent.py` ขยายขอบเขตของ Intent Gate แล้ว (ขั้นที่ 3) — คำถามเกี่ยวกับรายชื่อลูกค้าตาม segment ต้องผ่าน Intent Gate ไม่ถูกปฏิเสธว่า out_of_scope
 - [ ] ถามผ่าน Chainlit UI (`uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w`) ด้วย segment ทั้งสามค่าที่ถูกต้อง (`Enterprise`, `SME`, `Government`) แล้วได้รายชื่อลูกค้าจริงจากฐานข้อมูลครบทั้งสามกลุ่ม เห็นในหน้าต่าง Thought → Action → Observation
 - [ ] ถามด้วยคำถามที่ทำให้โมเดลอาจส่ง segment ผิดรูปแบบ ต้องเห็น error ที่ tool เขียนเองปรากฏใน Observation **ไม่ใช่ traceback ดิบ และ agent ไม่ค้าง**
 - [ ] อธิบายได้ว่าทำไมต้อง validate ในโค้ดของ tool เอง ทั้งที่ฐานข้อมูลมี `CHECK constraint` บังคับ `segment` อยู่แล้วในระดับ schema
+- [ ] อธิบายได้ว่าทำไม tool ที่เขียนถูกต้องสมบูรณ์แล้วยังเรียกไม่ถึงได้ ถ้าไม่แก้ Intent Gate ตามขั้นที่ 3
 
 ## สิ่งที่ต้องส่ง
 
-ไฟล์ `apps/mcp-server/tools/customers.py` ที่เขียนเสร็จ พร้อม diff ของ `apps/mcp-server/server.py` (2 บรรทัดที่เพิ่ม) และภาพหน้าจอ/บันทึกข้อความจาก Chainlit UI ขณะเรียก tool สำเร็จอย่างน้อย 1 ครั้ง — ส่งในช่องทางที่วิทยากรแจ้งไว้ต้นวัน
+ไฟล์ `apps/mcp-server/tools/customers.py` ที่เขียนเสร็จ พร้อม diff ของ `apps/mcp-server/server.py` (2 บรรทัดที่เพิ่ม) และ `apps/agent-api/agent/intent.py` (ส่วนขอบเขตที่แก้) และภาพหน้าจอ/บันทึกข้อความจาก Chainlit UI ขณะเรียก tool สำเร็จอย่างน้อย 1 ครั้ง — ส่งในช่องทางที่วิทยากรแจ้งไว้ต้นวัน
 
 ---
 
