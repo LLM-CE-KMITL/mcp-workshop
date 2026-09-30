@@ -176,7 +176,7 @@ samples = [
 for label, raw in samples:
     try:
         decision = _parse_json(ReactDecision, raw)
-        print(f'[{label}] สำเร็จ: tool={decision.tool!r}')
+        print(f'[{label}] สำเร็จ: tool={repr(decision.tool)}')
     except Exception as exc:
         print(f'[{label}] ล้มเหลว: {type(exc).__name__}')
     print('-' * 60)
@@ -358,8 +358,8 @@ async def main():
     for q in questions:
         decision = await decide(q)
         print(f'คำถาม: {q}')
-        print(f'  tool = {decision.tool!r}  arguments = {decision.arguments!r}')
-        print(f'  thought = {decision.thought!r}')
+        print(f'  tool = {repr(decision.tool)}  arguments = {repr(decision.arguments)}')
+        print(f'  thought = {repr(decision.thought)}')
         print('-' * 60)
 
 asyncio.run(main())
