@@ -4,11 +4,13 @@
 
 `apps/mcp-server/` คือระบบ MCP Server ที่ทำงานสมบูรณ์อยู่แล้ว ใช้เป็นเฉลยอ้างอิงของ Workshop 4 — **แต่ไม่ใช่สิ่งที่ต้องแก้ไขโดยตรง** งานจริงของ Workshop 4 คือเขียนไฟล์ `workshop4_mcp_server.py` ของตนเองที่ root ของโปรเจกต์แยกต่างหาก ซึ่งเฉลยของไฟล์นั้นอยู่ที่ [`workshop4_mcp_server.py`](workshop4_mcp_server.py) ในโฟลเดอร์นี้
 
+**Workshop 3 ต่างจากกิจกรรมอื่น**: ตั้งใจให้แก้ `apps/mcp-server/` โดยตรง (ไม่มีไฟล์แยกต่างหาก) จึง**ไม่มีไฟล์เฉลยแยกในโฟลเดอร์นี้** — โค้ดคำตอบทั้งหมด (ไฟล์ `apps/mcp-server/tools/customers.py` ที่ต้องสร้างใหม่ และ 2 บรรทัดที่ต้องเพิ่มใน `apps/mcp-server/server.py`) อยู่ในเนื้อหาของ [03-workshop3-customer-directory.md](../../INSTRUCTIONS/day3/03-workshop3-customer-directory.md) เองทั้งหมด คัดลอกจากที่นั่นได้ตรงๆ
+
 | กิจกรรม | เฉลยอยู่ที่ |
 |---|---|
 | [Module 9: MCP คืออะไร](../../INSTRUCTIONS/day3/01-module9-mcp-intro.md) | `apps/mcp-server/` (สาธิตโดยวิทยากร) |
 | [Module 10: ความปลอดภัยพื้นฐาน](../../INSTRUCTIONS/day3/02-module10-security-basics.md) | `apps/mcp-server/security/guardrails.py`, `docker/postgres/init/99_readonly_role.sql` |
-| [Workshop 3: Customer Directory MCP Server](../../INSTRUCTIONS/day3/03-workshop3-customer-directory.md) | [`workshop3_customer_directory.py`](workshop3_customer_directory.py) |
+| [Workshop 3: Customer Directory MCP Server](../../INSTRUCTIONS/day3/03-workshop3-customer-directory.md) | อยู่ในเนื้อหาของเอกสารกิจกรรมเอง (ดูด้านบน) |
 | [Workshop 4: MPLS NOC MCP Server](../../INSTRUCTIONS/day3/04-workshop4-mpls-noc-mcp-server.md) | [`workshop4_mcp_server.py`](workshop4_mcp_server.py) |
 
 ---
@@ -18,13 +20,14 @@
 ```bash
 uv run python -c "
 import ast
-ast.parse(open('solutions/day3/workshop3_customer_directory.py').read())
 ast.parse(open('solutions/day3/workshop4_mcp_server.py').read())
 print('syntax OK')
 "
 ```
 
-เปิดใช้งานจริงผ่าน MCP Inspector หรือ Claude Desktop ตามขั้นตอนใน [Workshop 3](../../INSTRUCTIONS/day3/03-workshop3-customer-directory.md) / [Workshop 4](../../INSTRUCTIONS/day3/04-workshop4-mpls-noc-mcp-server.md) — ตัวไฟล์เองรอ client มาเชื่อมต่อผ่าน stdio (`mcp.run(transport="stdio")`) จึงไม่มี output ให้ดูจากการรันตรงๆ ด้วยตัวเอง
+เปิดใช้งานจริงผ่าน MCP Inspector หรือ Claude Desktop ตามขั้นตอนใน [Workshop 4](../../INSTRUCTIONS/day3/04-workshop4-mpls-noc-mcp-server.md) — ตัวไฟล์เองรอ client มาเชื่อมต่อผ่าน stdio (`mcp.run(transport="stdio")`) จึงไม่มี output ให้ดูจากการรันตรงๆ ด้วยตัวเอง
+
+Workshop 3 ทดสอบคนละแบบ (ผ่าน Chainlit UI เพราะแก้ `apps/mcp-server/` ตัวจริงโดยตรง) ดูขั้นตอนที่ [03-workshop3-customer-directory.md หัวข้อ 3](../../INSTRUCTIONS/day3/03-workshop3-customer-directory.md)
 
 ---
 

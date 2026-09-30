@@ -47,7 +47,7 @@ flowchart TD
 | Workshop 2 · ReAct Agent สำหรับ NOC | [`day2/workshop2_noc_agent.py`](day2/workshop2_noc_agent.py) |
 | Module 9 · MCP คืออะไร | `apps/mcp-server/` (สาธิตโดยวิทยากร ไม่มีไฟล์เฉลยแยก) |
 | Module 10 · ความปลอดภัยพื้นฐาน | `apps/mcp-server/security/guardrails.py` |
-| Workshop 3 · Customer Directory MCP Server | [`day3/workshop3_customer_directory.py`](day3/workshop3_customer_directory.py) |
+| Workshop 3 · Customer Directory MCP Server | อยู่ในเนื้อหาของ [INSTRUCTIONS/day3/03-workshop3-customer-directory.md](../INSTRUCTIONS/day3/03-workshop3-customer-directory.md) เอง (แก้ `apps/mcp-server/` โดยตรง ไม่มีไฟล์เฉลยแยก) |
 | Workshop 4 · MPLS NOC MCP Server | [`day3/workshop4_mcp_server.py`](day3/workshop4_mcp_server.py) |
 
 อ่านคำอธิบายแต่ละวันที่ [day1/README.md](day1/README.md) · [day2/README.md](day2/README.md) · [day3/README.md](day3/README.md)
@@ -56,9 +56,12 @@ flowchart TD
 
 ## หมายเหตุสำคัญ
 
-**`apps/mcp-server/` คือระบบ MCP Server ที่ทำงานสมบูรณ์อยู่แล้ว ใช้เป็นเฉลยอ้างอิงของ Workshop 3 และ Workshop 4**
+**`apps/mcp-server/` คือระบบ MCP Server ที่ทำงานสมบูรณ์อยู่แล้ว ใช้เป็นเฉลยอ้างอิงของ Workshop 4 และเป็นจุดที่ Workshop 3 แก้ไขโดยตรง**
 
-โค้ดใน `apps/mcp-server/`, `apps/agent-api/` และ `apps/chainlit-ui/` เป็นระบบที่ทำงานได้จริง และเป็นตัวเดียวกับที่ container เดโมใช้ — **Workshop 3 และ Workshop 4 ไม่ได้ให้แก้ไขโฟลเดอร์นี้โดยตรง** งานจริงคือสร้างไฟล์ใหม่ของตนเองที่ root ของโปรเจกต์ ชื่อ `workshop3_customer_directory.py` และ `workshop4_mcp_server.py` ตามลำดับ (แนวทางเดียวกับ `workshop1_extractor.py` และ `workshop2_agent.py`/`workshop2_noc_agent.py` ที่เป็นไฟล์เดียวจบ ไม่ต้องแยกเป็นแพ็กเกจ) แล้วเทียบผลกับ `apps/mcp-server/` ตอนจบ
+โค้ดใน `apps/mcp-server/`, `apps/agent-api/` และ `apps/chainlit-ui/` เป็นระบบที่ทำงานได้จริง และเป็นตัวเดียวกับที่ container เดโมใช้
+
+- **Workshop 4**: **ไม่ได้ให้แก้ไข `apps/mcp-server/` โดยตรง** งานจริงคือสร้างไฟล์ใหม่ของตนเองที่ root ของโปรเจกต์ ชื่อ `workshop4_mcp_server.py` (แนวทางเดียวกับ `workshop1_extractor.py` และ `workshop2_agent.py`/`workshop2_noc_agent.py` ที่เป็นไฟล์เดียวจบ ไม่ต้องแยกเป็นแพ็กเกจ) แล้วเทียบผลกับ `apps/mcp-server/` ตอนจบ
+- **Workshop 3**: เป็นข้อยกเว้นเฉพาะกิจกรรมนี้ — ให้**แก้ `apps/mcp-server/tools/` และ `apps/mcp-server/server.py` โดยตรง** (เพิ่ม tool ใหม่หนึ่งตัว) แล้วทดสอบผ่าน Chainlit UI ทันที เพราะ `apps/agent-api/` เรียก MCP server ตัวจริงนี้แบบ dynamic อยู่แล้ว ไม่ต้องสร้างไฟล์แยก และไม่มีเฉลยแยกในโฟลเดอร์นี้ (ดูรายละเอียดในตารางด้านบน)
 
 ---
 

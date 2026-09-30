@@ -141,11 +141,11 @@ customers.register(mcp)  # เพิ่มบรรทัดนี้สำห�
 เปิดสองเทอร์มินัลแยกกัน:
 
 ```bash
-make api
+uv run uvicorn main:app --app-dir apps/agent-api --reload --port 8080
 ```
 
 ```bash
-make ui
+uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w
 ```
 
 เปิดเบราว์เซอร์ไปที่ `http://localhost:8000` แล้วถาม:
@@ -166,8 +166,8 @@ make ui
 
 ## เกณฑ์ผ่าน (Definition of Done)
 
-- [ ] `apps/mcp-server/server.py` import และเรียก `customers.register(mcp)` แล้ว รันด้วย `make api` ไม่มี error ตอน build server
-- [ ] ถามผ่าน Chainlit UI (`make ui`) ด้วย segment ทั้งสามค่าที่ถูกต้อง (`Enterprise`, `SME`, `Government`) แล้วได้รายชื่อลูกค้าจริงจากฐานข้อมูลครบทั้งสามกลุ่ม เห็นในหน้าต่าง Thought → Action → Observation
+- [ ] `apps/mcp-server/server.py` import และเรียก `customers.register(mcp)` แล้ว รันด้วย `uv run uvicorn main:app --app-dir apps/agent-api --reload --port 8080` ไม่มี error ตอน build server
+- [ ] ถามผ่าน Chainlit UI (`uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w`) ด้วย segment ทั้งสามค่าที่ถูกต้อง (`Enterprise`, `SME`, `Government`) แล้วได้รายชื่อลูกค้าจริงจากฐานข้อมูลครบทั้งสามกลุ่ม เห็นในหน้าต่าง Thought → Action → Observation
 - [ ] ถามด้วยคำถามที่ทำให้โมเดลอาจส่ง segment ผิดรูปแบบ ต้องเห็น error ที่ tool เขียนเองปรากฏใน Observation **ไม่ใช่ traceback ดิบ และ agent ไม่ค้าง**
 - [ ] อธิบายได้ว่าทำไมต้อง validate ในโค้ดของ tool เอง ทั้งที่ฐานข้อมูลมี `CHECK constraint` บังคับ `segment` อยู่แล้วในระดับ schema
 
