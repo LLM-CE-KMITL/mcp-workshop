@@ -1,6 +1,8 @@
 # Workshop 3 · Customer Directory MCP Server
 
-**13:00 – 13:45** (45 นาที) · เป้าหมาย: สร้าง MCP server ใหม่ของตนเอง (ไฟล์เดียว ไม่ต้องแยกแพ็กเกจ) ที่มี **tool เดียว** — `list_customers_by_segment` — สำหรับ list รายชื่อลูกค้าตาม segment ที่ป้อนเข้ามา โดยต้อง**ตรวจสอบ (validate) ค่า segment ให้อยู่ในสามค่าที่กำหนดเท่านั้นก่อนใช้งานจริง**: `"Enterprise"`, `"SME"`, `"Government"`
+**13:00 – 13:45** (45 นาที) · เป้าหมาย: เพิ่ม **tool เดียว** — `list_customers_by_segment` — เข้าไปใน `apps/mcp-server/` ตัวจริงที่ระบบทั้งหมดใช้งานร่วมกัน สำหรับ list รายชื่อลูกค้าตาม segment ที่ป้อนเข้ามา โดยต้อง**ตรวจสอบ (validate) ค่า segment ให้อยู่ในสามค่าที่กำหนดเท่านั้นก่อนใช้งานจริง**: `"Enterprise"`, `"SME"`, `"Government"`
+
+**ข้อแตกต่างจากกิจกรรมอื่นในหลักสูตรนี้**: ทุก Workshop ก่อนหน้านี้ (1, 2, และ Workshop 4 ที่ตามมา) ให้สร้างไฟล์แยกต่างหากของตนเอง ห้ามแก้ระบบอ้างอิง — แต่ Workshop นี้ตั้งใจให้**แก้ `apps/mcp-server/` โดยตรง** เพื่อฝึกความรู้สึกของการเพิ่มความสามารถเข้าไปในระบบที่ใช้งานจริงอยู่แล้ว (production-style) ถือเป็นข้อยกเว้นเฉพาะกิจกรรมนี้เท่านั้น
 
 ---
 
@@ -45,165 +47,133 @@ LIMIT 3;
 1. ข้อความ error จาก `CHECK constraint` ของ PostgreSQL (เช่น `CheckViolation`) ไม่ใช่ข้อความที่อ่านแล้วเข้าใจง่าย ต่างจาก error ที่ tool เขียนเองให้ชัดเจนว่าค่าไหนถูกต้อง
 2. ถ้ารู้อยู่แล้วว่า argument ผิดตั้งแต่ต้น การส่ง query ไปให้ฐานข้อมูลปฏิเสธคือการเสีย round trip ไปฟรีๆ — หลักการเดียวกับที่ [Module 5 หัวข้อ 1.2](../day2/03-module5-react-loop.md) สอนไว้เรื่องการตรวจชื่อ tool **ก่อน**เรียก ไม่ใช่ปล่อยให้ไปพังตอนเรียกจริง
 
-ใช้บัญชี `mcp_reader` เดิม (อ่านอย่างเดียว ตาม Module 10) เชื่อมต่อฐานข้อมูลได้เลย ไม่ต้องสร้างบัญชีใหม่
+ไม่ต้องต่อฐานข้อมูลเอง — ใช้ตัวช่วย `db.pg_query()` ที่มีอยู่แล้วใน `apps/mcp-server/db.py` (ต่อผ่านบัญชี `mcp_reader` อ่านอย่างเดียวเดิม ตาม Module 10 เหมือน tool อื่นทุกตัวในระบบ)
 
 ---
 
 ## 2. สิ่งที่ต้องทำ
 
-สร้างไฟล์ `workshop3_customer_directory.py` ที่ root ของโปรเจกต์:
+### ขั้นที่ 1 — เพิ่มไฟล์ tool ใหม่
+
+สร้างไฟล์ `apps/mcp-server/tools/customers.py` (ไฟล์ใหม่ ยังไม่มีอยู่ในระบบ):
 
 ```python
-#!/usr/bin/env python3
+"""Customer directory tool (PostgreSQL)."""
+
 from __future__ import annotations
 
-import os
-
-import psycopg
-from dotenv import load_dotenv
-from mcp.server.fastmcp import FastMCP
-from psycopg.rows import dict_row
-
-load_dotenv()
-
-PG_DSN = os.getenv(
-    "PG_DSN", "postgresql://mcp_reader:mcp_reader_password@localhost:5432/mplsdb"
-)
+from db import pg_query
+from security import guardrails
 
 ALLOWED_SEGMENTS = ("Enterprise", "SME", "Government")
 
-mcp = FastMCP(name="customer-directory-workshop3")
 
-# --- Tool ประกาศต่อจากนี้ ---
+def register(mcp) -> None:
 
-if __name__ == "__main__":
-    mcp.run(transport="stdio")
-```
-
-จากนั้นเติม tool ตัวเดียวเข้าไปแทนที่คอมเมนต์ `# --- Tool ประกาศต่อจากนี้ ---`:
-
-```python
-@mcp.tool(
-    annotations={
-        "title": "List customers by segment",
-        "readOnlyHint": True,
-        "idempotentHint": True,
-        "openWorldHint": False,
-    }
-)
-def list_customers_by_segment(segment: str) -> dict:
-    """List every customer in one segment.
-
-    Use this to answer questions like "how many Enterprise customers do we
-    have" or "list all Government customers".
-
-    Args:
-        segment: exactly one of "Enterprise", "SME", "Government"
-            (case-sensitive - "enterprise" or "ENTERPRISE" are rejected)
-    """
-    if segment not in ALLOWED_SEGMENTS:
-        return {
-            "ok": False,
-            "error": f"segment ต้องเป็นหนึ่งใน {ALLOWED_SEGMENTS} เท่านั้น ได้รับมา: {repr(segment)}",
+    @mcp.tool(
+        annotations={
+            "title": "List customers by segment",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
         }
+    )
+    def list_customers_by_segment(segment: str) -> dict:
+        """List every customer in one segment.
 
-    with psycopg.connect(PG_DSN, row_factory=dict_row) as conn:
-        cur = conn.cursor()
-        cur.execute(
+        Use this to answer questions like "how many Enterprise customers do
+        we have" or "list all Government customers".
+
+        Do NOT use this to look up a single customer by name or ID - there is
+        no tool for that; this one only filters by segment.
+
+        Args:
+            segment: exactly one of "Enterprise", "SME", "Government"
+                (case-sensitive - "enterprise" or "ENTERPRISE" are rejected)
+        """
+        if segment not in ALLOWED_SEGMENTS:
+            return {
+                "ok": False,
+                "error": f"segment ต้องเป็นหนึ่งใน {ALLOWED_SEGMENTS} เท่านั้น ได้รับมา: {repr(segment)}",
+            }
+
+        rows = pg_query(
             """SELECT customer_id, name, segment, contact_email
                FROM customers WHERE segment = %s ORDER BY name""",
             (segment,),
         )
-        rows = cur.fetchall()
+        return guardrails.redact_deep(
+            {"ok": True, "segment": segment, "count": len(rows), "customers": rows}
+        )
+```
 
-    return {"ok": True, "segment": segment, "count": len(rows), "customers": rows}
+โครงนี้ตรงตามแพทเทิร์นเดียวกับทุก tool ที่มีอยู่แล้วใน `apps/mcp-server/tools/tickets.py` ทุกประการ — ฟังก์ชัน `register(mcp)` ระดับโมดูล ประกาศ tool ด้วย `@mcp.tool` ข้างใน
+
+### ขั้นที่ 2 — ลงทะเบียน tool ใน server
+
+เปิด `apps/mcp-server/server.py` แล้วเพิ่ม 2 บรรทัด ต่อจากบรรทัดที่เพิ่ม `notifications` ไว้ก่อนหน้า (รูปแบบเดียวกันเป๊ะ):
+
+ที่ส่วน import (ต่อจากบรรทัด `from tools import logs, network, reports, tickets, notifications  # เพิ่ม notifications ต่อท้าย`):
+
+```python
+from tools import customers  # เพิ่มบรรทัดนี้สำหรับ Workshop 3
+```
+
+ที่ในฟังก์ชัน `build_server()` (ต่อจากบรรทัด `notifications.register(mcp)  # เพิ่มบรรทัดนี้ลงไป`):
+
+```python
+customers.register(mcp)  # เพิ่มบรรทัดนี้สำหรับ Workshop 3
 ```
 
 **จุดสำคัญของ tool นี้**:
 
-- การ validate อยู่**ก่อน**บรรทัดที่เชื่อมต่อฐานข้อมูลเสมอ — ถ้า `segment` ผิด ฟังก์ชันคืนค่ากลับทันทีโดยไม่แตะฐานข้อมูลเลยแม้แต่ครั้งเดียว
+- การ validate อยู่**ก่อน**บรรทัดที่เรียก `pg_query()` เสมอ — ถ้า `segment` ผิด ฟังก์ชันคืนค่ากลับทันทีโดยไม่แตะฐานข้อมูลเลยแม้แต่ครั้งเดียว
 - คืนค่าเป็น `{"ok": False, "error": "..."}` แทนที่จะ `raise` exception ตรงๆ — เพราะ tool ที่ raise ขึ้นมาแบบไม่ได้ดักไว้อาจทำให้ client บางตัวแสดง traceback ดิบให้ผู้ใช้เห็น ในขณะที่ dict ที่คืนกลับมาแบบนี้โมเดลอ่านแล้วอธิบายต่อให้ผู้ใช้เข้าใจได้ทันที (เทียบกับแพทเทิร์น `{"found": False, ...}` ที่ `get_ticket`/`get_device_config` ใน `apps/mcp-server/tools/tickets.py` ใช้อยู่แล้ว)
 - เช็คด้วย `in` กับ tuple โดยตรง (`segment not in ALLOWED_SEGMENTS`) ไม่ใช่ `.lower()` หรือ normalize ค่าก่อนเช็ค — ตั้งใจให้ต้องพิมพ์ตัวพิมพ์ใหญ่เล็กตรงตามที่กำหนดไว้ทุกประการ
+- ห่อผลลัพธ์ด้วย `guardrails.redact_deep(...)` ก่อน return เสมอ ตามธรรมเนียมเดียวกับทุก tool อื่นในระบบ (Module 10 หัวข้อ 4) แม้ข้อมูลลูกค้าจะไม่น่ามีความลับซ่อนอยู่ก็ตาม — ทำให้เป็นนิสัยเดียวกันทุก tool ดีกว่าต้องจำว่า tool ไหนต้องห่อบ้าง
 
 ---
 
-## 3. ตัวอย่างรันได้ทันที — ทดสอบเองก่อนต่อ Claude Desktop
+## 3. ทดสอบผ่าน Chainlit UI
 
-เรียก tool ตรงๆ ผ่าน `mcp.call_tool(...)` โดยไม่ต้องเปิด client จริง (แพทเทิร์นเดียวกับที่ Workshop 4 ใช้ตรวจสอบว่าไฟล์ประกาศ tool ถูกต้อง):
+ไม่ต้องเรียก tool ด้วยสคริปต์แยกและไม่ต้องตั้งค่า client ใหม่เลย — เพราะ `apps/agent-api/agent/mcp_client.py:34-40` เรียก `build_server()` จากไฟล์ `apps/mcp-server/server.py` ที่เพิ่งแก้ไปตรงๆ ทุกครั้ง (โหมด `in_process` ซึ่งเป็นค่าเริ่มต้นระหว่างทำ lab ตามคอมเมนต์ที่ `mcp_client.py:7-9`) ดังนั้นทันทีที่บันทึกไฟล์ทั้งสองในขั้นที่ 1-2 เสร็จ **agent ทั้งระบบจะเห็นและเรียก tool ใหม่นี้ได้ทันที** โดยไม่ต้องแก้โค้ดฝั่ง `agent-api` แม้แต่บรรทัดเดียว
+
+เปิดสองเทอร์มินัลแยกกัน:
 
 ```bash
-uv run python -c "
-import asyncio, sys
-sys.path.insert(0, '.')
-import workshop3_customer_directory as w
-
-async def main():
-    tools = await w.mcp.list_tools()
-    print('TOOLS:', [t.name for t in tools])
-
-    valid = await w.mcp.call_tool('list_customers_by_segment', {'segment': 'SME'})
-    print('segment=SME ->', valid[0].text[:120], '...')
-
-    invalid = await w.mcp.call_tool('list_customers_by_segment', {'segment': 'enterprise'})
-    print('segment=enterprise (พิมพ์เล็ก) ->', invalid[0].text)
-
-asyncio.run(main())
-"
+make api
 ```
 
-**ผลลัพธ์จริง** (รันจริงตอนเตรียมเอกสารนี้ ด้วยเฉลย — จำนวนลูกค้าที่ได้ขึ้นกับข้อมูลจริงในฐานข้อมูล ณ ขณะรัน):
-
-```
-TOOLS: ['list_customers_by_segment']
-segment=SME -> {
-  "ok": true,
-  "segment": "SME",
-  "count": 12,
-  "customers": [
-    {
-      "customer_id": "CUS-0020", ...
-segment=enterprise (พิมพ์เล็ก) -> {
-  "ok": false,
-  "error": "segment ต้องเป็นหนึ่งใน ('Enterprise', 'SME', 'Government') เท่านั้น ได้รับมา: 'enterprise'"
-}
+```bash
+make ui
 ```
 
-สังเกตว่ากรณี `enterprise` (พิมพ์เล็กทั้งหมด) ถูกปฏิเสธทันที แม้จะเป็นคำที่ถูกต้องในความหมาย เพียงแต่ตัวพิมพ์ไม่ตรงตามที่กำหนดไว้ — นี่คือพฤติกรรมที่ตั้งใจออกแบบไว้ ไม่ใช่ข้อบกพร่องของโค้ด
+เปิดเบราว์เซอร์ไปที่ `http://localhost:8000` แล้วถาม:
+
+> "มีลูกค้ากลุ่ม Government กี่ราย"
+
+**สิ่งที่ควรเห็น**: Chainlit แสดง step ของ ReAct loop (Thought → Action → Observation) ที่มีการเรียก `list_customers_by_segment` พร้อม `segment="Government"` แล้วสรุปจำนวนลูกค้าเป็นคำตอบ
+
+จากนั้นลองถามคำถามที่กำกวมโดยตั้งใจ (เช่น *"ลูกค้ารายย่อยมีกี่ราย"* โดยไม่พูดคำว่า SME ตรงๆ) เพื่อดูว่าโมเดลเดา mapping เองได้ถูกต้องหรือไม่ — ถ้าโมเดลเดาผิด (เช่นส่ง `"small business"` หรือ `"smes"` แทนที่จะเป็น `"SME"` เป๊ะ) ต้องเห็น error message ที่ tool เขียนไว้ปรากฏใน Observation ของ step นั้นทันที ไม่ใช่ traceback หรือ agent ค้าง
 
 ---
 
-## 4. ส่วนเสริม (กรณีมีเวลาเหลือ): ต่อกับ Claude Desktop จริง
+## 4. (โบนัส) ตรวจสอบผ่าน Claude Desktop
 
-ใช้ขั้นตอนเดียวกับ [Module 9 หัวข้อ 3.2](01-module9-mcp-intro.md) ทุกประการ เปลี่ยนแค่ปลายทางใน `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "customer-directory-workshop3": {
-      "command": "uv",
-      "args": [
-        "--directory", "/absolute/path/to/MCP2",
-        "run", "python", "workshop3_customer_directory.py"
-      ]
-    }
-  }
-}
-```
-
-ลองถาม *"มีลูกค้ากลุ่ม Government กี่ราย"* — ควรเรียก `list_customers_by_segment` พร้อม `segment="Government"` และลองถามคำถามที่ทำให้โมเดลอาจใส่ segment ผิดรูปแบบ (เช่น ถามถึง "ลูกค้ารายย่อย" โดยไม่บอกคำว่า SME ตรงๆ) เพื่อดูว่าโมเดลเดา mapping เองได้หรือไม่ และถ้าเดาผิดจะเห็น error message ที่ tool ส่งกลับไปจริงหรือไม่
+เพราะ tool ใหม่ถูกเพิ่มเข้าไปใน `apps/mcp-server/` ตัวเดียวกับที่ [Module 9 หัวข้อ 3.2](01-module9-mcp-intro.md) ต่อกับ Claude Desktop ไว้แล้วในชื่อ `nt-network` **จึงไม่ต้องเพิ่ม entry ใหม่ใน `claude_desktop_config.json` เลย** — แค่ปิดแล้วเปิด Claude Desktop ใหม่ tool `list_customers_by_segment` จะปรากฏในรายการ tool ของ `nt-network` ทันที ลองถามคำถามเดียวกับหัวข้อ 3 เพื่อเทียบพฤติกรรมระหว่างสอง client
 
 ---
 
 ## เกณฑ์ผ่าน (Definition of Done)
 
-- [ ] `uv run python workshop3_customer_directory.py` รันได้โดยไม่มี error และค้างรอ client บน stdio
-- [ ] เรียกด้วย `segment="Enterprise"`, `"SME"`, `"Government"` แล้วได้รายชื่อลูกค้าจริงจากฐานข้อมูลครบทั้งสามกลุ่ม
-- [ ] เรียกด้วยค่าที่ไม่ถูกต้อง (ตัวพิมพ์ผิด เช่น `"enterprise"`, หรือค่าที่ไม่มีอยู่จริง เช่น `"VIP"`) ต้องได้ error ที่อ่านเข้าใจง่ายกลับมา **ไม่ใช่ traceback ดิบ และไม่มีการเชื่อมต่อฐานข้อมูลเกิดขึ้นเลยในกรณีนี้**
-- [ ] อธิบายได้ว่าทำไมต้อง validate ในโค้ดของ tool เอง ทั้งที่ฐานข้อมูลมี `CHECK constraint` อยู่แล้ว
+- [ ] `apps/mcp-server/server.py` import และเรียก `customers.register(mcp)` แล้ว รันด้วย `make api` ไม่มี error ตอน build server
+- [ ] ถามผ่าน Chainlit UI (`make ui`) ด้วย segment ทั้งสามค่าที่ถูกต้อง (`Enterprise`, `SME`, `Government`) แล้วได้รายชื่อลูกค้าจริงจากฐานข้อมูลครบทั้งสามกลุ่ม เห็นในหน้าต่าง Thought → Action → Observation
+- [ ] ถามด้วยคำถามที่ทำให้โมเดลอาจส่ง segment ผิดรูปแบบ ต้องเห็น error ที่ tool เขียนเองปรากฏใน Observation **ไม่ใช่ traceback ดิบ และ agent ไม่ค้าง**
+- [ ] อธิบายได้ว่าทำไมต้อง validate ในโค้ดของ tool เอง ทั้งที่ฐานข้อมูลมี `CHECK constraint` บังคับ `segment` อยู่แล้วในระดับ schema
 
 ## สิ่งที่ต้องส่ง
 
-ไฟล์ `workshop3_customer_directory.py` พร้อม log การรันทดสอบทั้งกรณีถูกและผิด (คัดลอกจาก terminal) — ส่งในช่องทางที่วิทยากรแจ้งไว้ต้นวัน
+ไฟล์ `apps/mcp-server/tools/customers.py` ที่เขียนเสร็จ พร้อม diff ของ `apps/mcp-server/server.py` (2 บรรทัดที่เพิ่ม) และภาพหน้าจอ/บันทึกข้อความจาก Chainlit UI ขณะเรียก tool สำเร็จอย่างน้อย 1 ครั้ง — ส่งในช่องทางที่วิทยากรแจ้งไว้ต้นวัน
 
 ---
 
