@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Workshop 3: MPLS NOC MCP Server - 6 tool จากวันที่ 2 ห่อด้วย FastMCP
+"""Workshop 4: MPLS NOC MCP Server - 6 tool จากวันที่ 2 ห่อด้วย FastMCP
 
-    uv run python workshop3_mcp_server.py
+    uv run python workshop4_mcp_server.py
 
 This is the reference solution for the final deliverable of the 3-day course.
 It takes the 5 plain-function tools written by hand in
@@ -78,7 +78,7 @@ NOTIFY_TO = os.getenv("NOTIFY_TO", "noc@example.local")
 
 OUTPUT_DIR = Path("data/reports")
 
-mcp = FastMCP(name="mpls-noc-workshop3")
+mcp = FastMCP(name="mpls-noc-workshop4")
 
 
 # ==========================================================================
@@ -436,7 +436,7 @@ def noc_schema() -> str:
     Read this first."""
     return json.dumps(
         {
-            "system": "NT IP-MPLS network operations assistant (Workshop 3)",
+            "system": "NT IP-MPLS network operations assistant (Workshop 4)",
             "routing_questions_to_stores": {
                 "what was reported": "PostgreSQL via search_tickets",
                 "what do these devices have in common": (

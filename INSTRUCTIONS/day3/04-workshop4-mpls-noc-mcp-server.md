@@ -1,6 +1,6 @@
-# Workshop 3 · MPLS NOC MCP Server
+# Workshop 4 · MPLS NOC MCP Server
 
-**13:00 – 16:30** (210 นาที: 13:00–15:30 ลงมือสร้างและทดสอบ · 15:30–16:30 สรุปและถาม-ตอบ) · เป้าหมาย: ย้าย 6 เครื่องมือที่เขียนเป็นฟังก์ชัน Python ธรรมดาในวันที่ 2 มาเป็น MCP Server ที่มี Tool ครบ 6 ตัว, Resource สำหรับ schema, Prompt แม่แบบสำหรับงาน NOC และเชื่อมต่อทดสอบผ่าน Claude Desktop ได้จริงด้วยตนเอง
+**13:45 – 16:30** (165 นาที: 13:45–15:45 ลงมือสร้างและทดสอบ · 15:45–16:30 สรุปและถาม-ตอบ) · เป้าหมาย: ย้าย 6 เครื่องมือที่เขียนเป็นฟังก์ชัน Python ธรรมดาในวันที่ 2 มาเป็น MCP Server ที่มี Tool ครบ 6 ตัว, Resource สำหรับ schema, Prompt แม่แบบสำหรับงาน NOC และเชื่อมต่อทดสอบผ่าน Claude Desktop ได้จริงด้วยตนเอง
 
 ---
 
@@ -18,9 +18,9 @@ flowchart LR
         F6["search_docs_semantic()<br/>(สร้างเองในวันที่ 2)"]
     end
 
-    subgraph D3["Workshop 3 — MCP Server ใหม่ของตนเอง"]
+    subgraph D3["Workshop 4 — MCP Server ใหม่ของตนเอง"]
         direction TB
-        W["workshop3_mcp_server.py"]
+        W["workshop4_mcp_server.py"]
         R["Resource ใหม่<br/>schema://noc"]
         P["Prompt ใหม่<br/>งาน NOC"]
     end
@@ -32,7 +32,7 @@ flowchart LR
     W -->|stdio| CD["Claude Desktop"]
 ```
 
-งานวันนี้**ไม่ใช่**การแก้ไข `apps/mcp-server/` — โฟลเดอร์นั้นเป็นระบบที่ทำงานสมบูรณ์อยู่แล้วและใช้เป็นตัวอย่างอ้างอิงเท่านั้น (แนวทางเดียวกับที่ [`solutions/day3/README.md`](../../solutions/day3/README.md) อธิบายไว้) งานจริงของ Workshop นี้คือสร้างไฟล์ใหม่ของตนเองที่ root ของโปรเจกต์ ชื่อ `workshop3_mcp_server.py` — แนวทางเดียวกับ `solutions/day1/workshop1_extractor.py` และ `solutions/day2/workshop2_agent.py` ที่เป็นไฟล์เดียวจบ ไม่ต้องแยกเป็นแพ็กเกจ (ดูเฉลยที่ [`solutions/day3/workshop3_mcp_server.py`](../../solutions/day3/workshop3_mcp_server.py) หลังจากลองเขียนเองก่อน)
+งานวันนี้**ไม่ใช่**การแก้ไข `apps/mcp-server/` — โฟลเดอร์นั้นเป็นระบบที่ทำงานสมบูรณ์อยู่แล้วและใช้เป็นตัวอย่างอ้างอิงเท่านั้น (แนวทางเดียวกับที่ [`solutions/day3/README.md`](../../solutions/day3/README.md) อธิบายไว้) งานจริงของ Workshop นี้คือสร้างไฟล์ใหม่ของตนเองที่ root ของโปรเจกต์ ชื่อ `workshop4_mcp_server.py` — แนวทางเดียวกับ `solutions/day1/workshop1_extractor.py` และ `solutions/day2/workshop2_agent.py` ที่เป็นไฟล์เดียวจบ ไม่ต้องแยกเป็นแพ็กเกจ (ดูเฉลยที่ [`solutions/day3/workshop4_mcp_server.py`](../../solutions/day3/workshop4_mcp_server.py) หลังจากลองเขียนเองก่อน)
 
 ---
 
@@ -51,17 +51,17 @@ flowchart LR
 
 ## 3. งานที่ 1 — สร้างโครง MCP Server ใหม่
 
-สร้างไฟล์ `workshop3_mcp_server.py` ที่ root ของโปรเจกต์:
+สร้างไฟล์ `workshop4_mcp_server.py` ที่ root ของโปรเจกต์:
 
 ```python
 #!/usr/bin/env python3
-"""Workshop 3: MPLS NOC MCP Server — 6 tool จากวันที่ 2 ห่อด้วย FastMCP"""
+"""Workshop 4: MPLS NOC MCP Server — 6 tool จากวันที่ 2 ห่อด้วย FastMCP"""
 
 from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP(name="mpls-noc-workshop3")
+mcp = FastMCP(name="mpls-noc-workshop4")
 
 # --- Tools ประกาศต่อจากนี้ (งานที่ 2) ---
 # --- Resource ประกาศต่อจากนี้ (งานที่ 3) ---
@@ -76,7 +76,7 @@ if __name__ == "__main__":
 รันทดสอบว่าไฟล์ไม่มี error ก่อนเริ่มเติมเนื้อหา:
 
 ```bash
-uv run python workshop3_mcp_server.py
+uv run python workshop4_mcp_server.py
 ```
 
 (หากไม่มี error จะค้างรออยู่เฉย ๆ เพราะ stdio รอ client มาเชื่อมต่อ — กด Ctrl+C เพื่อออก)
@@ -194,7 +194,7 @@ def diagnose_shared_upstream(range: str = "last_14d") -> str:
 ```bash
 uv run python -c "
 import asyncio
-import workshop3_mcp_server as w
+import workshop4_mcp_server as w
 
 async def main():
     tools = await w.mcp.list_tools()
@@ -227,18 +227,18 @@ PROMPTS: ['diagnose_shared_upstream']
 
 ---
 
-## 7. 13:00–15:30 ทดสอบผ่าน Claude Desktop
+## 7. 13:45–15:45 ทดสอบผ่าน Claude Desktop
 
 เพิ่ม entry ใหม่ใน `claude_desktop_config.json` ชี้ไปที่ไฟล์ของตนเอง (โครงสร้างเดียวกับ Module 9 ข้อ 3.2 แต่เปลี่ยนปลายทาง):
 
 ```json
 {
   "mcpServers": {
-    "mpls-noc-workshop3": {
+    "mpls-noc-workshop4": {
       "command": "uv",
       "args": [
         "--directory", "/absolute/path/to/MCP2",
-        "run", "python", "workshop3_mcp_server.py"
+        "run", "python", "workshop4_mcp_server.py"
       ]
     }
   }
@@ -258,7 +258,7 @@ PROMPTS: ['diagnose_shared_upstream']
 
 ## เกณฑ์ผ่าน (Definition of Done)
 
-- [ ] `uv run python workshop3_mcp_server.py` รันได้โดยไม่มี error และค้างรอ client บน stdio
+- [ ] `uv run python workshop4_mcp_server.py` รันได้โดยไม่มี error และค้างรอ client บน stdio
 - [ ] Claude Desktop เชื่อมต่อสำเร็จ และเห็น tool ครบ 6 ตัว: `search_tickets`, `get_upstream_devices`, `count_log_events`, `export_report`, `send_notification`, `search_docs_semantic`
 - [ ] เห็น Resource `schema://noc` (หรือชื่อที่ตั้งเอง) ในรายการ resource ของ client และอ่านค่าออกมาได้เป็น JSON/ข้อความที่อธิบาย schema จริง ไม่ใช่ค่าว่าง
 - [ ] เห็น Prompt แม่แบบที่สร้างเองปรากฏในเมนู Prompt ของ Claude Desktop
@@ -267,15 +267,15 @@ PROMPTS: ['diagnose_shared_upstream']
 
 ## สิ่งที่ต้องส่ง
 
-- ไฟล์ `workshop3_mcp_server.py`
+- ไฟล์ `workshop4_mcp_server.py`
 - ส่วนของ `claude_desktop_config.json` ที่เพิ่มเข้าไป (ตรวจว่าไม่มีรหัสผ่านหรือค่าลับใดหลุดอยู่ในนั้นก่อนส่ง)
 - ภาพหน้าจอหรือบันทึกข้อความของ Claude Desktop ขณะเรียก tool สำเร็จอย่างน้อย 2 รายการ (ข้อ 2 และข้อ 4 ในหัวข้อ 7)
 
 ---
 
-## 15:30–16:30 ปิดกิจกรรม: สรุปและถาม-ตอบ
+## 15:45–16:30 ปิดกิจกรรม: สรุปและถาม-ตอบ
 
-บ่ายนี้เปลี่ยนเครื่องมือ 6 ตัวจาก loop ที่เขียนเองในวันที่ 2 ให้กลายเป็น MCP Server ที่ client มาตรฐานตัวไหนก็เชื่อมต่อได้ — เทียบไฟล์ `workshop3_mcp_server.py` ของตนเองกับ `apps/mcp-server/` ที่ผ่าน Module 10 มาแล้ว จะเห็นว่าโครง (`@mcp.tool` / `@mcp.resource` / `@mcp.prompt`) เหมือนกันทุกประการ สิ่งที่ระบบ production เพิ่มเข้ามาคือชั้นความปลอดภัยทั้ง 5 ชั้นที่เรียนในโมดูลที่แล้ว (`security/guardrails.py`) ไม่ใช่โครงสร้าง MCP ที่ต่างออกไป
+บ่ายนี้เปลี่ยนเครื่องมือ 6 ตัวจาก loop ที่เขียนเองในวันที่ 2 ให้กลายเป็น MCP Server ที่ client มาตรฐานตัวไหนก็เชื่อมต่อได้ — เทียบไฟล์ `workshop4_mcp_server.py` ของตนเองกับ `apps/mcp-server/` ที่ผ่าน Module 10 มาแล้ว จะเห็นว่าโครง (`@mcp.tool` / `@mcp.resource` / `@mcp.prompt`) เหมือนกันทุกประการ สิ่งที่ระบบ production เพิ่มเข้ามาคือชั้นความปลอดภัยทั้ง 5 ชั้นที่เรียนในโมดูลที่แล้ว (`security/guardrails.py`) ไม่ใช่โครงสร้าง MCP ที่ต่างออกไป
 
 หัวข้อเปิดสำหรับถาม-ตอบ:
 
