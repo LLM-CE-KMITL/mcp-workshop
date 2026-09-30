@@ -320,3 +320,105 @@ PROMPTS: ['diagnose_shared_upstream']
 ## จบหลักสูตร 3 วัน
 
 หลักสูตรนี้เดินทางมาครบสามวัน: **วันที่ 1** สร้างรากฐานข้อมูลที่มีโครงสร้างและค้นหาได้ตามความหมาย (token, embedding, JSON schema ที่บังคับผลลัพธ์ให้ parse ได้เสมอ) **วันที่ 2** ใช้รากฐานนั้นสร้าง agent แบบ ReAct ด้วยมือทั้ง loop (Thought → Action → Observation, การเรียก tool จาก 3 ฐานข้อมูล) โดยยังเรียกเครื่องมือเป็นฟังก์ชัน Python ตรง ๆ และ **วันที่ 3** นี้เอง ที่นำเครื่องมือชุดเดียวกันนั้นมาห่อเป็น MCP Server มาตรฐาน พร้อมชั้นความปลอดภัยที่บังคับใช้จริงในโค้ดและในสิทธิ์ฐานข้อมูล ทำให้ client ใดก็ตามที่พูดโปรโตคอลเดียวกันเชื่อมต่อใช้งานได้ทันที โดยไม่ต้องเขียนสายเชื่อมต่อใหม่อีกเลย
+
+---
+
+## เฉลย
+
+> ⚠️ เปิดหลังจากลองเขียนของตัวเองจบแล้ว หรือติดจริงๆ เท่านั้น — [`solutions/day3/workshop4_mcp_server.py`](../../solutions/day3/workshop4_mcp_server.py) คือเฉลยเต็มรูปแบบของ Workshop นี้
+
+### ตัวอย่างการรันเฉลยจริง — เรียก tool ตรงๆ
+
+เรียก tool 2 ตัวจากเฉลยตรงๆ ผ่าน `mcp.call_tool(...)` (ไม่ผ่าน Claude Desktop) เพื่อพิสูจน์ว่าตรรกะภายในทำงานได้จริงกับฐานข้อมูลจริง ไม่ใช่แค่ประกาศไว้เฉยๆ:
+
+```bash
+uv run python -c "
+import asyncio, sys
+sys.path.insert(0, 'solutions/day3')
+import workshop4_mcp_server as w
+
+async def main():
+    r1 = await w.mcp.call_tool('search_tickets', {'status': 'open', 'days': 7})
+    print('search_tickets ->')
+    print(r1[0].text)
+    print()
+    r2 = await w.mcp.call_tool('get_upstream_devices', {'device_ids': ['LPE-NBI-11', 'LPE-NBI-12', 'LPE-NBI-13']})
+    print('get_upstream_devices ->')
+    print(r2[0].text[:300], '...')
+
+asyncio.run(main())
+"
+```
+
+**ผลลัพธ์จริง** (รันจริงตอนเตรียมเอกสารนี้ — ตัวเลข ticket จะต่างไปตามข้อมูลจริงในฐานข้อมูล ณ ขณะรัน):
+
+```
+search_tickets ->
+{
+  "count": 3,
+  "tickets": [
+    {
+      "ticket_id": "TK-25-00005",
+      "severity": "high",
+      "status": "open",
+      "site_code": "NBI",
+      "device_id": "LPE-NBI-12",
+      "title": "เน็ตหลุดซ้ำ เคสเดิมที่เคยแจ้งไว้",
+      "opened_at": "2026-09-24T09:26:22+07:00"
+    },
+    {
+      "ticket_id": "TK-25-00018",
+      "severity": "high",
+      "status": "open",
+      "site_code": "BKK",
+      "device_id": "APE-BKK-05",
+      "title": "วงจรล่ม ใช้งานไม่ได้ทั้งสาขา",
+      "opened_at": "2026-09-24T02:28:16.896646+07:00"
+    },
+    {
+      "ticket_id": "TK-25-00011",
+      "severity": "high",
+      "status": "open",
+      "site_code": "NBI",
+      "device_id": "LPE-NBI-12",
+      "title": "โหลดไฟล์ช้ากว่าปกติมาก",
+      "opened_at": "2026-09-23T16:27:47.957114+07:00"
+    }
+  ]
+}
+
+get_upstream_devices ->
+{
+  "upstream_devices": [
+    {
+      "device_id": "APE-NBI-03",
+      "dependent_count": 3,
+      "depends_on_it": [
+        "LPE-NBI-11",
+        "LPE-NBI-12",
+        "LPE-NBI-13"
+      ]
+    },
+    {
+      "device_id": "P ...
+```
+
+### ต่อเฉลยเข้ากับ Claude Desktop โดยตรง
+
+ถ้าต้องการเปิด Claude Desktop คุยกับ**เฉลย**โดยตรง (เช่น ใช้เทียบพฤติกรรมกับไฟล์ของตนเอง) ใช้ config นี้แทนของหัวข้อ 7 — เปลี่ยนแค่ path ปลายทางให้ชี้ไปที่โฟลเดอร์เฉลย:
+
+```json
+{
+  "mcpServers": {
+    "mpls-noc-workshop4-solution": {
+      "command": "uv",
+      "args": [
+        "--directory", "/absolute/path/to/MCP2",
+        "run", "python", "solutions/day3/workshop4_mcp_server.py"
+      ]
+    }
+  }
+}
+```
+
+ตั้งชื่อ key ให้ต่างจาก `mpls-noc-workshop4` ของไฟล์ตนเอง (หัวข้อ 7) และต่างจาก `nt-network` ของ Module 9 — ทำให้เปิด Claude Desktop ครั้งเดียวเห็นได้ทั้งสาม server แยกกันชัดเจน ไม่ทับกัน
