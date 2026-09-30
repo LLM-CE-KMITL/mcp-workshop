@@ -166,6 +166,8 @@ uv run python apps/mcp-server/server.py --transport stdio
 
 ไม่จำเป็นต้องระบุ `env` เพิ่มเติมในไฟล์นี้ — `apps/mcp-server/config.py:20` อ่านไฟล์ `.env` จาก path ที่คำนวณจากตำแหน่งไฟล์ `config.py` เอง (`parents[2]`, คือรากของโปรเจกต์) ไม่ใช่จาก cwd ของโปรเซสที่ Claude Desktop เปิดขึ้นมา ดังนั้นตราบใดที่ `.env` มีอยู่จริงที่รากโปรเจกต์ ค่าที่ตั้งไว้ (`PG_DSN`, `NEO4J_URI`, ฯลฯ) จะถูกอ่านเข้ามาเองโดยอัตโนมัติ
 
+**ทางเลือกอื่นนอกจาก Claude Desktop**: [OpenWorker](https://openworker.com/) ([github.com/andrewyng/openworker](https://github.com/andrewyng/openworker)) เป็น AI desktop agent แบบ open source (MIT) ที่รองรับการต่อกับ MCP server ภายนอกได้เช่นกัน ("Any tool reachable over MCP plugs in too" ตามที่ README ของโปรเจกต์ระบุไว้) เหมาะกับผู้ที่อยากลองใช้ client ตัวอื่นนอกจาก Claude Desktop/Cursor เพราะเป็น open source และเลือก LLM provider เองได้หลากหลาย (รวมถึงรันโมเดล local ผ่าน Ollama) — ณ ตอนที่เขียนเอกสารนี้ยังอยู่ในสถานะ open beta และตั้งค่าผ่านไฟล์ `config.toml`/เมนู UI ของตัวเอง ไม่ใช่ `claude_desktop_config.json` แบบข้างบน จึงควรตรวจสอบขั้นตอนการเพิ่ม MCP server แบบ custom จากเอกสารของโปรเจกต์นั้นโดยตรง (repo เปลี่ยนแปลงบ่อยเพราะยังอยู่ในช่วง beta) — หลักการเดียวกับข้างบนยังใช้ได้เหมือนเดิม คือต้องรัน `apps/mcp-server/server.py` ด้วย `--transport stdio` เสมอไม่ว่าจะต่อกับ client ตัวไหน
+
 หลังบันทึกไฟล์ ต้องปิดแล้วเปิด Claude Desktop ใหม่เพื่อให้อ่าน config ใหม่
 
 ### 3.3 ทดลองถามคำถามที่ต้องใช้ Neo4j topology
