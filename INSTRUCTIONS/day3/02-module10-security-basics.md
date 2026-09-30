@@ -62,7 +62,7 @@ with psycopg.connect(dsn) as conn:
     cur = conn.cursor()
     try:
         cur.execute(\"DELETE FROM tickets WHERE ticket_id = 'TK-25-00005'\")
-        print('ลบสำเร็จ (ไม่ควรเกิดขึ้น!)')
+        print('ลบสำเร็จ (ไม่ควรเกิดขึ้น)')
     except Exception as exc:
         print(f'{type(exc).__name__}: {exc}')
 "
