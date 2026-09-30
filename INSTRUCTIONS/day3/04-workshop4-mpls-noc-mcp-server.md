@@ -225,6 +225,38 @@ PROMPTS: ['diagnose_shared_upstream']
 
 หากพบ warning บรรทัดแรกเกี่ยวกับ `pydantic_settings`/`IncompleteFieldDefinitionWarning` ตอนรันคำสั่งข้างบน ไม่ต้องกังวล เป็น warning เดียวกับที่เกิดตอน import `apps/mcp-server` เช่นกัน ไม่เกี่ยวกับโค้ดที่เพิ่งเขียน
 
+### ตัวอย่างรันสำเร็จด้วยเฉลย
+
+ถ้ายังไม่ได้เขียนไฟล์ของตนเอง หรืออยากดูก่อนว่าคำสั่งตรวจสอบข้างบนควรให้ผลแบบไหนเมื่อทุกอย่างถูกต้อง ลองรันกับ **เฉลย** ที่ `solutions/day3/workshop4_mcp_server.py` ดูก่อนได้ (เปลี่ยนแค่บรรทัด `import` ให้ชี้ไปที่โฟลเดอร์เฉลยแทน root):
+
+```bash
+uv run python -c "
+import asyncio, sys
+sys.path.insert(0, 'solutions/day3')
+import workshop4_mcp_server as w
+
+async def main():
+    tools = await w.mcp.list_tools()
+    resources = await w.mcp.list_resources()
+    prompts = await w.mcp.list_prompts()
+    print('TOOLS:', [t.name for t in tools])
+    print('RESOURCES:', [str(r.uri) for r in resources])
+    print('PROMPTS:', [p.name for p in prompts])
+
+asyncio.run(main())
+"
+```
+
+**ผลลัพธ์จริง** (รันจริงตอนเตรียมเอกสารนี้ ด้วยเฉลย):
+
+```
+TOOLS: ['search_tickets', 'get_upstream_devices', 'count_log_events', 'export_report', 'send_notification', 'search_docs_semantic']
+RESOURCES: ['schema://noc']
+PROMPTS: ['diagnose_shared_upstream']
+```
+
+ตรงกับ "ผลลัพธ์ที่ควรเห็น" ด้านบนเป๊ะ — ถ้าไฟล์ของตนเองให้ผลลัพธ์แบบนี้ (หรือใกล้เคียง ต่างแค่ชื่อ resource/prompt ที่เลือกตั้งเอง) แปลว่าขั้นการประกาศ tool/resource/prompt ถูกต้องแล้ว
+
 ---
 
 ## 7. 13:45–15:45 ทดสอบผ่าน Claude Desktop
