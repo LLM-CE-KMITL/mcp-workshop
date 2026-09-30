@@ -126,6 +126,17 @@ python apps/mcp-server/server.py                     # stdio, for Claude Desktop
 python apps/mcp-server/server.py --transport streamable-http --port 9000
 ```
 
+**สองบรรทัดนี้ต่างกันตรงไหน**: ไม่ใช่แค่ flag ต่างกัน แต่เป็นวิธีคุยกันคนละแบบเลย
+
+| | `stdio` (บรรทัดแรก) | `streamable-http` (บรรทัดสอง) |
+|---|---|---|
+| วิธีเชื่อมต่อ | ไม่มี network เลย — Claude Desktop **เป็นคนเปิด process นี้เอง** แล้วคุยกันผ่าน stdin/stdout (ท่อข้อมูลของ process โดยตรง) | เปิดเป็น HTTP server จริงที่ port ที่ระบุ (9000) รอ client จากที่ไหนก็ได้เชื่อมผ่าน network เข้ามา |
+| จำนวน client | 1 client ต่อ 1 process เท่านั้น ปิด Claude Desktop = process นี้ตายไปด้วย | หลาย client เชื่อมพร้อมกันได้ผ่าน URL เดียว (เช่น `http://localhost:9000`) โดย process ไม่ตายตามใคร |
+| ใช้เมื่อไหร่ | client กับ server อยู่เครื่องเดียวกันเสมอ (Claude Desktop, Cursor) | อยากให้ทีมอื่น/เครื่องอื่น/บริการอื่นเรียกผ่านเครือข่ายได้ |
+| ความซับซ้อนของโค้ด | เรียก `mcp.run(transport="stdio")` บรรทัดเดียวจบ (`server.py:120-122`) | ต้องห่อด้วย `uvicorn` + ตั้งค่า `CORSMiddleware` เพิ่ม (`server.py:132-161`) เพราะเป็น HTTP server จริงที่ browser-based client (เช่น MCP Inspector) อาจต้องส่ง CORS preflight มาก่อน |
+
+พูดง่ายๆ: `stdio` คือ "เสียบสายตรง" ระหว่างสอง process บนเครื่องเดียวกัน ส่วน `streamable-http` คือ "เปิดเป็นเว็บเซิร์ฟเวอร์" ให้ใครก็ได้มาต่อผ่าน URL — Claude Desktop รองรับได้แค่แบบแรกเท่านั้น จึงต้องระบุ `--transport stdio` เสมอเมื่อจะต่อกับมัน (ดูข้อควรระวังถัดไป)
+
 ข้อควรระวัง: `--transport` มีค่า default มาจาก `settings().transport` (`apps/mcp-server/server.py:111`, อ่านจาก `MCP_TRANSPORT` ใน `apps/mcp-server/config.py:26`) และ `.env.example:62` ตั้งค่า `MCP_TRANSPORT=streamable-http` ไว้เป็นค่าเริ่มต้นสำหรับ container สาธิต ดังนั้นเมื่อต่อกับ Claude Desktop **ต้องระบุ `--transport stdio` เองอย่างชัดเจน** มิฉะนั้น server จะพยายามเปิดเป็น HTTP แทน และ Claude Desktop จะต่อไม่ติด
 
 ```bash
