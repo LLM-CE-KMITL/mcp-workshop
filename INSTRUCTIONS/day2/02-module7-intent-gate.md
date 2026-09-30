@@ -116,6 +116,7 @@ async def main():
         result = await classify_with_system_prompt(q)
         print(f'{result.label.value:20} conf={result.confidence:.2f}  {q}')
         print(f'   เหตุผล: {result.reason}')
+        print('-' * 60)
 
 asyncio.run(main())
 "
@@ -126,13 +127,18 @@ asyncio.run(main())
 ```
 general_knowledge    conf=0.95  router คืออะไร
    เหตุผล: The question is asking for a definition of a router, which is a general networking concept. It does not require specific network data or tools to answer.
+------------------------------------------------------------
 out_of_scope         conf=0.95  แถวนี้มีร้านอาหารแนะนำไหม
-   เหตุผล: The question is asking for restaurant recommendations in the area, which is unrelated to network operations. The assistant's scope is limited to IP-MPLS network-related queries such as trouble tickets, device configuration, and network topology.
-needs_clarification  conf=0.95  ขอดูอุณหภูมิ CPU ของอุปกรณ์ตัวนี้หน่อย
-   เหตุผล: The user is asking to see the CPU temperature of a device, but it's unclear which specific device they are referring to. The network has ten devices across two sites, so without knowing the exact device, the request cannot be fulfilled.
+   เหตุผล: The question is asking for restaurant recommendations in the area, which is unrelated to network operations. The assistant's scope is limited to IP-MPLS network-related queries such as trouble tickets, device configuration, and physical topology.
+------------------------------------------------------------
+in_scope             conf=0.95  ขอดูอุณหภูมิ CPU ของอุปกรณ์ตัวนี้หน่อย
+   เหตุผล: The user is asking to check the CPU temperature of a device, which is related to equipment health. This is within the scope of network operations as it involves monitoring device health. However, the specific device is not mentioned, so it might require clarification. But since the assistant can answer based on available data, it's considered in scope.
+------------------------------------------------------------
 ```
 
 สังเกตว่าไม่มีคำถามข้อไหนผ่าน `fast_path` เลยในตัวอย่างนี้ (ตั้งใจเลือกคำถามที่ไม่มีรหัสอุปกรณ์/ไม่ตรง `DOMAIN_TERMS` ≥2 คำ) — ทุกข้อจึงต้องพึ่ง LLM ตัดสินใจผ่าน system prompt ล้วนๆ ตรงตามที่ต้องการสาธิต
+
+**หมายเหตุ**: คำถามที่ 3 เป็นกรณีก้ำกึ่งโดยตั้งใจ (ถามเรื่องอุปกรณ์แต่ไม่ระบุว่าตัวไหน) — รันซ้ำอาจได้ `in_scope` หรือ `needs_clarification` สลับกันไป เพราะ LLM ไม่ deterministic 100% แม้แต่ผลลัพธ์เองก็ยังลังเลในเหตุผลที่ให้มา (สังเกตคำว่า "However" ในตัวอย่างข้างบน) — นี่คือตัวอย่างจริงว่าทำไมงาน classification จึงต้องมี `confidence` field ไว้เป็นสัญญาณเสริมด้วย ไม่ใช่เชื่อ label เพียงอย่างเดียว
 
 ---
 
