@@ -271,7 +271,94 @@ print(json.dumps(count_log_events(days=7, group_by='device_id'), ensure_ascii=Fa
 
 ---
 
-## 4. แบบฝึกหัด: เขียน Tool Description สำหรับเครื่องมือตัวที่ 6
+## 4. พิสูจน์ว่า Tool Description ทำงานจริง: ให้ LLM เลือกเองผ่าน loop
+
+ตัวอย่างในหัวข้อ 2 ข้างบนทั้งหมดเรียกฟังก์ชัน tool ตรงๆ ด้วยมือ (ไม่ผ่านโมเดล) — ตัวอย่างนี้เอาเครื่องมือทั้ง 3 ตัวจริง (`search_tickets`, `get_upstream_devices`, `count_log_events`) ไปให้ **LLM จริงเลือกเอง** ทีละคำถาม เพื่อพิสูจน์ว่า Tool Description ที่ออกแบบตามหลักการในหัวข้อ 3 ทำให้โมเดลเลือกเครื่องมือถูกตัวจริง (ไม่ใช่แค่ในทฤษฎี):
+
+```bash
+uv run python -c "
+import asyncio, sys, inspect, json
+from dotenv import load_dotenv; load_dotenv()
+sys.path.insert(0, 'apps/agent-api')
+sys.path.insert(0, 'solutions/day2')
+from agent import llm
+from workshop2_agent import search_tickets, get_upstream_devices, count_log_events
+from pydantic import BaseModel
+
+class ReactDecision(BaseModel):
+    thought: str
+    tool: str | None = None
+    arguments: dict = {}
+
+TOOLS = {
+    'search_tickets': search_tickets,
+    'get_upstream_devices': get_upstream_devices,
+    'count_log_events': count_log_events,
+}
+catalogue = '\n\n'.join(
+    f'{name}{inspect.signature(fn)}: {(fn.__doc__ or \"\").strip()}' for name, fn in TOOLS.items()
+)
+
+PROMPT = f'''คุณคือ agent ที่ตัดสินใจทีละขั้นตอนเดียว (ห้ามวางแผนล่วงหน้าหลายขั้นตอน)
+
+เครื่องมือที่มี:
+{catalogue}
+
+ตอบเป็น JSON ตามรูปแบบ:
+{{\"thought\": \"เหตุผลสั้นๆ\", \"tool\": \"ชื่อเครื่องมือ หรือ null\", \"arguments\": {{}}}}
+'''
+
+async def decide(question):
+    messages = [
+        {'role': 'system', 'content': PROMPT},
+        {'role': 'user', 'content': question},
+    ]
+    return await llm.complete_structured(messages, ReactDecision)
+
+async def main():
+    questions = [
+        'มี ticket severity สูงที่ยังไม่ปิดอยู่กี่ใบในสัปดาห์นี้',
+        'อุปกรณ์ LPE-NBI-11, LPE-NBI-12 และ LPE-NBI-13 มี upstream ร่วมกันไหม',
+        'เจอ log error หรือ critical กี่ครั้งในช่วง 7 วันที่ผ่านมา แยกตามอุปกรณ์',
+    ]
+    for q in questions:
+        d = await decide(q)
+        print(f'คำถาม: {q}')
+        print(f'  Thought: {d.thought}')
+        print(f'  Action: {d.tool}({d.arguments})')
+        result = TOOLS[d.tool](**d.arguments)
+        print(f'  Observation: {json.dumps(result, ensure_ascii=False)[:150]}...')
+        print('-'*60)
+
+asyncio.run(main())
+"
+```
+
+**ผลลัพธ์จริง** (รันจริงตอนเตรียมเอกสารนี้ — ใช้ `llm.complete_structured()` จาก `apps/agent-api/agent/llm.py` ซึ่ง forced JSON ด้วย schema เดียวกับที่ `decide_next_step()` ใช้จริงใน `solutions/day2/workshop2_agent.py`):
+
+```
+คำถาม: มี ticket severity สูงที่ยังไม่ปิดอยู่กี่ใบในสัปดาห์นี้
+  Thought: ต้องการนับจำนวน ticket ที่ยังไม่ปิดและมี severity สูงในช่วง 7 วันที่ผ่านมา
+  Action: search_tickets({'status': 'open', 'days': 7, 'limit': 20})
+  Observation: {"count": 3, "tickets": [{"ticket_id": "TK-25-00005", "severity": "high", "status": "open", "site_code": "NBI", "device_id": "LPE-NBI-12", "title": "เ...
+------------------------------------------------------------
+คำถาม: อุปกรณ์ LPE-NBI-11, LPE-NBI-12 และ LPE-NBI-13 มี upstream ร่วมกันไหม
+  Thought: ต้องการตรวจสอบว่าอุปกรณ์ทั้งสามมี upstream ร่วมกันหรือไม่
+  Action: get_upstream_devices({'device_ids': ['LPE-NBI-11', 'LPE-NBI-12', 'LPE-NBI-13']})
+  Observation: {"upstream_devices": [{"device_id": "APE-NBI-03", "dependent_count": 3, "depends_on_it": ["LPE-NBI-11", "LPE-NBI-12", "LPE-NBI-13"]}, {"device_id": "P...
+------------------------------------------------------------
+คำถาม: เจอ log error หรือ critical กี่ครั้งในช่วง 7 วันที่ผ่านมา แยกตามอุปกรณ์
+  Thought: ต้องการนับจำนวน log events ที่เป็น error หรือ critical ในช่วง 7 วัน แยกตามอุปกรณ์
+  Action: count_log_events({'days': 7, 'group_by': 'device_id'})
+  Observation: {"total": 143, "results": [{"key": "APE-BKK-05", "count": 75}, {"key": "APE-NBI-03", "count": 18}, {"key": "PE-BKK-02", "count": 18}, {"key": "PE-NBI-...
+------------------------------------------------------------
+```
+
+**สังเกต**: ทั้งสามคำถามถูกออกแบบให้ "ใกล้เคียงกัน" โดยตั้งใจ — คำถามแรกถามเรื่อง ticket (สิ่งที่ถูก "แจ้ง"), คำถามที่สามถามเรื่อง log (สิ่งที่อุปกรณ์ "ทำจริง") ซึ่งเป็นคู่ที่หัวข้อ 3 เตือนไว้ว่าทับซ้อนกันได้ง่าย แต่โมเดลก็ยังแยกถูกทั้งคู่ เพราะประโยคที่สองของแต่ละ docstring ("อย่าใช้เมื่อ...") ตัดความกำกวมไปตั้งแต่ในแคตตาล็อกแล้ว — นี่คือหนึ่งก้าว (Thought → Action → Observation) ของ ReAct loop ต่อคำถาม ไม่ใช่ loop เต็มรูปแบบที่วนหลายรอบ (ดู loop เต็มที่ [Module 5](03-module5-react-loop.md))
+
+---
+
+## 5. แบบฝึกหัด: เขียน Tool Description สำหรับเครื่องมือตัวที่ 6
 
 Workshop 2 (ช่วงบ่ายถัดไป) ใช้เครื่องมือ **6 ตัว** ไม่ใช่ 5 — ห้าตัวแรกคือของที่ผ่านมา บวกด้วยเครื่องมือใหม่ที่ต้องออกแบบเอง: **`search_docs_semantic`** ทำ semantic search เหนือ runbook/เอกสาร config แทนที่จะเป็น ticket
 
