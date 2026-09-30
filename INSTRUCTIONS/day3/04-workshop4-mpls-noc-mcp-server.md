@@ -323,9 +323,10 @@ PROMPTS: ['diagnose_shared_upstream']
 
 ---
 
-## เฉลย
+<details>
+<summary>เฉลย — คลิกเพื่อดู (เปิดหลังจากลองเขียนของตัวเองจบแล้ว หรือติดจริงๆ เท่านั้น)</summary>
 
-> ⚠️ เปิดหลังจากลองเขียนของตัวเองจบแล้ว หรือติดจริงๆ เท่านั้น — [`solutions/day3/workshop4_mcp_server.py`](../../solutions/day3/workshop4_mcp_server.py) คือเฉลยเต็มรูปแบบของ Workshop นี้
+[`solutions/day3/workshop4_mcp_server.py`](../../solutions/day3/workshop4_mcp_server.py) คือเฉลยเต็มรูปแบบของ Workshop นี้
 
 ### ตัวอย่างการรันเฉลยจริง — เรียก tool ตรงๆ
 
@@ -422,3 +423,5 @@ get_upstream_devices ->
 ```
 
 ตั้งชื่อ key ให้ต่างจาก `mpls-noc-workshop4` ของไฟล์ตนเอง (หัวข้อ 7) และต่างจาก `nt-network` ของ Module 9 — ทำให้เปิด Claude Desktop ครั้งเดียวเห็นได้ทั้งสาม server แยกกันชัดเจน ไม่ทับกัน
+
+</details>
