@@ -4,28 +4,43 @@
 
 ---
 
-## 1. ทำไมต้องมีกิจกรรมนี้ก่อน Workshop 4
+## 1. ข้อมูลตั้งต้น
 
-[Workshop 4](04-workshop4-mpls-noc-mcp-server.md) ที่ตามมาหลังจากนี้มีงานให้ทำพร้อมกันหลายอย่าง (tool 6 ตัว + resource + prompt) กิจกรรมสั้นๆ นี้แยกทักษะพื้นฐานที่สุดของการสร้าง MCP server ออกมาฝึกก่อนแบบเดี่ยวๆ ไม่ปนกับงานอื่น: **ประกาศ tool หนึ่งตัวให้ถูกต้อง + validate input ก่อนใช้งานจริง** ถ้าทำขั้นนี้คล่องแล้ว Workshop 4 จะเหลือแค่ทำซ้ำแพทเทิร์นเดียวกันอีกหลายรอบเท่านั้น
-
----
-
-## 2. ข้อมูลตั้งต้น
-
-ตาราง `customers` มีอยู่แล้วจริงในฐานข้อมูล (`docker/postgres/init/02_schema.sql.template:75-82`):
+ตาราง `customers` มีอยู่แล้วจริงในฐานข้อมูล ลองสำรวจข้อมูลด้วย query ต่อไปนี้ก่อนเริ่มเขียนโค้ด:
 
 ```sql
-CREATE TABLE customers (
-    customer_id  VARCHAR(16) PRIMARY KEY,
-    name         TEXT        NOT NULL,
-    segment      VARCHAR(16) NOT NULL,         -- Enterprise | SME | Government
-    contact_email TEXT,
-    CONSTRAINT customers_segment_check
-        CHECK (segment IN ('Enterprise', 'SME', 'Government'))
-);
+SELECT segment, count(*) FROM customers GROUP BY segment ORDER BY segment;
 ```
 
-สังเกตว่าฐานข้อมูลเองก็บังคับ (`CHECK constraint`) อยู่แล้วว่า `segment` ต้องเป็นหนึ่งในสามค่านี้เท่านั้น — แต่นั่น**ไม่ใช่เหตุผลที่จะข้ามการ validate ในโค้ดของ tool เอง** ด้วยเหตุผลสองข้อ (หลักการเดียวกับที่เรียนมาใน Module 10):
+**ผลลัพธ์จริง**:
+
+```
+   segment  | count
+------------+-------
+ Enterprise |    10
+ Government |     8
+ SME        |    12
+```
+
+```sql
+SELECT customer_id, name, segment, contact_email
+FROM customers
+WHERE segment = 'SME'
+ORDER BY name
+LIMIT 3;
+```
+
+**ผลลัพธ์จริง**:
+
+```
+ customer_id |             name              | segment |          contact_email
+-------------+--------------------------------+---------+----------------------------------
+ CUS-0020    | คลินิกกายภาพบำบัดบ้านสุขใจ      | SME     | contact20@customer.example.th
+ CUS-0008    | คลินิกทันตกรรมสไมล์             | SME     | contact08@customer.example.th
+ CUS-0027    | บริษัท กรีนเอเนอร์จี โซลูชั่น    | SME     | contact27@customer.example.th
+```
+
+สังเกตว่าค่าในคอลัมน์ `segment` มีเพียงสามค่านี้เท่านั้น (`Enterprise`, `SME`, `Government`) — ฐานข้อมูลเองก็บังคับไว้อยู่แล้วในระดับ schema ว่า `segment` ต้องเป็นหนึ่งในสามค่านี้เท่านั้น แต่นั่น**ไม่ใช่เหตุผลที่จะข้ามการ validate ในโค้ดของ tool เอง** ด้วยเหตุผลสองข้อ (หลักการเดียวกับที่เรียนมาใน Module 10):
 
 1. ข้อความ error จาก `CHECK constraint` ของ PostgreSQL (เช่น `CheckViolation`) ไม่ใช่ข้อความที่อ่านแล้วเข้าใจง่าย ต่างจาก error ที่ tool เขียนเองให้ชัดเจนว่าค่าไหนถูกต้อง
 2. ถ้ารู้อยู่แล้วว่า argument ผิดตั้งแต่ต้น การส่ง query ไปให้ฐานข้อมูลปฏิเสธคือการเสีย round trip ไปฟรีๆ — หลักการเดียวกับที่ [Module 5 หัวข้อ 1.2](../day2/03-module5-react-loop.md) สอนไว้เรื่องการตรวจชื่อ tool **ก่อน**เรียก ไม่ใช่ปล่อยให้ไปพังตอนเรียกจริง
@@ -34,7 +49,7 @@ CREATE TABLE customers (
 
 ---
 
-## 3. สิ่งที่ต้องทำ
+## 2. สิ่งที่ต้องทำ
 
 สร้างไฟล์ `workshop3_customer_directory.py` ที่ root ของโปรเจกต์:
 
@@ -112,7 +127,7 @@ def list_customers_by_segment(segment: str) -> dict:
 
 ---
 
-## 4. ตัวอย่างรันได้ทันที — ทดสอบเองก่อนต่อ Claude Desktop
+## 3. ตัวอย่างรันได้ทันที — ทดสอบเองก่อนต่อ Claude Desktop
 
 เรียก tool ตรงๆ ผ่าน `mcp.call_tool(...)` โดยไม่ต้องเปิด client จริง (แพทเทิร์นเดียวกับที่ Workshop 4 ใช้ตรวจสอบว่าไฟล์ประกาศ tool ถูกต้อง):
 
@@ -157,7 +172,7 @@ segment=enterprise (พิมพ์เล็ก) -> {
 
 ---
 
-## 5. ส่วนเสริม (กรณีมีเวลาเหลือ): ต่อกับ Claude Desktop จริง
+## 4. ส่วนเสริม (กรณีมีเวลาเหลือ): ต่อกับ Claude Desktop จริง
 
 ใช้ขั้นตอนเดียวกับ [Module 9 หัวข้อ 3.2](01-module9-mcp-intro.md) ทุกประการ เปลี่ยนแค่ปลายทางใน `claude_desktop_config.json`:
 
