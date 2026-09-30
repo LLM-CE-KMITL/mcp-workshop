@@ -34,6 +34,39 @@ catalogue = "\n\n".join(
 
 ผลคือถ้าแก้ signature หรือ docstring ของฟังก์ชัน tool แคตตาล็อกที่ส่งให้โมเดลจะอัปเดตตามทันที ไม่มีจุดที่ต้องแก้สองที่ กติกาทั้งหมดอยู่ใน `REACT_PROMPT` — `solutions/day2/workshop2_agent.py:258-277`
 
+**ตัวอย่างรันได้ทันที** (ใช้ฟังก์ชันจำลอง ไม่ใช่ `search_tickets` จริง เพื่อไม่ให้ปนกับ Lab ด้านล่าง):
+
+```bash
+uv run python -c "
+import inspect
+
+def search_tickets(severity: str, site: str | None = None) -> list[dict]:
+    '''ค้นหา ticket ตามระดับความรุนแรงและไซต์ (ถ้าไม่ระบุ site จะค้นทุกไซต์)'''
+    ...
+
+def get_device_logs(device: str, hours: int = 24) -> list[str]:
+    '''ดึง log ของอุปกรณ์ย้อนหลังตามจำนวนชั่วโมงที่ระบุ'''
+    ...
+
+TOOLS = {'search_tickets': search_tickets, 'get_device_logs': get_device_logs}
+
+catalogue = '\n\n'.join(
+    f'{name}{inspect.signature(fn)}: {(fn.__doc__ or \"\").strip()}' for name, fn in TOOLS.items()
+)
+print(catalogue)
+"
+```
+
+**ผลลัพธ์จริง** (รันจริงตอนเตรียมเอกสารนี้):
+
+```
+search_tickets(severity: str, site: str | None = None) -> list[dict]: ค้นหา ticket ตามระดับความรุนแรงและไซต์ (ถ้าไม่ระบุ site จะค้นทุกไซต์)
+
+get_device_logs(device: str, hours: int = 24) -> list[str]: ดึง log ของอุปกรณ์ย้อนหลังตามจำนวนชั่วโมงที่ระบุ
+```
+
+ลองเปลี่ยน docstring หรือเพิ่ม parameter ในฟังก์ชันจำลองข้างบน แล้วรันซ้ำ — แคตตาล็อกจะเปลี่ยนตามทันทีโดยไม่ต้องแก้โค้ดจุดอื่นเลย ตรงตามหลักการที่อธิบายไว้
+
 ### 1.2 parse_action
 
 ผลลัพธ์ดิบจาก LLM เป็นข้อความ (มักห่อด้วย ```` ```json ```` บางครั้ง) ต้องแปลงเป็นโครงสร้างที่ใช้ต่อได้และ**ตรวจสอบก่อนเรียกจริง**:
@@ -60,6 +93,53 @@ if decision.tool is not None and decision.tool not in TOOLS:
 ```
 
 เหตุผลที่ตรวจ**ก่อน**เรียก: ชื่อเครื่องมือที่หลอนขึ้นมา (hallucinated) ถ้าจับได้ตรงนี้ไม่มีต้นทุนอะไรเพิ่ม แต่ถ้าปล่อยให้ไปพังตอนเรียกจริง จะเสีย round trip ไปฟรีๆ พร้อม traceback ที่งงกว่าเดิม — ดูคอมเมนต์ที่ `solutions/day2/workshop2_agent.py:301-303`
+
+**ตัวอย่างรันได้ทันที** — ทดสอบ `_parse_json()` กับข้อความดิบ 3 แบบที่พบได้จริงจาก LLM (ไม่เรียก LLM จริง ใช้ข้อความจำลองแทนเพื่อทดสอบ parser ล้วนๆ):
+
+```bash
+uv run python -c "
+from pydantic import BaseModel
+
+class ReactDecision(BaseModel):
+    thought: str
+    tool: str | None = None
+    arguments: dict = {}
+
+def _parse_json(schema, raw: str):
+    text = raw.strip()
+    if text.startswith('\`\`\`'):
+        text = text.split('\`\`\`')[1]
+        text = text[4:] if text.lstrip().startswith('json') else text
+    return schema.model_validate_json(text.strip())
+
+samples = [
+    ('ไม่มี fence', '{\"thought\": \"ยังไม่มีข้อมูล ต้องค้นก่อน\", \"tool\": \"search_tickets\", \"arguments\": {\"severity\": \"high\"}}'),
+    ('มี fence json ขึ้นต้นทันที', '\`\`\`json\n{\"thought\": \"พร้อมตอบแล้ว\", \"tool\": null, \"arguments\": {}}\n\`\`\`'),
+    ('มีข้อความนำหน้า fence', 'นี่คือคำตอบ:\n\`\`\`\n{\"thought\": \"ลองอีกครั้ง\", \"tool\": \"search_tickets\", \"arguments\": {}}\n\`\`\`'),
+]
+
+for label, raw in samples:
+    try:
+        decision = _parse_json(ReactDecision, raw)
+        print(f'[{label}] สำเร็จ: tool={decision.tool!r}')
+    except Exception as exc:
+        print(f'[{label}] ล้มเหลว: {type(exc).__name__}')
+    print('-' * 60)
+"
+```
+
+**ผลลัพธ์จริง** (รันจริงตอนเตรียมเอกสารนี้):
+
+```
+[ไม่มี fence] สำเร็จ: tool='search_tickets'
+------------------------------------------------------------
+[มี fence json ขึ้นต้นทันที] สำเร็จ: tool=None
+------------------------------------------------------------
+[มีข้อความนำหน้า fence] ล้มเหลว: ValidationError
+------------------------------------------------------------
+```
+
+**สังเกต**: `_parse_json()` เวอร์ชันนี้เช็คแค่ `text.startswith("\`\`\`")` — ถ้า LLM แถมประโยคนำหน้า fence มาด้วย (กรณีที่ 3) ฟังก์ชันจะไม่ตัด fence ออกเลยและ parse ไม่ผ่าน ต่างจาก `_clean()` ใน Workshop 1 วันที่ 1 ที่หาตำแหน่ง `{`/`}` แทนการเช็คจุดเริ่มต้นบรรทัด (ดู [07-workshop1-ticket-extractor.md วันที่ 1](../day1/07-workshop1-ticket-extractor.md)) — เป็นข้อจำกัดจริงที่ควรรู้ไว้ก่อนเขียน Lab ของตัวเอง ไม่ใช่ข้อผิดพลาดในการสาธิตนี้
 
 ### 1.3 Stop sequence
 
@@ -96,6 +176,79 @@ def check(self, tool: str, arguments: dict) -> str | None:
 ```
 
 เหตุผลที่ต้องมีสามชั้น (ตามคอมเมนต์ที่ `solutions/day2/workshop2_agent.py:317-323`): เพดานขั้นตอนรวมอย่างเดียวปล่อยให้ retry เดิมซ้ำจนหมดงบประมาณ, การกันการเรียกซ้ำด้วย argument เดิมอย่างเดียวปล่อยให้โมเดล "สุ่ม" argument ใหม่ไปเรื่อยๆ, และเพดานต่อเครื่องมืออย่างเดียวปล่อยให้สองเครื่องมือ ping-pong กันได้ ต้องมีครบทั้งสามเงื่อนไขจึงจะครอบคลุมทุกรูปแบบ loop ที่พบจริง
+
+**ตัวอย่างรันได้ทันที** — จำลองลำดับการเรียก tool ให้ครบทั้ง 3 เงื่อนไข (ไม่เรียก LLM จริง ป้อนลำดับ tool/argument ตรงๆ เพื่อทดสอบ `LoopGuard` ล้วนๆ):
+
+```bash
+uv run python -c "
+import json
+
+MAX_STEPS = 8
+MAX_SAME_TOOL = 3
+
+class LoopGuard:
+    def __init__(self):
+        self.total = 0
+        self.signatures = {}
+        self.tool_counts = {}
+
+    def check(self, tool, arguments):
+        self.total += 1
+        if self.total > MAX_STEPS:
+            return f'เกิน {MAX_STEPS} ขั้นตอน'
+        signature = f'{tool}:{json.dumps(arguments, sort_keys=True, default=str)}'
+        self.signatures[signature] = self.signatures.get(signature, 0) + 1
+        if self.signatures[signature] > 1:
+            return f'เรียก {tool} ด้วย argument เดิมซ้ำ'
+        self.tool_counts[tool] = self.tool_counts.get(tool, 0) + 1
+        if self.tool_counts[tool] > MAX_SAME_TOOL:
+            return f'เรียก {tool} เกิน {MAX_SAME_TOOL} ครั้ง'
+        return None
+
+guard = LoopGuard()
+calls = [
+    ('search_tickets', {'severity': 'high'}),
+    ('search_tickets', {'severity': 'high'}),      # ซ้ำ argument เดิม
+    ('search_tickets', {'severity': 'medium'}),
+    ('search_tickets', {'severity': 'low'}),
+    ('search_tickets', {'severity': 'critical'}),  # เรียกเครื่องมือเดิมเป็นครั้งที่ 4
+    ('get_device_logs', {'device': 'CR-BKK-01'}),
+    ('get_device_logs', {'device': 'CR-BKK-02'}),
+    ('get_device_logs', {'device': 'CR-BKK-03'}),
+    ('get_device_logs', {'device': 'CR-BKK-04'}),  # ก้าวที่ 9 โดยรวม
+]
+for tool, args in calls:
+    refusal = guard.check(tool, args)
+    status = f'ถูกปฏิเสธ: {refusal}' if refusal else 'ผ่าน'
+    print(f'{tool}({args}) -> {status}')
+    print('-' * 60)
+"
+```
+
+**ผลลัพธ์จริง** (รันจริงตอนเตรียมเอกสารนี้):
+
+```
+search_tickets({'severity': 'high'}) -> ผ่าน
+------------------------------------------------------------
+search_tickets({'severity': 'high'}) -> ถูกปฏิเสธ: เรียก search_tickets ด้วย argument เดิมซ้ำ
+------------------------------------------------------------
+search_tickets({'severity': 'medium'}) -> ผ่าน
+------------------------------------------------------------
+search_tickets({'severity': 'low'}) -> ผ่าน
+------------------------------------------------------------
+search_tickets({'severity': 'critical'}) -> ถูกปฏิเสธ: เรียก search_tickets เกิน 3 ครั้ง
+------------------------------------------------------------
+get_device_logs({'device': 'CR-BKK-01'}) -> ผ่าน
+------------------------------------------------------------
+get_device_logs({'device': 'CR-BKK-02'}) -> ผ่าน
+------------------------------------------------------------
+get_device_logs({'device': 'CR-BKK-03'}) -> ผ่าน
+------------------------------------------------------------
+get_device_logs({'device': 'CR-BKK-04'}) -> ถูกปฏิเสธ: เกิน 8 ขั้นตอน
+------------------------------------------------------------
+```
+
+ทั้ง 3 เงื่อนไขถูกกระตุ้นให้เห็นครบในการรันเดียว: การเรียกครั้งที่ 2 (argument ซ้ำ), ครั้งที่ 5 (เครื่องมือเดิมเกิน 3 ครั้ง), และครั้งที่ 9 (เกินเพดานรวม 8 ขั้นตอน)
 
 ---
 
