@@ -1,6 +1,6 @@
 """Expose a sandboxed documentation folder as Resources.
 
-Demonstrates the Resource half of Workshop 3: giving a model safe read access
+Demonstrates the Resource half of Workshop 4: giving a model safe read access
 to a filesystem. Three rules make it safe:
 
   1. One fixed root. Paths are resolved and rejected if they escape it,

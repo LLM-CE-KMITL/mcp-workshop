@@ -62,9 +62,10 @@
 | ก่อนเริ่ม | [day3/00-day3-overview.md](INSTRUCTIONS/day3/00-day3-overview.md) — ภาพรวมกิจกรรมทั้งวัน: อะไรต่อกับอะไร ตรงไหนต้องลงมือเขียนโค้ด (อ่านก่อนเข้าโมดูลแรก) |
 | 09:00–10:30 | [day3/01-module9-mcp-intro.md](INSTRUCTIONS/day3/01-module9-mcp-intro.md) — Module 9: MCP คืออะไร (Tools, Resources, Prompts) |
 | 10:45–12:00 | [day3/02-module10-security-basics.md](INSTRUCTIONS/day3/02-module10-security-basics.md) — Module 10: ความปลอดภัยพื้นฐาน |
-| 13:00–16:30 | [day3/03-workshop3-mpls-noc-mcp-server.md](INSTRUCTIONS/day3/03-workshop3-mpls-noc-mcp-server.md) — Workshop 3: MPLS NOC MCP Server (13:00–15:30 ลงมือทำ, 15:30–16:30 สรุปและถาม-ตอบ) |
+| 13:00–13:45 | [day3/03-workshop3-customer-directory.md](INSTRUCTIONS/day3/03-workshop3-customer-directory.md) — Workshop 3: Customer Directory MCP Server (tool เดียว + validate input, กิจกรรมอุ่นเครื่องก่อน Workshop 4) |
+| 13:45–16:30 | [day3/04-workshop4-mpls-noc-mcp-server.md](INSTRUCTIONS/day3/04-workshop4-mpls-noc-mcp-server.md) — Workshop 4: MPLS NOC MCP Server (13:45–15:45 ลงมือทำ, 15:45–16:30 สรุปและถาม-ตอบ) |
 
-**เฉลยวันที่ 3**: [solutions/day3/](solutions/day3/) — `apps/mcp-server/` เป็นตัวอย่างสาธิตอ้างอิง ส่วนเฉลยของไฟล์ที่ต้องเขียนเองอยู่ที่ [solutions/day3/workshop3_mcp_server.py](solutions/day3/workshop3_mcp_server.py) — เปิดหลังจากลองเองแล้วเท่านั้น
+**เฉลยวันที่ 3**: [solutions/day3/](solutions/day3/) — `apps/mcp-server/` เป็นตัวอย่างสาธิตอ้างอิง ส่วนเฉลยของไฟล์ที่ต้องเขียนเองอยู่ที่ [solutions/day3/workshop3_customer_directory.py](solutions/day3/workshop3_customer_directory.py) และ [solutions/day3/workshop4_mcp_server.py](solutions/day3/workshop4_mcp_server.py) — เปิดหลังจากลองเองแล้วเท่านั้น
 
 ---
 
