@@ -63,6 +63,54 @@ def search_tickets(status: str | None = None, days: int = 7,
 
 สังเกตว่า connection ใช้ `PG_DSN` ที่ชี้ไปยัง `mcp_reader` — บัญชี **read-only** เท่านั้น (ดู `.env.example` หัวข้อ PostgreSQL) เป็นกติกาด้านความปลอดภัยที่ยึดตลอดทั้งหลักสูตร: tool ที่ Agent เรียกได้ต้องไม่มีสิทธิ์เขียนฐานข้อมูลจริงเด็ดขาด
 
+**ตัวอย่างรันได้ทันที** — เรียกฟังก์ชันนี้ตรงๆ (ไม่ผ่าน LLM/loop) เพื่อดู query ที่แปลว่าอะไรจริงบน PostgreSQL:
+
+```bash
+uv run python -c "
+import sys, json
+sys.path.insert(0, 'solutions/day2')
+from workshop2_agent import search_tickets
+print(json.dumps(search_tickets(status='open', days=7), ensure_ascii=False, indent=2))
+"
+```
+
+**ผลลัพธ์จริง** (รันจริงตอนเตรียมเอกสารนี้ — ตัวเลข ticket และเวลาที่เปิดจะต่างไปตามข้อมูลจริงในฐานข้อมูล ณ ขณะรัน):
+
+```json
+{
+  "count": 3,
+  "tickets": [
+    {
+      "ticket_id": "TK-25-00005",
+      "severity": "high",
+      "status": "open",
+      "site_code": "NBI",
+      "device_id": "LPE-NBI-12",
+      "title": "เน็ตหลุดซ้ำ เคสเดิมที่เคยแจ้งไว้",
+      "opened_at": "2026-09-24T09:26:22+07:00"
+    },
+    {
+      "ticket_id": "TK-25-00018",
+      "severity": "high",
+      "status": "open",
+      "site_code": "BKK",
+      "device_id": "APE-BKK-05",
+      "title": "วงจรล่ม ใช้งานไม่ได้ทั้งสาขา",
+      "opened_at": "2026-09-24T02:28:16.896646+07:00"
+    },
+    {
+      "ticket_id": "TK-25-00011",
+      "severity": "high",
+      "status": "open",
+      "site_code": "NBI",
+      "device_id": "LPE-NBI-12",
+      "title": "โหลดไฟล์ช้ากว่าปกติมาก",
+      "opened_at": "2026-09-23T16:27:47.957114+07:00"
+    }
+  ]
+}
+```
+
 ### 2.2 Neo4j — ความสัมพันธ์เชิงกราฟ (`get_upstream_devices`)
 
 คำถามบางประเภทตอบด้วยตารางเดียวไม่ได้ เช่น "อุปกรณ์หลายตัวมี upstream ร่วมกันหรือไม่" — นี่คือจุดแข็งของฐานข้อมูลกราฟ:
@@ -86,6 +134,60 @@ def get_upstream_devices(device_ids: list[str]) -> dict:
 ```
 
 Cypher pattern `-[:UPLINK_TO*1..4]->` เดินตามความสัมพันธ์ `UPLINK_TO` ได้ 1 ถึง 4 ชั้น — คือกลไกที่ทำให้ค้นพบว่า `LPE-NBI-11/12/13` แม้เป็นอุปกรณ์คนละตัว แต่ทั้งหมด uplink ไปยัง `APE-NBI-03` ตัวเดียวกัน (ดูตัวอย่างเหตุการณ์เต็มใน `data/scenarios.md` หัวข้อ S1) จุดสำคัญของ docstring นี้คือบอก**เมื่อไหร่ควรเรียก** ไม่ใช่แค่ว่าเครื่องมือทำอะไร — "ลูกค้าหลายรายที่อยู่คนละอุปกรณ์แจ้งอาการเดียวกัน" เป็นสัญญาณที่โมเดลต้องจับได้จากคำถามผู้ใช้เอง
+
+**ตัวอย่างรันได้ทันที** — เรียกฟังก์ชันนี้ตรงๆ ด้วยอุปกรณ์ 3 ตัวจากเหตุการณ์ S1 (`data/scenarios.md`) เพื่อดูว่ากราฟหา upstream ร่วมได้จริงอย่างไร:
+
+```bash
+uv run python -c "
+import sys, json
+sys.path.insert(0, 'solutions/day2')
+from workshop2_agent import get_upstream_devices
+print(json.dumps(get_upstream_devices(['LPE-NBI-11', 'LPE-NBI-12', 'LPE-NBI-13']), ensure_ascii=False, indent=2))
+"
+```
+
+**ผลลัพธ์จริง** (รันจริงตอนเตรียมเอกสารนี้):
+
+```json
+{
+  "upstream_devices": [
+    {
+      "device_id": "APE-NBI-03",
+      "dependent_count": 3,
+      "depends_on_it": ["LPE-NBI-11", "LPE-NBI-12", "LPE-NBI-13"]
+    },
+    {
+      "device_id": "PE-NBI-01",
+      "dependent_count": 3,
+      "depends_on_it": ["LPE-NBI-11", "LPE-NBI-12", "LPE-NBI-13"]
+    },
+    {
+      "device_id": "CR-BKK-01",
+      "dependent_count": 3,
+      "depends_on_it": ["LPE-NBI-11", "LPE-NBI-12", "LPE-NBI-13"]
+    }
+  ],
+  "shared_by_all": [
+    {
+      "device_id": "APE-NBI-03",
+      "dependent_count": 3,
+      "depends_on_it": ["LPE-NBI-11", "LPE-NBI-12", "LPE-NBI-13"]
+    },
+    {
+      "device_id": "PE-NBI-01",
+      "dependent_count": 3,
+      "depends_on_it": ["LPE-NBI-11", "LPE-NBI-12", "LPE-NBI-13"]
+    },
+    {
+      "device_id": "CR-BKK-01",
+      "dependent_count": 3,
+      "depends_on_it": ["LPE-NBI-11", "LPE-NBI-12", "LPE-NBI-13"]
+    }
+  ]
+}
+```
+
+`shared_by_all` เหมือน `upstream_devices` เป๊ะในตัวอย่างนี้เพราะทั้งสามอุปกรณ์ที่ส่งเข้าไป uplink ไปหาต้นทางเดียวกันครบทุกตัว (`dependent_count == len(device_ids)` ทุกแถว) — ถ้าส่งอุปกรณ์ที่ไม่ได้ uplink ร่วมกันทั้งหมดเข้าไป สองรายการนี้จะเริ่มต่างกัน (`upstream_devices` จะมีแถวที่ `dependent_count` ต่ำกว่าจำนวนอุปกรณ์ที่ส่งเข้าไป แต่ `shared_by_all` จะกรองแถวเหล่านั้นออก)
 
 ### 2.3 OpenSearch — นับและรวมยอด log จำนวนมาก (`count_log_events`)
 
@@ -114,6 +216,39 @@ def count_log_events(days: int = 7, group_by: str = "device_id") -> dict:
 ```
 
 `"size": 0` คือรายละเอียดที่มักถูกมองข้าม — บอก OpenSearch ว่าไม่ต้องการเอกสารดิบกลับมาเลย ต้องการเฉพาะผลรวมจาก `aggs` เท่านั้น ประหยัดทั้ง bandwidth และ token ที่ต้องส่งกลับให้ LLM อ่านเป็น observation
+
+**ตัวอย่างรันได้ทันที** — เรียกฟังก์ชันนี้ตรงๆ เพื่อดูผล aggregation จริงจาก OpenSearch:
+
+```bash
+uv run python -c "
+import sys, json
+sys.path.insert(0, 'solutions/day2')
+from workshop2_agent import count_log_events
+print(json.dumps(count_log_events(days=7, group_by='device_id'), ensure_ascii=False, indent=2))
+"
+```
+
+**ผลลัพธ์จริง** (รันจริงตอนเตรียมเอกสารนี้ — ถ้าได้ `\"total\": 0` แปลว่า timestamp ของ log หลุดหน้าต่าง `now-7d` ไปแล้ว ดูวิธี refresh ใน [Module 4 หัวข้อ 4](01-module4-react-pattern.md)):
+
+```json
+{
+  "total": 146,
+  "results": [
+    {"key": "APE-BKK-05", "count": 75},
+    {"key": "APE-NBI-03", "count": 18},
+    {"key": "PE-BKK-02", "count": 18},
+    {"key": "PE-NBI-04", "count": 9},
+    {"key": "PE-NBI-01", "count": 7},
+    {"key": "LPE-NBI-11", "count": 5},
+    {"key": "LPE-NBI-12", "count": 4},
+    {"key": "LPE-NBI-13", "count": 4},
+    {"key": "CR-BKK-01", "count": 3},
+    {"key": "CR-BKK-02", "count": 3}
+  ]
+}
+```
+
+สังเกตว่า `total` (146) มากกว่าผลรวมของทุก `count` ใน `results` (75+18+18+9+7+5+4+4+3+3 = 146 พอดีในตัวอย่างนี้เพราะ `size: 15` ครอบคลุมทุก `device_id` ที่มีจริง) — ถ้าอุปกรณ์มีมากกว่า 15 ตัว `results` จะโดนตัดอันดับท้ายออกตาม `"size": 15` ใน `terms` aggregation แต่ `total` ยังนับครบทุก log ที่ผ่านเงื่อนไข `range`/`terms` ด้านบนเสมอ
 
 ---
 
