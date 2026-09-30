@@ -104,12 +104,51 @@ Trace ด้านล่างคือ**ผลลัพธ์จริง** จ
   ตรวจอีเมลที่ http://localhost:8025
 ```
 
+**โค้ดส่วนที่ทำให้ "Action" กลายเป็นการเรียกจริง**: ทุกบรรทัด `เรียก search_tickets({...})` ใน trace ข้างบนไม่ได้พิมพ์ขึ้นมาเฉยๆ แต่มาจากโค้ดสองส่วนนี้ต่อกัน — จุดที่แปลงชื่อ tool (สตริงที่โมเดลตอบมา) ให้กลายเป็นฟังก์ชัน Python ตัวจริงที่ถูกเรียกด้วย argument จริง:
+
+```python
+# solutions/day2/workshop2_agent.py:210-216
+TOOLS = {
+    "search_tickets": search_tickets,
+    "get_upstream_devices": get_upstream_devices,
+    "count_log_events": count_log_events,
+    "export_report": export_report,
+    "send_notification": send_notification,
+}
+```
+
+```python
+# solutions/day2/workshop2_agent.py:351-362
+async def call_one_tool(tool: str, arguments: dict) -> dict:
+    started = time.time()
+    try:
+        # Tools are synchronous; run them off the event loop so the process
+        # is not blocked while a DB or HTTP call is in flight.
+        result = await asyncio.to_thread(TOOLS[tool], **arguments)
+        elapsed = int((time.time() - started) * 1000)
+        print(f"        -> สำเร็จ {elapsed} ms")
+        return {"ok": True, "tool": tool, "result": result}
+    except Exception as exc:  # noqa: BLE001
+        print(f"        -> ล้มเหลว: {type(exc).__name__}: {exc}")
+        return {"ok": False, "tool": tool, "error": f"{type(exc).__name__}: {exc}"}
+```
+
+อ่านสองส่วนนี้ต่อกัน: `decision.tool` ที่โมเดลตอบมาเป็นแค่สตริง เช่น `"search_tickets"` — `TOOLS[tool]` คือขั้นตอนที่เอาสตริงนั้นไป**หาฟังก์ชันจริง**จาก dict (บรรทัดที่ 1 ของ trace ข้างบนจึงเรียก `TOOLS["search_tickets"]` ซึ่งก็คือฟังก์ชัน `search_tickets` ที่นิยามไว้ด้านบนไฟล์) แล้ว `**arguments` คือการแกะ dict argument ที่โมเดลส่งมา (`{"status": "open", "days": 7, "limit": 20}`) ออกมาเป็น keyword argument ตรงๆ เท่ากับเรียก `search_tickets(status="open", days=7, limit=20)` — และเนื่องจาก tool ทุกตัวเขียนเป็นฟังก์ชัน synchronous ธรรมดา (ใช้ `psycopg`/`OpenSearch` client แบบ blocking) จึงต้องห่อด้วย `asyncio.to_thread(...)` เพื่อไม่ให้ค้าง event loop ระหว่างรอ DB ตอบ ส่วน `try/except` ทำให้ tool ที่ล้มเหลวไม่ทำให้ทั้ง process ตาย แต่กลายเป็นข้อความ error ที่ถูกส่งกลับเข้า scratchpad เป็น observation ของรอบถัดไปแทน (ตามที่อธิบายไว้ในหัวข้อ 2 ด้านบน) — และเพราะชื่อ tool ถูกตรวจสอบว่ามีอยู่จริงใน `TOOLS` ไปแล้วตั้งแต่ `decide_next_step()` (`solutions/day2/workshop2_agent.py:304-308`) โค้ดส่วนนี้จึงมั่นใจได้ว่า `TOOLS[tool]` จะไม่ throw `KeyError` เด็ดขาด
+
 **จุดที่ควรสังเกตในการอ่าน trace นี้**
 
 1. รอบที่ 4 คือจุดที่โมเดลตั้ง `tool = null` — ออกจาก loop ทันทีตามเงื่อนไขที่ `solutions/day2/workshop2_agent.py:437-438` **แต่สังเกตข้อความในวงเล็บท้ายคิดข้อ 4** (`เครื่องมือ 'null' ไม่มีจริง`) — นี่คือของจริงที่รันได้ตรงกับที่เตือนไว้ใน [Module 5 หัวข้อ 1.3](03-module5-react-loop.md): โมเดลตอบสตริงตัวอักษร `"null"` แทนที่จะเป็นค่า JSON `null` จริง ทำให้ตัวตรวจชื่อเครื่องมือ (`solutions/day2/workshop2_agent.py:304-308`) มองว่า `"null"` เป็นชื่อเครื่องมือที่ไม่มีจริงและปฏิเสธไป แต่ผลลัพธ์สุดท้ายก็ยังถูกต้องเพราะเงื่อนไข stop sequence ของฟังก์ชันนี้ตรวจแค่ `decision.tool is None` และค่าที่ถูกปฏิเสธถูก reset เป็น `None` ไปแล้ว
 2. ลำดับ `export_report` ก่อน `send_notification` **ไม่ใช่เรื่องบังเอิญ** แต่เป็นกติกาที่บังคับไว้ในพร้อมต์ (`REACT_PROMPT` ข้อ 3 — `solutions/day2/workshop2_agent.py:268-269`): "ถ้าผู้ใช้ขอให้ส่งผลให้ทีม ต้องเรียก `export_report` ก่อน `send_notification` เสมอ" — แสดงว่าลำดับการกระทำใน ReAct ไม่ได้เกิดขึ้นเองอัตโนมัติ แต่ต้องระบุไว้ในพร้อมต์อย่างชัดเจน
 3. แต่ละ Observation (ผลลัพธ์ของแต่ละขั้น) กลายเป็นข้อมูลตั้งต้นของ **การสังเคราะห์คำตอบ** (`synthesize()` — `solutions/day2/workshop2_agent.py:405-417`) ซึ่งบังคับให้ต้องอ้างอิงแหล่งที่มาจริงของทุกข้อสรุป (`SYNTH_PROMPT` — `solutions/day2/workshop2_agent.py:388-402`) — ป้องกันไม่ให้โมเดลเดาหมายเลข ticket หรืออุปกรณ์ที่ไม่มีในหลักฐาน สังเกตว่าคำตอบจริงข้างบนอ้างอิงหมายเลข ticket จริง (`TK-25-00005`, `TK-25-00018`, `TK-25-00011`) ที่ได้จาก PostgreSQL ตรงๆ ไม่ได้เดาขึ้นมาเอง
 4. ไฟล์รายงานและอีเมลข้างบนเป็นของจริงที่ถูกสร้างขึ้นจากการรันครั้งนี้ (`data/reports/report-20260930-102613.md` และอีเมลใน MailHog ที่ http://localhost:8025) — ลองรันคำสั่งข้างบนซ้ำเองได้ ผลลัพธ์ตัวเลข ticket และเวลาที่ใช้อาจต่างไปเล็กน้อยตามข้อมูลจริงในฐานข้อมูล ณ ขณะนั้น
+
+**ถ้าลองรันแล้ว "ไม่เจออะไร"** (เช่น `search_tickets`/`count_log_events` คืนค่าว่างเปล่า ทั้งที่ควรมีข้อมูล): เครื่องมือทั้งสองกรองด้วยช่วงเวลาสัมพัทธ์ (`opened_at >= now - days`, `@timestamp: now-{days}d`) ถ้าข้อมูลถูก seed ไว้นานแล้ว timestamp จะ "หลุดหน้าต่าง" ที่ query มองหาไป ให้ refresh timestamp ของ log ใน OpenSearch ให้ขยับมาอยู่แถว "ตอนนี้" ด้วยคำสั่งนี้ (เทียบเท่า `make load-logs SHIFT=now` แต่เรียก docker compose ตรงๆ โดยไม่ผ่าน make):
+
+```bash
+docker compose -f docker/docker-compose.yml --env-file .env run --rm loader python load_logs.py --shift now
+```
+
+คำสั่งนี้จะขยับ timestamp ของทุกบรรทัด log ที่โหลดไว้แล้วให้บรรทัดล่าสุดตรงกับเวลาปัจจุบัน โดยคงระยะห่างสัมพัทธ์ระหว่างเหตุการณ์ไว้เหมือนเดิม (ดูเหตุผลใน docstring ของ `docker/loader/load_logs.py:2-12`)
 
 ---
 
