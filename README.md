@@ -65,6 +65,7 @@
 | 13:00–13:45 | [day3/03-workshop3-customer-directory.md](INSTRUCTIONS/day3/03-workshop3-customer-directory.md) — Workshop 3: Customer Directory MCP Server (tool เดียว + validate input, กิจกรรมอุ่นเครื่องก่อน Workshop 4) |
 | 13:45–16:30 | [day3/04-workshop4-mpls-noc-mcp-server.md](INSTRUCTIONS/day3/04-workshop4-mpls-noc-mcp-server.md) — Workshop 4: MPLS NOC MCP Server (13:45–15:45 ลงมือทำ, 15:45–16:30 สรุปและถาม-ตอบ) |
 | เสริม (ไม่บังคับ) | [day3/05-summary-add-mcp-tool.md](INSTRUCTIONS/day3/05-summary-add-mcp-tool.md) — สรุป: เพิ่ม MCP Tool ใหม่ให้ Agent จริง ต้องแก้ไฟล์ไหน โฟลเดอร์ไหนบ้าง |
+| หลังจบหลักสูตร | [day3/99-course-summary.md](INSTRUCTIONS/day3/99-course-summary.md) — สรุปภาพรวมหลักสูตร 3 วันทั้งหมด |
 
 **เฉลยวันที่ 3**: [solutions/day3/](solutions/day3/) — `apps/mcp-server/` เป็นตัวอย่างสาธิตอ้างอิง ส่วนเฉลยของไฟล์ที่ต้องเขียนเองอยู่ที่ [solutions/day3/workshop3_customer_directory.py](solutions/day3/workshop3_customer_directory.py) และ [solutions/day3/workshop4_mcp_server.py](solutions/day3/workshop4_mcp_server.py) — เปิดหลังจากลองเองแล้วเท่านั้น
 
