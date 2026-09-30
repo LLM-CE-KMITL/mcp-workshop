@@ -61,6 +61,79 @@ def fast_path(message: str) -> IntentResult | None:
 
 **สังเกต**: `fast_path()` คืน `None` เมื่อยังตัดสินใจไม่ได้ — นั่นคือสัญญาณให้ `classify()` เรียกโมเดลต่อ ไม่ใช่การปฏิเสธ
 
+### ตัวอย่างโค้ด Layer 2: classify ด้วย system prompt (copy ไปรันได้ทันที)
+
+`classify()` จริงใน `intent.py` ห่อรายละเอียดไว้ในฟังก์ชัน — ตัวอย่างนี้เขียน system prompt และเรียก `complete_structured()` ตรงๆ ให้เห็นกลไกทั้งหมด (`SYSTEM_PROMPT` ด้านล่างคัดมาจาก `apps/agent-api/agent/intent.py:138` ทั้งฉบับ):
+
+```bash
+uv run python -c "
+import asyncio, sys
+from dotenv import load_dotenv; load_dotenv()  # ต้องโหลดก่อน import agent.llm เสมอ ไม่งั้นเจอ 401
+sys.path.insert(0, 'apps/agent-api')
+from agent import llm
+from schemas import IntentResult
+
+SYSTEM_PROMPT = '''You classify incoming questions for a network operations assistant.
+
+The assistant can answer questions about an IP-MPLS network: trouble tickets,
+device configuration, physical topology, routing adjacencies, device logs,
+equipment health, customer circuits and operational runbooks. It covers exactly
+two sites, BKK and NBI, and ten devices.
+
+Choose exactly one label:
+
+in_scope
+    Answerable from the network data. Needs tools.
+
+general_knowledge
+    A genuine networking question that needs explanation, not data.
+    Example: \\\"what is a router\\\", \\\"how does ISIS work\\\".
+    Answer directly, no tools.
+
+needs_clarification
+    Relates to the network but is missing something essential - which device,
+    which time range, which aspect. Ask rather than guess.
+
+out_of_scope
+    Unrelated to network operations. Weather, translation, HR, finance,
+    personal requests.
+'''
+
+async def classify_with_system_prompt(question: str) -> IntentResult:
+    messages = [
+        {'role': 'system', 'content': SYSTEM_PROMPT},
+        {'role': 'user', 'content': question},
+    ]
+    return await llm.complete_structured(messages, IntentResult)
+
+async def main():
+    questions = [
+        'router คืออะไร',
+        'แถวนี้มีร้านอาหารแนะนำไหม',
+        'ขอดูอุณหภูมิ CPU ของอุปกรณ์ตัวนี้หน่อย',
+    ]
+    for q in questions:
+        result = await classify_with_system_prompt(q)
+        print(f'{result.label.value:20} conf={result.confidence:.2f}  {q}')
+        print(f'   เหตุผล: {result.reason}')
+
+asyncio.run(main())
+"
+```
+
+**ผลลัพธ์จริง** (รันจริงตอนเตรียมเอกสารนี้):
+
+```
+general_knowledge    conf=0.95  router คืออะไร
+   เหตุผล: The question is asking for a definition of a router, which is a general networking concept. It does not require specific network data or tools to answer.
+out_of_scope         conf=0.95  แถวนี้มีร้านอาหารแนะนำไหม
+   เหตุผล: The question is asking for restaurant recommendations in the area, which is unrelated to network operations. The assistant's scope is limited to IP-MPLS network-related queries such as trouble tickets, device configuration, and network topology.
+needs_clarification  conf=0.95  ขอดูอุณหภูมิ CPU ของอุปกรณ์ตัวนี้หน่อย
+   เหตุผล: The user is asking to see the CPU temperature of a device, but it's unclear which specific device they are referring to. The network has ten devices across two sites, so without knowing the exact device, the request cannot be fulfilled.
+```
+
+สังเกตว่าไม่มีคำถามข้อไหนผ่าน `fast_path` เลยในตัวอย่างนี้ (ตั้งใจเลือกคำถามที่ไม่มีรหัสอุปกรณ์/ไม่ตรง `DOMAIN_TERMS` ≥2 คำ) — ทุกข้อจึงต้องพึ่ง LLM ตัดสินใจผ่าน system prompt ล้วนๆ ตรงตามที่ต้องการสาธิต
+
 ---
 
 ## 3. สี่ป้ายกำกับ ไม่ใช่สอง
