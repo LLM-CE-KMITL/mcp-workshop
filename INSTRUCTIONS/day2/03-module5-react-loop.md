@@ -71,6 +71,14 @@ get_device_logs(device: str, hours: int = 24) -> list[str]: ดึง log ขอ
 
 ผลลัพธ์ดิบจาก LLM เป็นข้อความ (มักห่อด้วย ```` ```json ```` บางครั้ง) ต้องแปลงเป็นโครงสร้างที่ใช้ต่อได้และ**ตรวจสอบก่อนเรียกจริง**:
 
+**"fence" คืออะไร**: fence (หรือ code fence) คือเครื่องหมายขีดกลับ 3 ตัวติดกัน (```` ``` ````) ที่ใช้ล้อมกรอบ code block ใน Markdown — LLM หลายตัว "เคยชิน" กับการห่อ JSON ที่ตอบด้วยเครื่องหมายนี้โดยอัตโนมัติ แม้ไม่มีใครสั่ง เพราะถูกฝึกมาบนข้อความจำนวนมากที่ JSON มักเขียนในรูปแบบนี้ เช่น:
+
+~~~
+```json
+{"thought": "...", "tool": null}
+```
+~~~
+
 ```python
 # solutions/day2/workshop2_agent.py:280-285
 def _parse_json(schema: type[BaseModel], raw: str) -> BaseModel:
@@ -80,6 +88,28 @@ def _parse_json(schema: type[BaseModel], raw: str) -> BaseModel:
         text = text[4:] if text.lstrip().startswith("json") else text
     return schema.model_validate_json(text.strip())
 ```
+
+**เดินทีละขั้นตอนกับตัวอย่างจริง** (เพื่อไม่ให้งงว่า "ตัดทุกคำ" — ที่จริงมันไม่ได้ตัดทีละคำเลย แบ่งเป็นก้อนใหญ่แค่ 2-3 ก้อนเท่านั้น):
+
+สมมติ `raw` คือ:
+
+~~~
+```json
+{"thought": "พร้อมตอบแล้ว", "tool": null}
+```
+~~~
+
+1. `text = raw.strip()` — ตัดช่องว่าง/บรรทัดว่างที่หัวและท้ายสุดออกเฉยๆ (ไม่แตะเนื้อหาข้างใน)
+2. `text.startswith("```")` — เป็น `True` เพราะขึ้นต้นด้วย fence จริง
+3. `text.split("```")` — **แบ่งทั้งสตริงเป็นก้อนตรงจุดที่เจอ fence** ไม่ใช่ตัดทีละคำ ได้ list 3 ก้อน:
+   ```python
+   ['', 'json\n{"thought": "พร้อมตอบแล้ว", "tool": null}\n', '']
+   ```
+   ก้อน `[0]` = ก่อน fence แรก (ว่างเปล่า), ก้อน `[1]` = **เนื้อหาตรงกลางที่ต้องการ**, ก้อน `[2]` = หลัง fence ที่สอง (ว่างเปล่า)
+4. `text.split("```")[1]` — หยิบมาแค่ก้อน `[1]` ก้อนเดียว (ทิ้งก้อน `[0]` กับ `[2]` ไป) เหลือ `'json\n{"thought": "พร้อมตอบแล้ว", "tool": null}\n'`
+5. `text.lstrip().startswith("json")` — เป็น `True` เพราะขึ้นต้นด้วยคำว่า `json` (ป้ายบอก syntax highlighting ที่ต่อท้าย fence เปิด)
+6. `text[4:]` — ตัดตัวอักษร **4 ตัวแรก** ออก (คำว่า `json` มีตัวอักษรพอดี 4 ตัว ไม่เกี่ยวกับจำนวนคำ) เหลือ `'\n{"thought": "พร้อมตอบแล้ว", "tool": null}\n'`
+7. `.strip()` สุดท้าย — ตัดบรรทัดว่างที่เหลือออกอีกรอบ ได้ JSON ที่สะอาดพร้อมส่งให้ `model_validate_json()` พอดี
 
 ตามด้วยการตรวจว่าชื่อเครื่องมือที่โมเดลเลือกมีอยู่จริงใน `TOOLS` **ก่อน**เรียก ไม่ใช่ปล่อยให้ล้มเหลวตอนเรียก:
 
@@ -249,6 +279,82 @@ get_device_logs({'device': 'CR-BKK-04'}) -> ถูกปฏิเสธ: เก�
 ```
 
 ทั้ง 3 เงื่อนไขถูกกระตุ้นให้เห็นครบในการรันเดียว: การเรียกครั้งที่ 2 (argument ซ้ำ), ครั้งที่ 5 (เครื่องมือเดิมเกิน 3 ครั้ง), และครั้งที่ 9 (เกินเพดานรวม 8 ขั้นตอน)
+
+---
+
+### 1.5 ตัวอย่างครบวงจร: หนึ่งก้าวการตัดสินใจจริง (เรียก LLM จริง)
+
+ตัวอย่างข้างบนทั้งหมด (1.1, 1.2) ทดสอบแยกส่วนด้วยข้อความจำลอง — ตัวอย่างนี้เอา**สองส่วนนั้นมาต่อกันแล้วเรียก LLM จริง** ให้เห็นว่าโมเดลเลือกเรียก tool เองจริงๆ อย่างไร (ใช้เครื่องมือสมมติ `check_device_status` คนละตัวกับ `search_tickets` ที่ต้องใช้ใน Lab ด้านล่าง เพื่อไม่ให้เห็นคำตอบของ Lab ตรงๆ):
+
+```bash
+uv run python -c "
+import asyncio, sys
+from dotenv import load_dotenv; load_dotenv()
+sys.path.insert(0, 'apps/agent-api')
+from agent import llm
+from pydantic import BaseModel
+
+class ReactDecision(BaseModel):
+    thought: str
+    tool: str | None = None
+    arguments: dict = {}
+
+def _parse_json(schema, raw: str):
+    text = raw.strip()
+    if text.startswith('\`\`\`'):
+        text = text.split('\`\`\`')[1]
+        text = text[4:] if text.lstrip().startswith('json') else text
+    return schema.model_validate_json(text.strip())
+
+PROMPT = '''คุณคือ agent ที่ตัดสินใจทีละขั้นตอนเดียว (ห้ามวางแผนล่วงหน้าหลายขั้นตอน)
+
+เครื่องมือที่มี:
+check_device_status(device_id: str): ตรวจสอบว่าอุปกรณ์ที่ระบุ up หรือ down อยู่ตอนนี้
+
+ตอบเป็น JSON เท่านั้นตามรูปแบบ:
+{\"thought\": \"เหตุผลสั้นๆ ว่าทำไมเลือกแบบนี้\", \"tool\": \"ชื่อเครื่องมือ หรือ null ถ้าพร้อมตอบแล้ว\", \"arguments\": {}}
+
+ถ้ายังไม่มีข้อมูลพอจะตอบ ให้เลือกเรียกเครื่องมือ ถ้ามีข้อมูลพอแล้วให้ตั้ง tool เป็น null
+'''
+
+async def decide(question: str) -> ReactDecision:
+    messages = [
+        {'role': 'system', 'content': PROMPT},
+        {'role': 'user', 'content': question},
+    ]
+    raw = await llm.complete(messages, temperature=0.1)
+    return _parse_json(ReactDecision, raw)
+
+async def main():
+    questions = [
+        'อุปกรณ์ CR-BKK-01 ตอนนี้ up หรือ down',                                          # ยังไม่มีข้อมูล ต้องเรียก tool
+        'ระบบ observation ล่าสุดคือ CR-BKK-01 อยู่ในสถานะ up ปกติดี สรุปให้หน่อยว่าเป็นยังไง',  # มีข้อมูลพอแล้ว
+    ]
+    for q in questions:
+        decision = await decide(q)
+        print(f'คำถาม: {q}')
+        print(f'  tool = {decision.tool!r}  arguments = {decision.arguments!r}')
+        print(f'  thought = {decision.thought!r}')
+        print('-' * 60)
+
+asyncio.run(main())
+"
+```
+
+**ผลลัพธ์จริง** (รันจริงตอนเตรียมเอกสารนี้):
+
+```
+คำถาม: อุปกรณ์ CR-BKK-01 ตอนนี้ up หรือ down
+  tool = 'check_device_status'  arguments = {'device_id': 'CR-BKK-01'}
+  thought = 'ต้องการตรวจสอบสถานะของอุปกรณ์ CR-BKK-01 โดยใช้เครื่องมือ check_device_status'
+------------------------------------------------------------
+คำถาม: ระบบ observation ล่าสุดคือ CR-BKK-01 อยู่ในสถานะ up ปกติดี สรุปให้หน่อยว่าเป็นยังไง
+  tool = None  arguments = {}
+  thought = 'ข้อมูลการสังเกตระบุว่า CR-BKK-01 ทำงานปกติ ไม่จำเป็นต้องเรียกเครื่องมือเพิ่มเติม'
+------------------------------------------------------------
+```
+
+**สังเกต**: คำถามแรกไม่มีข้อมูลอะไรให้เลย โมเดลจึงเลือกเรียก `check_device_status` พร้อมดึง `device_id` ออกมาจากคำถามได้เองถูกต้อง (`"CR-BKK-01"`) — นี่คือ**ก้าวเดียว**ของ ReAct loop (Thought → Action) คำถามที่สองจำลองสถานการณ์ที่ "Observation" จากรอบก่อนหน้าถูกใส่เข้ามาในคำถามแล้ว (เหมือนตอนที่ loop ส่ง scratchpad กลับเข้าไปรอบสอง) โมเดลจึงตัดสินใจว่าไม่ต้องเรียก tool อีกและตั้ง `tool = null` — Lab ด้านล่างคือการเอาก้าวเดียวแบบนี้มาใส่ใน `while` loop ที่วนซ้ำเอง จนกว่าจะเจอ `tool is None`
 
 ---
 
