@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI × IP-MPLS · Question Flow Simulator</title>
+<style>
+:root{
+  --bg:#f6f7f9; --card:#fff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+  --d1:#2563eb; --d2:#16a34a; --d3:#ea580c; --ext:#64748b; --bad:#dc2626;
+  --d1t:#dbeafe; --d2t:#dcfce7; --d3t:#ffedd5; --extt:#f1f5f9; --code:#f1f5f9;
+  --glow:rgba(250,204,21,.9); --ml:#7c3aed; --mlt:#ede9fe;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --bg:#0b1220; --card:#131c2e; --ink:#e5e9f0; --muted:#94a3b8; --line:#26324a;
+    --d1t:#16294f; --d2t:#10301f; --d3t:#3a2110; --mlt:#2a1d4d; --extt:#1b2538; --code:#0d1526; --glow:rgba(250,204,21,.8); }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI","Noto Sans Thai","Sarabun",sans-serif}
+header{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+header h1{font-size:16px;margin:0;font-weight:700}
+header .sub{color:var(--muted);font-size:12px}
+.sp{flex:1}
+.ctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+button,select{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:5px 10px;cursor:pointer}
+button:hover{border-color:var(--muted)} button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--d1);border-color:var(--d1);color:#fff}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg label{padding:5px 10px;cursor:pointer;font-size:13px}
+.seg input{display:none}
+.seg input:checked+span{font-weight:700;color:var(--d1)}
+.seg label:has(input:checked){background:var(--d1t)}
+.banner{margin:10px 16px 0;padding:8px 12px;border:1px dashed var(--line);border-radius:8px;color:var(--muted);font-size:12.5px;background:var(--card)}
+main{display:grid;grid-template-columns:250px minmax(420px,1fr) 380px;gap:12px;padding:12px 16px;align-items:start}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.panel h2{margin:0 0 8px;font-size:13px;letter-spacing:.02em;color:var(--muted);text-transform:uppercase}
+.panel h2 b{display:inline-block;background:var(--ink);color:var(--card);border-radius:50%;width:18px;height:18px;text-align:center;line-height:18px;font-size:11px;margin-right:6px}
+/* questions */
+.grp{margin:10px 0 4px;font-size:12px;font-weight:700;display:flex;gap:6px;align-items:center}
+.tag{font:11px ui-monospace,Menlo,monospace;padding:1px 6px;border-radius:6px;background:var(--extt);color:var(--muted)}
+.chip{display:block;width:100%;text-align:left;margin:4px 0;padding:7px 9px;border-radius:9px;font-size:13px;line-height:1.35}
+.chip.sel{border-color:var(--d1);background:var(--d1t)}
+.chip small{display:block;color:var(--muted);font-size:11px}
+/* diagram */
+#arch{width:100%;height:auto;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px;border:2px solid}
+.nrect{fill:var(--card);stroke-width:2;transition:all .25s}
+.grect{fill:none;stroke-width:1.5;stroke-dasharray:6 4;opacity:.8}
+.k-d1 .nrect{stroke:var(--d1)} .k-d2 .nrect{stroke:var(--d2)} .k-d3 .nrect{stroke:var(--d3)} .k-ext .nrect{stroke:var(--ext)} .k-ml .nrect{stroke:var(--ml);stroke-dasharray:5 3}
+.k-d1.g .grect{stroke:var(--d1)} .k-d2.g .grect{stroke:var(--d2)} .k-d3.g .grect{stroke:var(--d3)}
+.nt{font-size:12.5px;font-weight:700;fill:var(--ink);text-anchor:middle}
+.ns{font-size:10.5px;fill:var(--muted);text-anchor:middle}
+.gt{font-size:11.5px;font-weight:700}
+.nj{font-size:10px;font-weight:700;text-anchor:middle;transition:fill .25s}
+.nj.ok{fill:var(--ml)} .nj.none{fill:var(--muted);font-weight:400;font-style:italic}
+.nj.jok{fill:var(--d2)} .nj.jbad{fill:var(--bad)}
+.uses b.rb{background:#fee2e2;color:var(--bad)}
+.k-d1 .gt{fill:var(--d1)} .k-d2 .gt{fill:var(--d2)} .k-d3 .gt{fill:var(--d3)}
+.node.done .nrect{fill:var(--d2t)}
+.node.active .nrect{stroke-width:3.5;filter:drop-shadow(0 0 7px var(--glow));fill:var(--card)}
+.node.skipped{opacity:.28}
+.node.idle{opacity:.4}
+.node.stopped .nrect{stroke:var(--bad);stroke-width:3.5;fill:rgba(220,38,38,.1)}
+.node.flash .nrect{filter:drop-shadow(0 0 8px var(--glow))}
+.edge{fill:none;stroke:var(--muted);stroke-width:1.6;opacity:.55}
+.edge.used{stroke:var(--d2);opacity:1;stroke-width:2.2}
+.edge.svc{stroke:var(--ml);stroke-dasharray:5 4;opacity:.3}
+.edge.svc.used{stroke:var(--ml);opacity:.85;stroke-width:1.8}
+.elabel{font-size:10px;fill:var(--muted)}
+.uses{display:inline-flex;gap:4px}
+.uses b{font:700 10px ui-monospace,Menlo,monospace;background:var(--mlt);color:var(--ml);border-radius:999px;padding:0 6px}
+.pop{transform-box:fill-box;transform-origin:left center}
+.pop.show{animation:popin .28s cubic-bezier(.2,1.4,.4,1)}
+@keyframes popin{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
+.pbox{fill:#fef08a;stroke:#a16207;stroke-width:1.5;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
+.ptip{fill:#fef08a;stroke:#a16207;stroke-width:1.5}
+.pt1{font-size:11px;font-weight:700;fill:#422006} .pt2{font-size:10px;fill:#713f12}
+.cnt{font-size:12.5px;margin:0 0 6px;color:var(--muted)} .cnt b{color:var(--ml);font-size:14px}
+.pk circle{fill:#facc15;stroke:#a16207;stroke-width:1.5}
+.pk text{font-size:10.5px;font-weight:700;fill:var(--ink);paint-order:stroke;stroke:var(--card);stroke-width:4px;text-anchor:middle}
+/* step log */
+#log{max-height:690px;overflow:auto;padding-right:2px}
+.hint{color:var(--muted);font-size:13px;padding:6px 2px}
+.step{border:1px solid var(--line);border-left:4px solid var(--ext);border-radius:10px;margin:0 0 8px;background:var(--card)}
+.step.d1{border-left-color:var(--d1)} .step.d2{border-left-color:var(--d2)} .step.d3{border-left-color:var(--d3)}
+.step.cur{box-shadow:0 0 0 2px var(--glow)}
+.sh{display:flex;gap:8px;align-items:center;padding:7px 9px;cursor:pointer}
+.num{background:var(--ink);color:var(--card);border-radius:50%;min-width:20px;height:20px;text-align:center;font-size:11px;line-height:20px}
+.mod{font-weight:700;font-size:12.5px}
+.hops{margin-left:auto;font:11px ui-monospace,Menlo,monospace;color:var(--d3)}
+.ms{margin-left:8px;font:11px ui-monospace,Menlo,monospace;color:var(--muted)}
+.st{padding:0 9px 7px;font-size:13px}
+.sb{display:none;padding:0 9px 9px}
+.step.open .sb{display:block}
+.lbl{font:700 10.5px ui-monospace,Menlo,monospace;color:var(--muted);margin:6px 0 2px}
+pre{margin:0;background:var(--code);border-radius:8px;padding:7px 9px;font:11.5px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word;max-height:190px;overflow:auto}
+.note{margin-top:7px;font-size:12px;color:var(--muted);border-left:3px solid var(--line);padding-left:8px}
+/* lower */
+.lower{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px 12px}
+.chat{margin:0 16px 24px}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:3px 8px;font-size:13px}
+.kv div:nth-child(odd){color:var(--muted)}
+.pill{display:inline-block;padding:0 7px;border-radius:999px;background:var(--extt);margin:1px 3px 1px 0;font:11.5px ui-monospace,Menlo,monospace}
+.win{max-height:130px;overflow:auto;margin-top:6px;font-size:12px}
+.win div{padding:2px 0;border-bottom:1px dashed var(--line)}
+.win b{font:700 10.5px ui-monospace,monospace;margin-right:6px;color:var(--d1)}
+.flash-b{animation:fl 1.1s}
+@keyframes fl{0%{background:var(--glow)}100%{background:transparent}}
+.heat{display:flex;flex-wrap:wrap;gap:1px;width:100%;max-width:520px;margin:3px 0}
+.heat i{width:calc(100%/32 - 1px);height:9px;display:block;background:var(--extt)}
+.vtxt{font:11.5px ui-monospace,Menlo,monospace;color:var(--muted);word-break:break-all}
+.gauge{position:relative;height:14px;background:var(--extt);border-radius:7px;margin:8px 0 3px;overflow:visible}
+.gauge .f{height:100%;border-radius:7px;background:var(--d2)}
+.gauge .t{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--bad)}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+td,th{border-bottom:1px solid var(--line);padding:3px 6px;text-align:left}
+th{color:var(--muted);font-weight:600;font-size:11.5px}
+.bar{display:inline-block;height:8px;border-radius:4px;background:var(--d1);vertical-align:middle}
+.bub{max-width:88%;padding:8px 11px;border-radius:12px;margin:6px 0;white-space:pre-wrap;font-size:13.5px}
+.bub.u{margin-left:auto;background:var(--d1t)}
+.bub.a{background:var(--extt)}
+.bub.sys{background:none;border:1px dashed var(--line);color:var(--muted);font-size:12px;max-width:100%}
+.stat{display:inline-block;font:700 10.5px ui-monospace,monospace;padding:1px 7px;border-radius:999px;margin-right:6px;color:#fff;background:var(--d2)}
+.stat.refused{background:var(--bad)} .stat.clarify{background:var(--d3)} .stat.direct{background:var(--d1)}
+#chatbox{max-height:340px;overflow:auto}
+@media(max-width:1100px){ main{grid-template-columns:1fr} .lower{grid-template-columns:1fr} #log{max-height:none} }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>AI × IP-MPLS · Question Flow Simulator</h1>
+    <div class="sub">จำลองเส้นทางของคำถามหนึ่งข้อ ตั้งแต่ผู้ใช้พิมพ์จนได้คำตอบ</div>
+  </div>
+  <div class="sp"></div>
+  <div class="ctl">
+    <span class="sub">ผู้ถามใช้</span>
+    <span class="seg">
+      <label><input type="radio" name="client" value="chainlit" checked><span>Chainlit UI → Agent API</span></label>
+      <label><input type="radio" name="client" value="desktop"><span>Claude Desktop (stdio)</span></label>
+    </span>
+  </div>
+  <div class="ctl">
+    <button id="bPlay" class="primary">▶ เล่น</button>
+    <button id="bStep" title="ทำทั้งขั้นต่อหนึ่งการกด (การ์ดเดียวใน step log)">⏭ ทีละขั้น</button>
+    <button id="bHop" title="กดหนึ่งครั้ง แพ็กเก็ตวิ่งไปกล่องถัดไปหนึ่งกล่อง">👣 ทีละกล่อง</button>
+    <select id="speed" title="ความเร็ว">
+      <option value="0.5">0.5×</option><option value="1" selected>1×</option>
+      <option value="2">2×</option><option value="4">4×</option>
+    </select>
+    <button id="bReset" title="ล้างหน่วยความจำและบทสนทนา">↺ เริ่ม session ใหม่</button>
+  </div>
+</header>
+<div class="banner">ตัวเลข vector, ผลลัพธ์จากฐานข้อมูล, latency และคำตอบทั้งหมดในหน้านี้ <b>เป็นข้อมูลสมมติ</b> ไม่ได้เชื่อมต่อระบบจริง — แต่ลำดับขั้นและโครงสร้าง input/output อ้างอิงจากโค้ดใน <code>apps/agent-api</code> และ <code>apps/mcp-server</code></div>
+
+<main>
+  <section class="panel" id="qpanel">
+    <h2><b>1</b>เลือกคำถาม</h2>
+    <div id="qlist"></div>
+  </section>
+
+  <section class="panel">
+    <h2><b>2</b>Architecture · เส้นทางของข้อมูล</h2>
+    <div class="cnt">โมเดลที่ถูกเรียกใน turn นี้: 🧠 LLM <b id="cL">0</b> ครั้ง · 🔢 Embedding <b id="cE">0</b> ครั้ง</div>
+    <svg id="arch" viewBox="0 0 800 690" role="img" aria-label="แผนภาพการไหลของข้อมูล"></svg>
+    <div class="legend">
+      <span><i style="border-color:var(--d1)"></i>Day 1 ข้อมูล/vector</span>
+      <span><i style="border-color:var(--d2)"></i>Day 2 Agent</span>
+      <span><i style="border-color:var(--d3)"></i>Day 3 MCP Server</span>
+      <span><i style="border-color:var(--ext)"></i>Client / ภายนอก</span>
+      <span><b style="color:var(--ml)">{✓}</b> = จุดที่ตรวจรูปแบบ JSON (LLM: Pydantic + retry ใน llm.py · tool: JSON Schema ของ args · API: ChatRequest) · <b>{—}</b> = ไม่มีการตรวจ · <b>🔒</b> = Security ของ MCP Server (คนละเรื่อง)</span>
+      <span><i style="border-color:var(--ml);border-style:dashed"></i>โมเดล AI (LLM / Embedding) · เส้นประม่วง = การเรียกโมเดล</span>
+      <span>● เรืองแสง = กำลังทำงาน · เขียว = ผ่านแล้ว · จาง = ถูกข้าม · แดง = หยุดที่นี่</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2><b>3</b>Step log · input / output ของแต่ละขั้น</h2>
+    <div id="log"><div class="hint">เลือกคำถามทางซ้าย แล้วกด ▶ เล่น / ⏭ ทีละขั้น / 👣 ทีละกล่อง (กดปุ่มโดยยังไม่เลือกคำถาม จะเริ่มจากคำถามแรกให้) — คลิกที่หัวการ์ดเพื่อขยายหรือย่อ</div></div>
+  </section>
+</main>
+
+<div class="lower">
+  <section class="panel">
+    <h2><b>4</b>Memory ของ session <span class="tag">memory.py</span></h2>
+    <div id="memNote" class="hint" style="display:none"></div>
+    <div class="kv">
+      <div>turn</div><div id="mTurn">0</div>
+      <div>topic</div><div id="mTopic">—</div>
+      <div>entities</div><div id="mEnt">—</div>
+      <div>context tokens</div><div id="mTok">0 <span class="sub" style="color:var(--muted)">(ประมาณ)</span></div>
+      <div>topic changes</div><div id="mChg">0</div>
+      <div>archived</div><div id="mArch">—</div>
+    </div>
+    <div class="win" id="mWin"></div>
+  </section>
+  <section class="panel">
+    <h2><b>5</b>Vector (สมมติ · 1024 มิติ แบบ bge-m3)</h2>
+    <div id="vecBody"><div class="hint">จะแสดงเมื่อถึงขั้นที่ใช้ embedding (Memory หรือ semantic search)</div></div>
+  </section>
+</div>
+
+<section class="panel chat">
+  <h2><b>6</b>ผลลัพธ์ที่ผู้ใช้เห็น</h2>
+  <div id="chatbox"><div class="hint">ยังไม่มีบทสนทนา</div></div>
+</section>
+
+<script>
+"use strict";
+/* ======================================================================
+   0) helpers
+   ====================================================================== */
+const $ = s => document.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const fmt = o => typeof o === 'string' ? o : JSON.stringify(o, null, 2);
+const speed = () => parseFloat($('#speed').value) || 1;
+const client = () => document.querySelector('input[name=client]:checked').value;
+
+/* ---- fake vectors: deterministic, unit length ---- */
+function rng(seed){ let h = 1779033703 ^ seed.length;
+  for (let i = 0; i < seed.length; i++){ h = Math.imul(h ^ seed.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; }
+  return () => { h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); return ((h ^= h >>> 16) >>> 0) / 4294967296; };
+}
+function dot(a, b){ let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; }
+function unit(a){ const n = Math.sqrt(dot(a, a)) || 1; return a.map(x => x / n); }
+function vec(seed, dim = 1024){ const r = rng(seed); const a = new Array(dim);
+  for (let i = 0; i < dim; i++){ const u = r() || 1e-9, v = r(); a[i] = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  return unit(a); }
+/* a vector whose cosine with t is exactly `c` (up to float error) */
+function vecNear(t, c, seed){ let r = vec(seed); const p = dot(r, t); r = unit(r.map((x, i) => x - p * t[i]));
+  return t.map((x, i) => c * x + Math.sqrt(1 - c * c) * r[i]); }
+const cosine = (a, b) => dot(a, b);
+const short = (v, n = 6) => '[' + v.slice(0, n).map(x => x.toFixed(3)).join(', ') + ', … อีก ' + (v.length - n) + ' ค่า]';
+
+/* ======================================================================
+   1) architecture diagram (SVG)
+   ====================================================================== */
+const N = {
+  user:    {x:20,  y:20,  w:110, h:46, t:'ผู้ใช้ (NOC)', s:'', k:'ext'},
+  chainlit:{x:180, y:20,  w:150, h:46, t:'Chainlit UI', s:':8000', k:'ext'},
+  claude:  {x:600, y:20,  w:180, h:46, t:'Claude Desktop', s:'client + LLM ของตัวเอง', k:'ext'},
+  intent:  {x:170, y:135, w:160, h:68, t:'① Intent Gate', s:'fast_path → LLM', k:'d2', j:'{✓} IntentResult', jk:'ok'},
+  memory:  {x:370, y:135, w:160, h:68, t:'② Memory', s:'topic shift · window', k:'d2', j:'{—} ไม่มี JSON ให้ตรวจ', jk:'none'},
+  mcpc:    {x:170, y:235, w:160, h:68, t:'④ MCP Client', s:'in_process', k:'d2', j:'{—} ส่งต่อ args (ไม่ตรวจ)', jk:'none'},
+  react:   {x:370, y:235, w:160, h:68, t:'③ ReAct Loop', s:'Thought→Action→Obs', k:'d2', j:'{✓} ReactDecision', jk:'ok'},
+  synth:   {x:370, y:335, w:160, h:68, t:'⑤ Synthesize', s:'+ Grounding check', k:'d2', j:'{✓} GroundingVerdict', jk:'ok'},
+  security:{x:170, y:475, w:350, h:34, t:'🔒 Security: validate · cap · redact · audit', s:'', k:'d3'},
+  tools:   {x:170, y:525, w:350, h:40, t:'Tools · Resources · Prompts', s:'', k:'d3', j:'{✓} JSON Schema ตรวจ args ก่อนรัน tool', jk:'ok'},
+  pg:      {x:150, y:600, w:96,  h:46, t:'PostgreSQL', s:':5432', k:'d1'},
+  neo:     {x:254, y:600, w:96,  h:46, t:'Neo4j', s:':7687', k:'d1'},
+  os:      {x:358, y:600, w:96,  h:46, t:'OpenSearch', s:':9200', k:'d1'},
+  mh:      {x:462, y:600, w:96,  h:46, t:'MailHog', s:':1025 / :8025', k:'ext'},
+  llm:     {x:575, y:150, w:100, h:56, t:'🧠 LLM', s:'chat completions', k:'ml'},
+  emb:     {x:575, y:330, w:100, h:56, t:'🔢 Embedding', s:'bge-m3 · 1024 มิติ', k:'ml'}
+};
+const G = {
+  agent:  {x:150, y:100, w:400, h:310, t:'AI Agent · apps/agent-api :8080', k:'d2', members:['intent','memory','react','mcpc','synth']},
+  server: {x:150, y:445, w:400, h:130, t:'MCP Server · apps/mcp-server', k:'d3', members:['security','tools']}
+};
+const E = {
+  e1:  [[130,43],[180,43]],
+  e2:  [[255,66],[255,135]],
+  e3:  [[330,169],[370,169]],
+  e4:  [[450,203],[450,235]],
+  e5:  [[370,269],[330,269]],
+  e6:  [[250,303],[250,475]],
+  e7:  [[250,509],[250,525]],
+  e9:  [[450,303],[450,335]],
+  eB:  [[530,169],[542,169],[542,369],[530,369]],
+  e10: [[530,369],[565,369],[565,43],[330,43]],
+  dpg: [[198,565],[198,600]], dneo:[[302,565],[302,600]], dos:[[406,565],[406,600]], dmh:[[510,565],[510,600]],
+  c1:  [[75,20],[75,8],[690,8],[690,20]],
+  c2:  [[690,66],[690,492],[520,492]]
+};
+const svgNS = 'http://www.w3.org/2000/svg';
+const svg = $('#arch');
+const nodeEls = {}, groupEls = {}, edgeEls = {}, jEls = {};
+function mk(tag, attrs, parent){ const el = document.createElementNS(svgNS, tag);
+  for (const k in attrs) el.setAttribute(k, attrs[k]); (parent || svg).appendChild(el); return el; }
+function text(parent, x, y, cls, str){ const t = mk('text', {x, y, class: cls}, parent); t.textContent = str; return t; }
+
+(function drawArch(){
+  mk('defs', {}).innerHTML = '<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#64748b"/></marker>';
+  for (const id in G){ const g = G[id];
+    const el = mk('g', {class: 'g k-' + g.k}); groupEls[id] = el;
+    mk('rect', {x: g.x, y: g.y, width: g.w, height: g.h, rx: 14, class: 'grect'}, el);
+    text(el, g.x + 12, g.y + 18, 'gt', g.t).style.textAnchor = 'start';
+  }
+  text(svg, 150, 593, 'elabel', 'Day 1 · ฐานข้อมูลและ vector').style.textAnchor = 'start';
+  for (const id in E){ const p = E[id];
+    const d = p.map((q, i) => (i ? 'L' : 'M') + q[0] + ',' + q[1]).join(' ');
+    edgeEls[id] = mk('path', {d, class: 'edge', 'marker-end': 'url(#ah)'});
+  }
+  const lab = (x, y, s, anchor) => { const t = text(svg, x, y, 'elabel', s); if (anchor) t.style.textAnchor = anchor; };
+  lab(262, 82, 'HTTP POST /chat (SSE)'); lab(262, 94, '{✓} ChatRequest (FastAPI ตรวจ body)');
+  lab(258, 428, 'in_process: เรียก Python ตรง', 'start'); lab(258, 440, 'ไม่มี port / ไม่มี JSON-RPC', 'start');
+  lab(698, 290, 'stdio', 'start'); lab(698, 302, 'JSON-RPC', 'start'); lab(698, 314, 'tools/call', 'start');
+  lab(548, 262, 'ข้าม ReAct', 'start'); lab(548, 274, '(general)', 'start');
+  for (const id in N){ const n = N[id];
+    const el = mk('g', {class: 'node k-' + n.k, transform: `translate(${n.x},${n.y})`}); nodeEls[id] = el;
+    mk('rect', {width: n.w, height: n.h, rx: 10, class: 'nrect'}, el);
+    if (n.j){
+      const ys = n.s ? [22, 37, 55] : [16, 0, 33];
+      text(el, n.w / 2, ys[0], 'nt', n.t); if (n.s) text(el, n.w / 2, ys[1], 'ns', n.s);
+      jEls[id] = text(el, n.w / 2, ys[2], 'nj ' + n.jk, n.j);
+    } else {
+      text(el, n.w / 2, n.s ? n.h / 2 - 3 : n.h / 2 + 4, 'nt', n.t);
+      if (n.s) text(el, n.w / 2, n.h / 2 + 12, 'ns', n.s);
+    }
+  }
+  const pk = mk('g', {class: 'pk', style: 'display:none'});
+  mk('circle', {r: 7}, pk); pk.t = text(pk, 0, -12, '', '');
+  svg.pk = pk;
+})();
+const POPS = {};
+function mkPop(key){
+  const g = mk('g', {class: 'pop', style: 'display:none'});
+  g.tip = mk('path', {class: 'ptip'}, g); g.box = mk('rect', {rx: 8, class: 'pbox'}, g);
+  g.t1 = text(g, 0, 0, 'pt1', ''); g.ls = [0, 1, 2, 3, 4].map(() => text(g, 0, 0, 'pt2', ''));
+  [g.t1, ...g.ls].forEach(t => t.style.textAnchor = 'start');
+  return POPS[key] = g;
+}
+const segTh = (typeof Intl !== 'undefined' && Intl.Segmenter) ? new Intl.Segmenter('th', {granularity: 'word'}) : null;
+function wrapTh(str, n){  // ตัดบรรทัดตามขอบเขตคำ (ภาษาไทยไม่มีช่องว่างคั่นคำ จึงใช้ Intl.Segmenter ถ้ามี)
+  const out = [];
+  for (const para of String(str).split('\n')){
+    if (!segTh){ for (let i = 0; i < para.length; i += n) out.push(para.slice(i, i + n)); continue; }
+    let line = '';
+    for (const {segment} of segTh.segment(para)){
+      if ((line + segment).length > n && line.trim()){ out.push(line.trim()); line = segment.trimStart(); } else line += segment;
+    }
+    if (line.trim()) out.push(line.trim());
+  }
+  if (out.length > 5){ out.length = 5; out[4] = out[4].slice(0, -1) + '…'; }
+  return out;
+}
+function hidePop(){ for (const k in POPS){ POPS[k].style.display = 'none'; POPS[k].classList.remove('show'); } }
+/* anchor: 'right' = ข้างขวาของ node · 'below' = ใต้ node */
+function showPopAt(key, nodeId, anchor, title, detail){
+  const pop = POPS[key] || mkPop(key), n = N[nodeId];
+  const lines = wrapTh(detail, 32);
+  pop.t1.textContent = title; pop.ls.forEach((t, i) => t.textContent = lines[i] || '');
+  pop.style.display = '';
+  const w = Math.max(pop.t1.getComputedTextLength(), ...pop.ls.slice(0, lines.length).map(t => t.getComputedTextLength())) + 18, h = 22 + lines.length * 11.5;
+  let x, y, tip;
+  if (anchor === 'right'){ x = n.x + n.w + 10; y = n.y + n.h / 2 - h / 2; const cy = n.y + n.h / 2; tip = `M${n.x + n.w + 1},${cy} L${x + 1},${cy - 6} L${x + 1},${cy + 6} Z`; }
+  else { x = Math.min(n.x - 6, 794 - w); y = n.y + n.h + 10; const tx = Math.min(Math.max(n.x + n.w / 2, x + 12), x + w - 12); tip = `M${tx},${n.y + n.h + 1} L${tx - 6},${y + 1} L${tx + 6},${y + 1} Z`; }
+  pop.box.setAttribute('x', x); pop.box.setAttribute('y', y); pop.box.setAttribute('width', w); pop.box.setAttribute('height', h);
+  pop.t1.setAttribute('x', x + 9); pop.t1.setAttribute('y', y + 15);
+  pop.ls.forEach((t, i) => { t.setAttribute('x', x + 9); t.setAttribute('y', y + 28 + i * 11.5); });
+  pop.tip.setAttribute('d', tip);
+  pop.classList.remove('show'); void pop.getBoundingClientRect(); pop.classList.add('show');
+}
+function showPop(tool, args){
+  let a = Object.entries(args || {}).map(([k, v]) => `${k}=${Array.isArray(v) ? v.join('/') : v}`).join(', ');
+  showPopAt('tool', 'tools', 'right', '🔧 ' + tool, (a || '(ไม่มี argument)') + '\n{✓} args ผ่าน JSON Schema ของ tool');
+}
+
+const NS = {};  // node id -> state: '' | active | done | skipped | stopped
+function paint(){
+  for (const id in nodeEls){ const c = nodeEls[id].classList;
+    ['active','done','skipped','stopped','idle'].forEach(k => c.toggle(k, NS[id] === k)); }
+  for (const id in G){ groupEls[id].classList.toggle('g', true); }
+}
+function clearDiagram(){ for (const id in N) NS[id] = (id === 'llm' || id === 'emb') ? 'idle' : ''; for (const id in E) edgeEls[id].classList.remove('used');
+  for (const k in tmpPaths) tmpPaths[k].remove(); tmpPaths = {}; hidePop(); paint(); }
+function setCnt(c){ $('#cL').textContent = c.llm; $('#cE').textContent = c.emb; }
+
+let tmpPaths = {};
+function svcPath(spec){
+  const key = spec.from + '>' + spec.svc;
+  if (!tmpPaths[key]){
+    const a = N[spec.from], b = N[spec.svc];
+    const p = mk('path', {d: `M${a.x + a.w / 2},${a.y + a.h / 2} L${b.x + b.w / 2},${b.y + b.h / 2}`, class: 'edge svc'});
+    svg.insertBefore(p, nodeEls.user); tmpPaths[key] = p;
+  }
+  return tmpPaths[key];
+}
+const svcCall = (from, svc, a, b, why, res, json) => [{svc, from, label: a, why, res}, {svc, from, rev: true, label: b, why, res, json}];
+function flashJ(id, ok){
+  const el = jEls[id]; if (!el) return; const base = el.getAttribute('class');
+  el.setAttribute('class', base + (ok ? ' jok' : ' jbad'));
+  setTimeout(() => el.setAttribute('class', base), 1600);
+}
+const JSON_NOTE = '{✓} บังคับ + ตรวจ JSON: guided decoding → ตรวจด้วย Pydantic → ถ้าไม่ผ่านส่ง error กลับให้แก้ (ลองรวมไม่เกิน 3 ครั้ง)';
+const SVC_T = {llm: '🧠 LLM ถูกเรียก', emb: '🔢 Embedding ถูกเรียก'};
+function travel(spec, token){
+  if (spec.pop){ showPop(spec.pop, spec.args); flashJ('tools', true); return new Promise(res => setTimeout(res, 750 / speed())); }
+  return new Promise(res => {
+    if (spec.svc && spec.why) showPopAt(spec.svc, spec.svc, 'below', spec.title || (spec.rev ? SVC_T[spec.svc].replace('ถูกเรียก', 'ตอบกลับ') : SVC_T[spec.svc]), spec.rev && spec.res ? `${spec.why}\n→ ${spec.res}` : spec.why);
+    const path = spec.svc ? svcPath(spec) : edgeEls[spec.id], len = path.getTotalLength();
+    const dur = Math.max(380, len * 3.4 / speed());
+    path.classList.add('used');
+    const pk = svg.pk; pk.style.display = ''; pk.t.textContent = spec.label || '';
+    const t0 = performance.now();
+    (function f(t){
+      const p = Math.min(1, (t - t0) / dur), d = (spec.rev ? 1 - p : p) * len, pt = path.getPointAtLength(d);
+      pk.setAttribute('transform', `translate(${pt.x},${pt.y})`);
+      if (p < 1 && token === R.token) requestAnimationFrame(f); else {
+        pk.style.display = 'none';
+        if (spec.svc && spec.rev){ const k = spec.from + '>' + spec.svc; if (tmpPaths[k]){ tmpPaths[k].remove(); delete tmpPaths[k]; }
+          if (spec.json) flashJ(spec.from, !String(spec.res || '').startsWith('{✗}')); }
+        res(); }
+    })(t0);
+  });
+}
+
+/* ======================================================================
+   2) session state (mirrors memory.py, simplified)
+   ====================================================================== */
+const TH = 0.30, WINDOW = 6;
+let S;
+function newSession(){ S = {turn: 0, topic: null, topicVec: null, recent: [], archived: [], changes: 0, lastSummary: ''}; }
+newSession();
+const ctxChars = () => S.archived.join('').length + S.recent.reduce((a, m) => a + m.content.length, 0);
+const ctxTokens = () => Math.ceil(ctxChars() / 3);
+
+const EXPLICIT = /(เปลี่ยนเรื่อง|ขอถามเรื่องอื่น|ขอถามอีกเรื่อง|เรื่องใหม่|อีกเรื่องนึง|change topic|different question|new topic)/i;
+function ents(t){ const out = new Set();
+  for (const m of t.matchAll(/\b((?:CR|PE|APE|LPE)-[A-Z]{3}-\d{2})\b/gi)) out.add(m[1].toUpperCase());
+  for (const m of t.matchAll(/(BKK|NBI|กรุงเทพ|นนทบุรี)/gi)){ const k = m[1]; out.add(k === 'กรุงเทพ' ? 'BKK' : k === 'นนทบุรี' ? 'NBI' : k.toUpperCase()); }
+  return [...out].sort(); }
+const py = a => '[' + a.map(x => `'${x}'`).join(', ') + ']';
+
+/* the same order of checks as SessionMemory.detect_topic_shift */
+function detect(q, simValue){
+  const checks = [];
+  if (!S.topic) return {changed: true, why: 'ยังไม่มีหัวข้อ - เริ่มหัวข้อแรก', checks: ['ยังไม่มี topic → เริ่มหัวข้อแรกทันที'], sim: null, qvec: vec('q:' + q)};
+  if (EXPLICIT.test(q)) return {changed: true, why: 'ผู้ใช้บอกเองว่าเปลี่ยนเรื่อง', checks: ['1) พบวลี "เปลี่ยนเรื่อง" → ตัดสินทันที'], sim: null, qvec: vec('q:' + q)};
+  checks.push('1) วลีบอกเปลี่ยนเรื่อง: ไม่พบ');
+  const e = ents(q);
+  if (e.length && S.topic.entities.length){
+    const ov = e.filter(x => S.topic.entities.includes(x));
+    if (!ov.length){
+      const sn = e.filter(x => x === 'BKK' || x === 'NBI'), so = S.topic.entities.filter(x => x === 'BKK' || x === 'NBI');
+      if (sn.length && so.length && !sn.some(x => so.includes(x)))
+        return {changed: true, why: `เปลี่ยนพื้นที่จาก ${py(so)} ไป ${py(sn)}`,
+          checks: [...checks, `2) entity ${py(e)} ซ้ำกับหัวข้อเดิม ${py(S.topic.entities)}: ไม่ซ้ำ`, `3) พื้นที่ ${py(so)} → ${py(sn)}: ต่างกัน → ตัดสินทันที (ข้ามการคำนวณ embedding)`],
+          sim: null, qvec: vec('q:' + q)};
+      checks.push(`2) entity ไม่ซ้ำ แต่ยังอยู่พื้นที่เดียวกัน → ตรวจต่อ`);
+    } else checks.push(`2) entity ซ้ำกับหัวข้อเดิม: ${py(ov)}`);
+  } else checks.push('2) ไม่มี entity ให้เทียบ → ข้าม');
+  const sim = simValue ?? 0.47, qvec = vecNear(S.topicVec, sim, 'q:' + q), c = cosine(qvec, S.topicVec);
+  checks.push(`4) cosine(question, topic_vector) = ${c.toFixed(2)} เทียบ threshold ${TH.toFixed(2)}`);
+  if (c < TH) return {changed: true, why: `ความใกล้เคียงกับหัวข้อเดิมต่ำ (${c.toFixed(2)})`, checks, sim: c, qvec};
+  return {changed: false, why: 'ยังเป็นหัวข้อเดิม', checks, sim: c, qvec};
+}
+
+/* ---- panels ---- */
+function flash(el){ el.classList.remove('flash-b'); void el.offsetWidth; el.classList.add('flash-b'); }
+function renderMem(changed){
+  const set = (id, html, fl) => { const el = $(id); el.innerHTML = html; if (fl) flash(el); };
+  set('#mTurn', S.turn, changed === 'turn');
+  set('#mTopic', S.topic ? esc(S.topic.label) : '—', changed === 'topic');
+  set('#mEnt', S.topic && S.topic.entities.length ? S.topic.entities.map(e => `<span class="pill">${esc(e)}</span>`).join('') : '—', changed === 'topic');
+  set('#mTok', ctxTokens() + ' <span style="color:var(--muted)">(ประมาณ)</span>', true);
+  set('#mChg', S.changes, changed === 'arch');
+  set('#mArch', S.archived.length ? S.archived.map(a => `<div>• ${esc(a)}</div>`).join('') : '—', changed === 'arch');
+  $('#mWin').innerHTML = S.recent.length ? S.recent.map(m => `<div><b>${m.role}</b>${esc(m.content.length > 90 ? m.content.slice(0, 90) + '…' : m.content)}</div>`).join('') : '<div style="color:var(--muted)">window ว่าง (recent_turns)</div>';
+}
+function heat(v){ return '<div class="heat">' + v.slice(0, 64).map(x => `<i style="background:${x >= 0 ? 'rgba(37,99,235,' : 'rgba(234,88,12,'}${Math.min(1, Math.abs(x) * 20).toFixed(2)})"></i>`).join('') + '</div>'; }
+function setVec(o){
+  let h = '';
+  if (o.q) h += `<div><b>${esc(o.qLabel || 'query')}</b></div>${heat(o.q)}<div class="vtxt">${short(o.q)} · |v| = ${Math.sqrt(dot(o.q, o.q)).toFixed(2)}</div>`;
+  if (o.t) h += `<div style="margin-top:8px"><b>${esc(o.tLabel || 'topic_vector')}</b></div>${heat(o.t)}<div class="vtxt">${short(o.t)}</div>`;
+  if (o.cos != null){
+    const ok = o.cos >= TH;
+    h += `<div style="margin-top:8px">cosine = <b>${o.cos.toFixed(2)}</b> · threshold ${TH.toFixed(2)} → <b style="color:var(--${ok ? 'd2' : 'bad'})">${ok ? 'หัวข้อเดิม' : 'เปลี่ยนหัวข้อ'}</b></div>
+      <div class="gauge"><div class="f" style="width:${Math.max(0, o.cos) * 100}%;background:var(--${ok ? 'd2' : 'bad'})"></div><div class="t" style="left:${TH * 100}%"></div></div>
+      <div class="vtxt">เส้นแดง = threshold (MEMORY_TOPIC_SHIFT_THRESHOLD)</div>`;
+  }
+  if (o.skip) h += `<div style="margin-top:8px;color:var(--muted)">${esc(o.skip)}</div>`;
+  if (o.knn) h += `<div style="margin-top:10px"><b>${esc(o.knnTitle)}</b></div><table><tr><th>ticket</th><th>อุปกรณ์</th><th>คล้ายกัน</th></tr>` +
+    o.knn.map(r => `<tr><td>${r.id}</td><td>${r.dev}</td><td><span class="bar" style="width:${r.s * 70}px"></span> ${r.s.toFixed(2)}</td></tr>`).join('') + '</table>';
+  $('#vecBody').innerHTML = h || '<div class="hint">—</div>';
+}
+function chatAdd(kind, txt, status){
+  const box = $('#chatbox'); if (box.querySelector('.hint')) box.innerHTML = '';
+  const d = document.createElement('div'); d.className = 'bub ' + kind;
+  if (status) d.innerHTML = `<span class="stat ${status[0]}">${status[1]}</span>`;
+  const span = document.createElement('span'); d.appendChild(span); box.appendChild(d);
+  box.scrollTop = box.scrollHeight; return span;
+}
+async function typeInto(span, str, token){
+  const box = $('#chatbox'); const per = Math.max(4, 14 / speed());
+  for (let i = 0; i < str.length; i += 3){
+    if (token !== R.token) return; span.textContent = str.slice(0, i + 3); box.scrollTop = box.scrollHeight; await sleep(per); }
+  span.textContent = str;
+}
+
+/* ======================================================================
+   3) scenarios
+   ====================================================================== */
+const IR = (label, conf, reason, by, more) => ({label, confidence: conf, reason, missing_information: [], suggested_options: [], decided_by: by, ...(more || {})});
+const DBN = ['pg', 'neo', 'os', 'mh'];
+const dbEdge = {pg: 'dpg', neo: 'dneo', os: 'dos', mh: 'dmh'};
+const SEED_Q = 'APE-BKK-05 มี ticket ที่ยังไม่ปิดกี่ใบ';
+const SEED_A = 'APE-BKK-05 มี ticket ที่ยังไม่ปิด 2 ใบ ได้แก่ TK-25-00018 (link_down, high) และ TK-25-00110 (link_down, medium) [search_tickets]';
+
+const SC_BASE = [
+ { id: 'open', group: 'in_scope', sub: 'PostgreSQL · fast_path', chip: 'APE-BKK-05 มี ticket ที่ยังไม่ปิดกี่ใบ', q: SEED_Q, kind: 'tools',
+   fast: IR('in_scope', 0.98, 'พบรหัสอุปกรณ์หรือหมายเลข ticket ในคำถาม', 'fast_path'),
+   calls: [{thought: 'ต้องดู ticket ของ APE-BKK-05 ที่สถานะยังไม่ปิด จึงใช้ search_tickets', tool: 'search_tickets', args: {device_id: 'APE-BKK-05', status: 'open'}, db: 'pg', ms: 41,
+     result: {ok: true, count: 2, tickets: [{ticket_id: 'TK-25-00018', device_id: 'APE-BKK-05', category: 'link_down', severity: 'high', status: 'open'}, {ticket_id: 'TK-25-00110', device_id: 'APE-BKK-05', category: 'link_down', severity: 'medium', status: 'open'}]}}],
+   finalThought: 'ได้ข้อมูล ticket ครบแล้ว พร้อมตอบ',
+   answer: SEED_A, summary: 'APE-BKK-05 มี ticket ค้าง 2 ใบ (link_down) ยังไม่มีข้อสรุปสาเหตุ' },
+
+ { id: 'cause', group: 'in_scope', sub: 'Neo4j + OpenSearch · หลายรอบ', chip: 'LPE-NBI-12 กับ LPE-NBI-13 หลุดพร้อมกัน ต้นเหตุร่วมคืออะไร', q: 'LPE-NBI-12 กับ LPE-NBI-13 หลุดพร้อมกัน ต้นเหตุร่วมคืออะไร', kind: 'tools', sim: 0.5,
+   fast: IR('in_scope', 0.98, 'พบรหัสอุปกรณ์หรือหมายเลข ticket ในคำถาม', 'fast_path'),
+   calls: [
+    {thought: 'ต้องหา upstream ที่อุปกรณ์ทั้งสองใช้ร่วมกันก่อน ใช้ get_upstream_devices (กราฟใน Neo4j)', tool: 'get_upstream_devices', args: {device_ids: ['LPE-NBI-12', 'LPE-NBI-13'], max_hops: 4}, db: 'neo', ms: 63,
+     result: {ok: true, shared_upstream: [{device_id: 'APE-NBI-03', hops_from: {'LPE-NBI-12': 1, 'LPE-NBI-13': 1}}]}},
+    {thought: 'พบ upstream ร่วมคือ APE-NBI-03 ต้องดูว่า log error ของตัวไหนสูงผิดปกติ ใช้ count_log_events', tool: 'count_log_events', args: {group_by: 'device_id', severity: 'error', range: 'last_7d'}, db: 'os', ms: 88,
+     result: {ok: true, total: 218, buckets: [{key: 'APE-NBI-03', count: 131}, {key: 'LPE-NBI-12', count: 52}, {key: 'LPE-NBI-13', count: 35}]}}],
+   finalThought: 'มีหลักฐานจากกราฟและ log เพียงพอแล้ว',
+   answer: 'LPE-NBI-12 และ LPE-NBI-13 มี upstream ร่วมกันคือ APE-NBI-03 [get_upstream_devices] และ APE-NBI-03 มี log ระดับ error ใน 7 วันล่าสุดสูงสุด 131 รายการจากทั้งหมด 218 [count_log_events]\nจึงเป็นผู้ต้องสงสัยหลัก แต่หลักฐานนี้เป็นความสัมพันธ์ทางเวลา ยังไม่ยืนยันว่าเป็นสาเหตุ',
+   summary: 'upstream ร่วมของ LPE-NBI-12/13 คือ APE-NBI-03 ซึ่งมี error log สูงสุด ยังไม่ยืนยันสาเหตุ' },
+
+ { id: 'sem', group: 'in_scope', sub: 'PostgreSQL pgvector · semantic', chip: 'เคยมี ticket ที่อาการคล้าย "เน็ตหลุดซ้ำ" มาก่อนไหม', q: 'เคยมี ticket ที่อาการคล้าย "เน็ตหลุดซ้ำ" มาก่อนไหม', kind: 'tools', sim: 0.5,
+   fast: IR('in_scope', 0.9, 'พบคำเฉพาะทางในโดเมน: ticket, หลุด', 'fast_path'),
+   calls: [{thought: 'ต้องหา ticket ที่อาการคล้ายกันแม้ใช้คำต่างกัน ใช้ค้นตามความหมาย search_tickets_semantic', tool: 'search_tickets_semantic', args: {query: 'เน็ตหลุดซ้ำ', limit: 4}, db: 'pg', ms: 112, vec: true,
+     result: {ok: true, tickets: [
+       {ticket_id: 'TK-25-00005', device_id: 'LPE-NBI-12', description: 'เน็ตหลุดซ้ำ เคสเดิมที่เคยแจ้งไป', similarity: 0.91},
+       {ticket_id: 'TK-25-00003', device_id: 'LPE-NBI-13', description: 'circuit drop ซ้ำๆ กระทบระบบ POS', similarity: 0.86},
+       {ticket_id: 'TK-25-00004', device_id: 'LPE-NBI-11', description: 'หลุดบ่อยช่วงบ่าย', similarity: 0.82},
+       {ticket_id: 'TK-25-00110', device_id: 'APE-BKK-05', description: 'ลิงก์ down ตั้งแต่เช้า', similarity: 0.61}]}}],
+   finalThought: 'ได้ ticket ที่ใกล้เคียงครบแล้ว',
+   answer: 'มี ticket ที่อาการใกล้เคียง ได้แก่ TK-25-00005 (LPE-NBI-12, เน็ตหลุดซ้ำ, ความคล้าย 0.91), TK-25-00003 (LPE-NBI-13, 0.86) และ TK-25-00004 (LPE-NBI-11, 0.82) [search_tickets_semantic]',
+   summary: 'พบ ticket อาการ "หลุดซ้ำ" ที่ใกล้เคียงกัน 3 ใบในโซน NBI' },
+
+ { id: 'report', group: 'in_scope', sub: 'รายงาน + อีเมล · MailHog', chip: 'สรุป ticket ของ APE-BKK-05 เป็นรายงาน แล้วส่งอีเมลให้ noc-lead', q: 'สรุป ticket ของ APE-BKK-05 เป็นรายงาน แล้วส่งอีเมลให้ noc-lead', kind: 'tools',
+   fast: IR('in_scope', 0.98, 'พบรหัสอุปกรณ์หรือหมายเลข ticket ในคำถาม', 'fast_path'),
+   calls: [
+    {thought: 'ต้องมีข้อมูล ticket ก่อนทำรายงาน', tool: 'search_tickets', args: {device_id: 'APE-BKK-05', range: 'last_30d'}, db: 'pg', ms: 47, result: {ok: true, count: 6, open: 2, closed: 4}},
+    {thought: 'สร้างไฟล์รายงานจากข้อมูลที่ได้ ด้วย generate_report', tool: 'generate_report', args: {title: 'APE-BKK-05 ticket summary', format: 'markdown', range: 'last_30d'}, db: null, ms: 95,
+     result: {ok: true, path: 'temp_reports/ape-bkk-05_summary.md', bytes: 1840}},
+    {thought: 'ส่งรายงานให้ noc-lead ด้วย send_notification', tool: 'send_notification', args: {to: 'noc-lead@example.com', subject: 'APE-BKK-05 ticket summary', body: 'สรุป ticket 30 วันล่าสุด', attachment_path: 'temp_reports/ape-bkk-05_summary.md'}, db: 'mh', ms: 133,
+     result: {ok: true, backend: 'email', smtp: 'localhost:1025'}}],
+   finalThought: 'ทำรายงานและส่งอีเมลเรียบร้อยแล้ว',
+   answer: 'สร้างรายงาน temp_reports/ape-bkk-05_summary.md จาก ticket 6 ใบ (ค้าง 2, ปิดแล้ว 4) [generate_report] และส่งอีเมลถึง noc-lead@example.com แล้ว [send_notification]\nตรวจสอบอีเมลได้ที่ MailHog: http://localhost:8025',
+   summary: 'สร้างรายงาน ticket ของ APE-BKK-05 และส่งอีเมลให้ noc-lead แล้ว' },
+
+ { id: 'vague', group: 'needs_clarification', sub: 'หยุดและถามกลับ', chip: 'ดูให้หน่อย', q: 'ดูให้หน่อย', kind: 'clarify',
+   fast: IR('needs_clarification', 0.85, 'คำถามยังไม่ได้ระบุขอบเขตที่ต้องการให้ตรวจสอบ', 'fast_path', {missing_information: ['สิ่งที่ต้องการให้ตรวจสอบ']}),
+   llm: IR('needs_clarification', 0.9, 'ไม่ระบุว่าต้องการดูอุปกรณ์ ticket หรือ log ใด และประวัติสนทนาไม่ได้ระบุสิ่งนี้ไว้', 'llm', {missing_information: ['สิ่งที่ต้องการให้ตรวจสอบ'], suggested_options: ['ดู ticket ที่ค้างอยู่', 'ดูสถานะอุปกรณ์ APE-BKK-05', 'ดู log ย้อนหลัง 24 ชั่วโมง']}),
+   answer: 'ต้องการข้อมูลเพิ่มเติมเพื่อตอบให้ตรงครับ:\n- สิ่งที่ต้องการให้ตรวจสอบ\n\nตัวอย่างที่ตอบได้: ดู ticket ที่ค้างอยู่ · ดูสถานะอุปกรณ์ APE-BKK-05 · ดู log ย้อนหลัง 24 ชั่วโมง',
+   desktopAnswer: '(จำลอง) Claude ถามกลับเองว่าต้องการให้ดูอะไร — ไม่มี Intent Gate บังคับ ขึ้นอยู่กับดุลยพินิจของโมเดล' },
+
+ { id: 'oos', group: 'out_of_scope', sub: 'หยุดที่ Intent Gate · ไม่แตะ Memory/Tool', chip: 'แนะนำร้านอาหารแถวสีลมหน่อย', q: 'แนะนำร้านอาหารแถวสีลมหน่อย', kind: 'refuse',
+   fast: IR('out_of_scope', 0.95, "คำถามเกี่ยวกับ 'ร้านอาหาร' ซึ่งอยู่นอกขอบเขตงานโครงข่าย", 'fast_path'),
+   answer: 'ขออภัยครับ คำถามนี้อยู่นอกขอบเขตของระบบ\n\nระบบนี้ตอบได้เฉพาะเรื่องโครงข่าย IP-MPLS ได้แก่ ประวัติ ticket และเหตุเสีย, การตั้งค่าอุปกรณ์, โครงสร้างการเชื่อมต่อ, log ของอุปกรณ์, คะแนนสุขภาพอุปกรณ์ และวงจรของลูกค้า โดยครอบคลุมพื้นที่ BKK และ NBI',
+   desktopAnswer: '(จำลอง) Claude อาจตอบเรื่องร้านอาหารเองหรือปฏิเสธก็ได้ — ไม่มี gate ฝั่ง agent ควบคุม และไม่เรียก tool ใดๆ' },
+
+ { id: 'gen', group: 'general_knowledge', sub: 'ตอบตรง ข้าม ReAct และ MCP', chip: 'ISIS ทำงานอย่างไร', q: 'ISIS ทำงานอย่างไร', kind: 'general', sim: 0.18,
+   fast: null,
+   llm: IR('general_knowledge', 0.93, 'คำถามความรู้ทั่วไปด้านเครือข่าย ไม่ต้องใช้ข้อมูลในระบบ', 'llm'),
+   answer: 'IS-IS เป็น link-state routing protocol ที่แต่ละ router ประกาศสถานะลิงก์ของตนให้ทุกตัวในพื้นที่ แล้วแต่ละตัวคำนวณเส้นทางสั้นที่สุดด้วยอัลกอริทึม SPF จากฐานข้อมูลเดียวกัน (คำตอบนี้มาจากความรู้ของโมเดล ไม่ได้อ้างข้อมูลระบบ)',
+   summary: 'อธิบายหลักการทำงานของ IS-IS (ความรู้ทั่วไป)', desktopAnswer: '(จำลอง) Claude อธิบาย IS-IS ด้วยความรู้ของตัวเอง ไม่เรียก tool' },
+
+ { id: 'follow', group: 'memory', sub: 'ถามต่อ · หัวข้อเดิม (cosine ≥ threshold)', chip: 'แล้วใบที่ severity สูงสุดเป็นเรื่องอะไร', q: 'แล้วใบที่ severity สูงสุดเป็นเรื่องอะไร', kind: 'tools', needs: 'bkk', sim: 0.58,
+   fast: null,
+   llm: IR('in_scope', 0.88, 'อ้างถึงผลลัพธ์ก่อนหน้า (ticket ของ APE-BKK-05) ซึ่งมีอยู่ในประวัติสนทนา', 'llm'),
+   calls: [{thought: 'จากประวัติ หัวข้อคือ ticket ที่ค้างของ APE-BKK-05 ต้องหาใบที่ severity สูงสุด', tool: 'search_tickets', args: {device_id: 'APE-BKK-05', status: 'open', severity: 'high'}, db: 'pg', ms: 39,
+     result: {ok: true, count: 1, tickets: [{ticket_id: 'TK-25-00018', category: 'link_down', severity: 'high', status: 'open', description: 'วงจรล่ม ใช้งานไม่ได้ทั้งสาขา'}]}}],
+   finalThought: 'พบใบที่ severity สูงสุดแล้ว',
+   answer: 'ใบที่ severity สูงสุดคือ TK-25-00018 (high, สถานะ open) เรื่อง "วงจรล่ม ใช้งานไม่ได้ทั้งสาขา" ของ APE-BKK-05 [search_tickets]',
+   summary: 'ใบที่ severity สูงสุดของ APE-BKK-05 คือ TK-25-00018 (วงจรล่ม)' },
+
+ { id: 'shift', group: 'memory', sub: 'เปลี่ยนเรื่อง · archive หัวข้อเก่า', chip: 'LPE-NBI-12 เน็ตหลุดซ้ำ เคยมี ticket เก่าไหม', q: 'LPE-NBI-12 เน็ตหลุดซ้ำ เคยมี ticket เก่าไหม', kind: 'tools', needs: 'bkk',
+   fast: IR('in_scope', 0.98, 'พบรหัสอุปกรณ์หรือหมายเลข ticket ในคำถาม', 'fast_path'),
+   calls: [{thought: 'ต้องดูประวัติ ticket ของ LPE-NBI-12', tool: 'search_tickets', args: {device_id: 'LPE-NBI-12', range: 'last_90d'}, db: 'pg', ms: 44,
+     result: {ok: true, count: 4, tickets: [{ticket_id: 'TK-25-00005', category: 'intermittent', severity: 'high', status: 'open'}, {ticket_id: 'TK-25-00011', category: 'slow', severity: 'high', status: 'open'}, {ticket_id: 'TK-25-00072', category: 'inquiry', status: 'closed'}, {ticket_id: 'TK-25-00019', category: 'slow', status: 'closed'}]}}],
+   finalThought: 'ได้ประวัติ ticket ครบแล้ว',
+   answer: 'LPE-NBI-12 มี ticket ย้อนหลัง 4 ใบ ใบที่ตรงกับอาการหลุดซ้ำคือ TK-25-00005 (intermittent, high, ยัง open) [search_tickets]',
+   summary: 'LPE-NBI-12 มี ticket หลุดซ้ำ TK-25-00005 ที่ยังเปิดอยู่' }
+];
+
+const SC = SC_BASE;
+SC.push({...SC.find(x => x.id === 'open'), id: 'retry', group: 'json', sub: 'ReAct รอบ 1: JSON ไม่ผ่าน → ส่ง error กลับ → ผ่าน', retry: true,
+  chip: 'APE-BKK-05 มี ticket ที่ยังไม่ปิดกี่ใบ (ตัวอย่าง JSON ไม่ผ่าน → retry)'});
+
+/* ======================================================================
+   4) step builders
+   ====================================================================== */
+const ALL_AGENT = ['intent', 'memory', 'react', 'mcpc', 'synth'];
+const ALL_SERVER = ['security', 'tools', 'pg', 'neo', 'os', 'mh'];
+
+function stepIntent(sc){
+  const out = [];
+  if (sc.fast !== undefined && sc.fast !== null && !(sc.id === 'vague' && S.recent.length)){
+    out.push({day: 2, mod: 'Intent Gate · Layer 1', title: 'fast_path(): กฎแบบไม่เรียก LLM', nodes: ['intent'], edges: [],
+      in: {message: sc.q}, out: sc.fast, ms: 2,
+      note: sc.fast.label === 'in_scope' ? 'ไม่ต้องเรียก LLM — ตัดสินด้วย regex/คำเฉพาะทางในไม่กี่มิลลิวินาที' : 'ตัดสินด้วยกฎ ไม่ต้องเรียก LLM'});
+  } else {
+    const fastText = sc.id === 'vague' ? 'fast_path เจอรูปแบบคลุมเครือ (needs_clarification) แต่ session มีประวัติแล้ว จึงส่งต่อให้ LLM พิจารณา' : 'fast_path ไม่ชัดเจน → คืนค่า None';
+    out.push({day: 2, mod: 'Intent Gate · Layer 1', title: 'fast_path(): ตัดสินไม่ได้ ส่งต่อ Layer 2', nodes: ['intent'], edges: [],
+      in: {message: sc.q}, out: sc.id === 'vague' ? 'IntentResult(needs_clarification) แต่ classify() ส่งต่อให้ LLM เพราะมี history' : 'None', ms: 2, note: fastText});
+    const hist = S.recent.slice(-4).map(m => `${m.role}: ${m.content.slice(0, 80)}`);
+    out.push({day: 2, mod: 'Intent Gate · Layer 2', title: 'classify(): LLM จัดหมวดคำถาม {✓} บังคับ+ตรวจ JSON', nodes: ['intent'], edges: svcCall('intent', 'llm', 'messages', 'IntentResult', 'จัดหมวดคำถามเป็น 1 ใน 4 label\n' + JSON_NOTE, `{✓} ผ่าน schema → label = ${sc.llm.label}`, true),
+      in: {system: 'ขอบเขตงาน + 4 labels (in_scope, general_knowledge, needs_clarification, out_of_scope)', history: hist, user: sc.q, response_schema: 'IntentResult'},
+      out: sc.llm, ms: 780, note: 'complete_structured(IntentResult) ใน llm.py — บังคับ JSON 3 ชั้น: (1) guided decoding ส่ง json_schema ให้ gateway (2) ตรวจผลด้วย Pydantic (3) ถ้าไม่ผ่านส่ง error กลับให้โมเดลแก้ (ลองรวมไม่เกิน 3 ครั้ง) · ไม่เกี่ยวกับ 🔒 Security ซึ่งอยู่ฝั่ง MCP Server'});
+  }
+  return out;
+}
+
+function dimsFor(sc){
+  if (sc.kind === 'refuse') return [...ALL_AGENT.filter(x => x !== 'intent'), ...ALL_SERVER];
+  if (sc.kind === 'clarify') return [...ALL_AGENT.filter(x => x !== 'intent'), ...ALL_SERVER];
+  if (sc.kind === 'general') return ['react', 'mcpc', 'security', 'tools', ...DBN];
+  return [];
+}
+
+function retryEdges(){
+  return [
+    {svc: 'llm', from: 'react', label: 'scratchpad', why: 'ครั้งที่ 1 · ตัดสินใจก้าวถัดไป\n' + JSON_NOTE},
+    {svc: 'llm', from: 'react', rev: true, json: true, label: 'JSON {✗}', title: '🧠 LLM ตอบกลับ ({✗} ไม่ผ่าน schema)',
+      why: 'ครั้งที่ 1 · โมเดลตอบ JSON ที่ขาดฟิลด์ thought', res: '{✗} ReactDecision.thought: Field required'},
+    {svc: 'llm', from: 'react', label: '+ error', title: '🧠 LLM ถูกเรียกอีกครั้ง (ลองใหม่ครั้งที่ 2/3)',
+      why: 'ส่งคำตอบเดิม + ข้อความ error กลับให้โมเดลแก้ ("Return corrected JSON only")'},
+    {svc: 'llm', from: 'react', rev: true, json: true, label: 'JSON {✓}', title: '🧠 LLM ตอบกลับ ({✓} ผ่านแล้ว)',
+      why: 'ครั้งที่ 2 · โมเดลส่ง JSON ที่แก้แล้ว', res: '{✓} ผ่าน schema → ได้ ReactDecision'}
+  ];
+}
+function retryOut(c){
+  const good = {thought: c.thought, tool: c.tool, arguments: c.args};
+  return {
+    attempts: [
+      {attempt: 1, raw_reply: JSON.stringify({tool: c.tool, arguments: c.args}), check: '{✗} model_validate_json ล้มเหลว',
+       error: "1 validation error for ReactDecision\nthought\n  Field required [type=missing]  (ข้อความตัวอย่าง)"},
+      {attempt: 2, sent_back: 'That did not validate against the schema.\nError: <ข้อความ error ด้านบน>\nReturn corrected JSON only.',
+       raw_reply: JSON.stringify(good), check: '{✓} ผ่าน schema'}
+    ],
+    result: good, llm_calls: 2
+  };
+}
+function memEmbWhy(plan){
+  if (plan.sim != null) return `แปลงคำถามเป็น vector แล้วเทียบ cosine กับ topic_vector ของหัวข้อปัจจุบัน = ${plan.sim.toFixed(2)} ${plan.changed ? '<' : '≥'} threshold ${TH.toFixed(2)} → ${plan.changed ? 'เปลี่ยนหัวข้อ' : 'ยังเป็นหัวข้อเดิม'}`;
+  if (!S.topic) return 'แปลงคำถามเป็น vector 1024 มิติ เพื่อเก็บเป็น topic_vector ของหัวข้อแรก ไว้ใช้เทียบกับคำถามถัดไป';
+  return 'แปลงคำถามเป็น vector เพื่อเก็บเป็น topic_vector ของหัวข้อใหม่ (ไม่ได้ใช้เทียบ cosine เพราะกฎก่อนหน้าตัดสินแล้ว)';
+}
+function buildChainlit(sc){
+  const st = buildChainlit0(sc);
+  const used = new Set(st.flatMap(x => (x.edges || []).filter(e => e.svc).map(e => e.svc)));
+  const unused = ['llm', 'emb'].filter(x => !used.has(x));
+  if (unused.length && st[1]) st[1].dim = [...(st[1].dim || []), ...unused];
+  return st;
+}
+function buildChainlit0(sc){
+  const steps = [];
+  const qvecInfo = {};
+  steps.push({day: 0, mod: 'Chainlit UI', title: 'รับคำถามและส่งไปยัง Agent API', nodes: ['user', 'chainlit'],
+    edges: [{id: 'e1', label: 'คำถาม'}, {id: 'e2', label: 'POST /chat'}],
+    in: {message: sc.q, session_id: 'sim-001'}, out: 'เปิด stream แบบ SSE กับ http://localhost:8080/chat (เหตุการณ์จะทยอยส่งกลับมา)', ms: 12,
+    note: 'Chainlit เป็นเพียงหน้าจอ ไม่ได้คุยกับ MCP — มันเรียก Agent API ผ่าน HTTP',
+    fx: () => { S.turn++; renderMem('turn'); }});
+  steps.push(...stepIntent(sc).map((s, i, a) => i === a.length - 1 ? {...s, dim: dimsFor(sc)} : s));
+
+  if (sc.kind === 'refuse' || sc.kind === 'clarify'){
+    const label = sc.kind === 'refuse' ? 'out_of_scope' : 'needs_clarification';
+    steps.push({day: 2, mod: 'Agent API', title: `จบ turn ที่นี่ (${label}) ไม่ผ่าน Memory/ReAct/MCP`, nodes: ['intent', 'chainlit', 'user'], stop: ['intent'],
+      edges: [{id: 'e2', rev: true, label: 'refusal_message()'}, {id: 'e1', rev: true, label: 'คำตอบ'}],
+      in: {decision: label, reason: (sc.llm && S.recent.length ? sc.llm : sc.fast).reason},
+      out: {events: ['intent_checked', 'token…', 'usage', 'done'], done: {reason: label}, memory_changed: false, tool_calls: 0}, ms: 6,
+      note: 'ตามโค้ด run_turn(): คำถามนอกขอบเขตหรือคลุมเครือ "ไม่แตะ Memory และไม่เรียก tool" — หัวข้อเดิมของผู้ใช้จึงไม่ถูกรบกวน',
+      fx: async (tok) => { const sp = chatAdd('a', '', sc.kind === 'refuse' ? ['refused', 'REFUSED'] : ['clarify', 'ASK BACK']); await typeInto(sp, sc.answer, tok); }});
+    return steps;
+  }
+
+  /* memory */
+  const plan = detect(sc.q, sc.sim);
+  const beforeTok = ctxTokens();
+  const archiving = plan.changed && S.topic && S.recent.length;
+  steps.push({day: 2, mod: 'Memory', title: plan.changed ? 'detect_topic_shift(): เปลี่ยนหัวข้อ → archive ของเก่า' : 'detect_topic_shift(): ยังเป็นหัวข้อเดิม', nodes: ['memory'],
+    edges: [{id: 'e3', label: 'intent ผ่าน'}, ...(archiving ? svcCall('memory', 'llm', 'transcript', 'summary', 'สรุปบทสนทนาของหัวข้อเก่าให้เหลือ 1–2 ประโยค เพื่อเก็บใน archived แทนการแบกทั้งบทสนทนา', 'ได้ประโยคสรุปแล้ว') : []), ...svcCall('memory', 'emb', 'message', 'vector', memEmbWhy(plan), 'ได้ vector 1024 มิติ')],
+    in: {message: sc.q, current_topic: S.topic ? S.topic.label : null, topic_entities: S.topic ? S.topic.entities : [], threshold: TH, window_turns: WINDOW},
+    out: () => plan.changed
+      ? {event: 'topic_changed', reason: plan.why, new_topic: S.topic.label, archived_summaries: S.archived.slice(-3), context_tokens_before: beforeTok, context_tokens_after: ctxTokens(), checks: plan.checks}
+      : {event: 'memory_updated', turn: S.turn, topic: S.topic.label, context_tokens: ctxTokens(), archived_count: S.archived.length, checks: plan.checks},
+    ms: S.topic ? 190 : 150,
+    note: 'ลำดับตรวจ: วลีบอกเปลี่ยนเรื่อง → entity ซ้ำ → พื้นที่เปลี่ยน → cosine ของ embedding (ตรวจแบบถูกก่อน แพงทีหลัง)' + ' · ทุกครั้งที่ถึงขั้นนี้จะเรียก embedding เพื่อแปลงคำถามเป็น vector (ใช้เทียบ/เก็บเป็น topic_vector)' + (archiving ? ' · เมื่อเปลี่ยนหัวข้อ จะเรียก LLM สรุปหัวข้อเก่าเหลือ 1–2 ประโยคเก็บใน archived' : ''),
+    fx: () => {
+      const e = ents(sc.q);
+      if (plan.changed){
+        if (S.topic && S.recent.length){ S.archived.push(`[${S.topic.label}] ${S.lastSummary || '(สรุปอัตโนมัติ)'}`); S.changes++; }
+        S.recent = []; S.topic = {label: e.length ? e.join(', ') : sc.q.slice(0, 40), entities: e};
+        const old = S.topicVec; S.topicVec = plan.qvec;
+        setVec({q: plan.qvec, qLabel: 'เวกเตอร์ของคำถามนี้ → กลายเป็น topic_vector ใหม่', t: old, tLabel: old ? 'topic_vector เดิม (ก่อนเปลี่ยน)' : null,
+          cos: plan.sim, skip: plan.sim == null && old ? 'ไม่ได้คำนวณ cosine — ถูกตัดสินด้วยกฎก่อนหน้าแล้ว (ราคาถูกกว่าการเรียก embedding)' : (old ? null : 'หัวข้อแรกของ session: เก็บ vector นี้ไว้เป็น topic_vector')});
+      } else {
+        setVec({q: plan.qvec, qLabel: 'เวกเตอร์ของคำถาม (embedding)', t: S.topicVec, tLabel: 'topic_vector ของหัวข้อปัจจุบัน', cos: plan.sim});
+      }
+      S.recent.push({role: 'user', content: sc.q}); renderMem(plan.changed ? 'topic' : 'turn'); if (plan.changed && S.archived.length) renderMem('arch');
+    }});
+
+  if (sc.kind === 'general'){
+    steps.push({day: 2, mod: 'Synthesizer', title: 'answer_general(): ตอบตรงจากความรู้ของโมเดล', nodes: ['synth'], dim: [], edges: [{id: 'eB', label: 'ข้าม ReAct'}, ...svcCall('synth', 'llm', 'prompt', 'tokens', 'ตอบจากความรู้ของโมเดลโดยตรง ไม่ใช้ข้อมูลในระบบ', 'ได้คำตอบ (stream ทีละ token)')],
+      in: {question: sc.q, context: 'recent_turns ใน window', tools: 'ไม่ใช้'}, out: {streamed_tokens: sc.answer.length, tool_calls: 0}, ms: 920,
+      note: 'general_knowledge ต้องผ่าน Memory ก่อน (ตามโค้ด) แต่ไม่เข้า ReAct loop และไม่เรียก MCP'});
+    steps.push(finalStep(sc, ['synth', 'chainlit', 'user'], [{id: 'e10', label: 'คำตอบ'}, {id: 'e1', rev: true, label: 'คำตอบ'}], {done: 'general_knowledge'}));
+    return steps;
+  }
+
+  /* react loop */
+  const tally = {total: 0, tools: {}, sigs: {}};
+  const results = [];
+  const usedDb = new Set(sc.calls.map(c => c.db).filter(Boolean));
+  sc.calls.forEach((c, i) => {
+    tally.total++; tally.tools[c.tool] = (tally.tools[c.tool] || 0) + 1;
+    steps.push({day: 2, mod: 'ReAct Loop', title: `รอบ ${i + 1}: Thought → Action {✓} บังคับ+ตรวจ JSON${sc.retry && i === 0 ? ' · ผ่านหลังลองใหม่ 1 ครั้ง' : ''}`, nodes: ['react'],
+      retry: sc.retry && i === 0,
+      edges: [...(i === 0 ? [{id: 'e4', label: 'context'}] : []), ...(sc.retry && i === 0 ? retryEdges() : svcCall('react', 'llm', 'scratchpad', 'ReactDecision', 'ตัดสินใจก้าวถัดไป: จะเรียก tool ไหน หรือพอแล้ว\n' + JSON_NOTE, `{✓} ผ่าน schema → tool = ${c.tool}`, true))],
+      dim: i === 0 ? DBN.filter(d => !usedDb.has(d)) : [],
+      in: {question: sc.q, context_turns: S.recent.length, scratchpad: results.map(r => `${r.tool} → ok`), tools_available: 'จาก mcp.list_tools()'},
+      out: sc.retry && i === 0 ? retryOut(c) : {thought: c.thought, tool: c.tool, arguments: c.args}, ms: 700 + i * 60 + (sc.retry && i === 0 ? 760 : 0),
+      note: `LoopGuard.check(): ขั้นที่ ${tally.total}/8 · เรียก ${c.tool} ${tally.tools[c.tool]}/3 ครั้ง · argument ไม่ซ้ำ → อนุญาต · ผลลัพธ์ตาม schema ReactDecision (thought, tool, arguments)`});
+    const fwd = [{id: 'e5', label: c.tool}, {id: 'e6', label: 'args'}, {id: 'e7', label: 'ผ่านตรวจ'}, {pop: c.tool, args: c.args}];
+    if (c.vec) fwd.push(...svcCall('tools', 'emb', 'query', 'vector', `แปลง query "${c.args.query}" เป็น vector 1024 มิติ เพื่อหา ticket ที่ใกล้เคียงที่สุด (k-NN) ใน pgvector${sc.retry && i === 0 ? ' · ตัวอย่างนี้ครั้งแรกโมเดลลืมฟิลด์ thought → Pydantic ตรวจไม่ผ่าน → complete_structured() ส่ง error กลับให้แก้ แล้วผ่านในครั้งที่ 2 (LLM ถูกเรียก 2 ครั้ง แต่ LoopGuard นับเฉพาะการเรียก tool)' : ''}`, 'ได้ vector พร้อมค้น'));
+    const back = [];
+    if (c.db){ fwd.push({id: dbEdge[c.db], label: c.db === 'neo' ? 'Cypher' : c.db === 'os' ? 'query DSL' : c.db === 'mh' ? 'SMTP' : 'SQL'}); back.push({id: dbEdge[c.db], rev: true, label: 'rows'}); }
+    back.push({id: 'e7', rev: true, label: 'result'}, {id: 'e6', rev: true, label: 'result'}, {id: 'e5', rev: true, label: 'Observation'});
+    results.push(c);
+    steps.push({day: 3, mod: 'MCP Client → MCP Server', title: `เรียก tool: ${c.tool}`, nodes: ['mcpc', 'security', 'tools', ...(c.db ? [c.db] : [])],
+      edges: [...fwd, ...back],
+      in: {tool: c.tool, arguments: c.args}, out: {step: i + 1, tool: c.tool, ok: true, duration_ms: c.ms, result: c.result}, ms: c.ms,
+      note: 'ผ่าน guardrails: ตรวจรูปแบบ argument → ใช้ DB role แบบอ่านอย่างเดียว (mcp_reader) → จำกัดจำนวนแถว → redact_deep() → บันทึก audit.log' +
+        (c.db ? '' : ' · tool นี้เขียนไฟล์ลงโฟลเดอร์รายงาน จึงไม่ต้องแตะฐานข้อมูล'),
+      fx: () => {
+        if (c.vec){
+          const t = vec('topic-sem'), qv = vecNear(t, 0.9, 'sem-q');
+          setVec({q: qv, qLabel: `เวกเตอร์ของ query "${c.args.query}" (embedding)`, knn: c.result.tickets.map(r => ({id: r.ticket_id, dev: r.device_id, s: r.similarity})),
+            knnTitle: 'k-NN ใน pgvector · เรียงตาม cosine similarity (ค่าสมมติ)'});
+        }
+      }});
+  });
+  steps.push({day: 2, mod: 'ReAct Loop', title: `รอบ ${sc.calls.length + 1}: tool = null → หยุด loop`, nodes: ['react'], edges: svcCall('react', 'llm', 'scratchpad', 'ReactDecision', 'ตัดสินใจก้าวถัดไป: จะเรียก tool ไหน หรือพอแล้ว\n' + JSON_NOTE, '{✓} ผ่าน schema → tool = null หยุด loop', true),
+    in: {question: sc.q, scratchpad: results.map(r => `${r.tool} → ok`)}, out: {thought: sc.finalThought, tool: null, arguments: {}}, ms: 640,
+    note: 'โมเดลตอบ tool = null เพื่อบอกว่าหลักฐานพอแล้ว — นี่คือเงื่อนไขหยุดหลัก (LoopGuard เป็นเพียงตาข่ายนิรภัย)'});
+  steps.push({day: 2, mod: 'Synthesizer', title: 'synthesize_stream(): เรียบเรียงคำตอบจากหลักฐาน', nodes: ['synth'], edges: [{id: 'e9', label: 'StepResult[]'}, ...svcCall('synth', 'llm', 'evidence', 'tokens', 'เรียบเรียงคำตอบจากหลักฐานที่ tool ส่งมา และอ้างชื่อ tool ที่มา', 'ได้คำตอบ (stream ทีละ token)')],
+    in: {question: sc.q, evidence: results.map(r => ({tool: r.tool, result: '…ผลลัพธ์จากขั้นก่อนหน้า…'}))}, out: {streamed_tokens: sc.answer.length}, ms: 1100,
+    note: 'ตอบได้เฉพาะสิ่งที่อยู่ในหลักฐาน และต้องอ้างอิงชื่อ tool ที่มา'});
+  steps.push({day: 2, mod: 'Grounding', title: 'verify(): ตรวจว่าคำตอบมีหลักฐานรองรับ {✓} บังคับ+ตรวจ JSON', nodes: ['synth'], edges: svcCall('synth', 'llm', 'answer + evidence', 'GroundingVerdict', 'ตรวจว่าทุกข้อเท็จจริงในคำตอบมีหลักฐานรองรับ\n' + JSON_NOTE, '{✓} ผ่าน schema → supported = true', true),
+    in: {evidence: 'ผลลัพธ์ tool ทุกขั้น', answer: sc.answer.slice(0, 80) + '…'}, out: {supported: true, unsupported_claims: [], corrections: []}, ms: 820,
+    note: 'ถ้าพบข้อความที่ไม่มีหลักฐาน (เช่น เลข ticket ที่ไม่อยู่ในผลลัพธ์) จะคืนรายการ unsupported_claims'});
+  steps.push(finalStep(sc, ['synth', 'chainlit', 'user'], [{id: 'e10', label: 'คำตอบ'}, {id: 'e1', rev: true, label: 'คำตอบ'}], {done: 'complete', tool_calls: sc.calls.length}));
+  return steps;
+}
+
+function finalStep(sc, nodes, edges, done){
+  return {day: 0, mod: 'Chainlit UI', title: 'ส่งคำตอบกลับไปแสดงต่อผู้ใช้', nodes, edges,
+    in: {events: ['token…', 'grounding_checked', 'usage']}, out: {done, context_tokens: '(ดูกล่อง Memory)'}, ms: 8,
+    note: 'เก็บคำตอบเข้า window (add_turn assistant) เพื่อให้คำถามถัดไปอ้างถึงได้',
+    fx: async (tok) => {
+      const sp = chatAdd('a', '', ['answered', 'ANSWERED']); await typeInto(sp, sc.answer, tok);
+      S.recent.push({role: 'assistant', content: sc.answer}); if (S.recent.length > WINDOW * 2) S.recent = S.recent.slice(-WINDOW * 2);
+      S.lastSummary = sc.summary || ''; renderMem('turn'); }};
+}
+
+function buildDesktop(sc){
+  const steps = [];
+  steps.push({day: 0, mod: 'Claude Desktop', title: 'ผู้ใช้พิมพ์คำถามใน Claude Desktop', nodes: ['user', 'claude'], edges: [{id: 'c1', label: 'คำถาม'}],
+    in: {message: sc.q}, out: 'ข้อความถูกส่งเข้า LLM ของ Claude เอง พร้อมรายการ tool ที่ได้จาก tools/list ตอนเชื่อมต่อ', ms: 5,
+    note: 'เส้นทางนี้ "ไม่ผ่าน" Chainlit และ agent-api — จึงไม่มี Intent Gate, Memory ของหลักสูตร และ LoopGuard ฝั่ง agent'});
+  const calls = sc.kind === 'tools' ? sc.calls : [];
+  calls.forEach((c, i) => {
+    steps.push({day: 0, mod: 'Claude (LLM ของ client)', title: `รอบ ${i + 1}: เลือกเรียก tool`, nodes: ['claude'], edges: [],
+      dim: i === 0 ? [...ALL_AGENT, 'chainlit', 'llm', ...(calls.some(x => x.vec) ? [] : ['emb']), ...DBN.filter(d => !calls.some(x => x.db === d))] : [],
+      in: {messages: ['user: ' + sc.q], tools: 'ทั้งหมดจาก tools/list'}, out: {stop_reason: 'tool_use', content: [{type: 'tool_use', name: c.tool, input: c.args}]}, ms: 900,
+      note: 'การตัดสินใจเลือก tool เป็นของ Claude เอง ไม่ได้ใช้ prompt ของ ReAct ในหลักสูตร'});
+    const fwd = [{id: 'c2', label: 'tools/call'}, {id: 'e7', label: 'ผ่านตรวจ'}, {pop: c.tool, args: c.args}];
+    if (c.vec) fwd.push(...svcCall('tools', 'emb', 'query', 'vector', `แปลง query "${c.args.query}" เป็น vector 1024 มิติ เพื่อหา ticket ที่ใกล้เคียงที่สุด (k-NN) ใน pgvector`, 'ได้ vector พร้อมค้น'));
+    const back = [];
+    if (c.db){ fwd.push({id: dbEdge[c.db], label: 'query'}); back.push({id: dbEdge[c.db], rev: true, label: 'rows'}); }
+    back.push({id: 'e7', rev: true, label: 'result'}, {id: 'c2', rev: true, label: 'result'});
+    steps.push({day: 3, mod: 'MCP Server (stdio)', title: `JSON-RPC tools/call: ${c.tool}`, nodes: ['security', 'tools', ...(c.db ? [c.db] : [])], edges: [...fwd, ...back],
+      in: {jsonrpc: '2.0', id: i + 1, method: 'tools/call', params: {name: c.tool, arguments: c.args}},
+      out: {jsonrpc: '2.0', id: i + 1, result: {content: [{type: 'text', text: JSON.stringify(c.result).slice(0, 110) + '…'}]}}, ms: c.ms,
+      note: 'ชั้น Security เดียวกับเส้นทางของ agent-api (validate · cap · redact · audit) เพราะเป็น MCP Server ตัวเดียวกัน'});
+  });
+  steps.push({day: 0, mod: 'Claude (LLM ของ client)', title: calls.length ? 'เรียบเรียงคำตอบจากผลลัพธ์ tool' : 'ตอบเองโดยไม่เรียก tool', nodes: ['claude'], edges: [],
+    dim: calls.length ? [] : [...ALL_AGENT, 'chainlit', 'llm', 'emb', ...ALL_SERVER],
+    in: calls.length ? {tool_results: calls.length} : {messages: ['user: ' + sc.q]}, out: {stop_reason: 'end_turn'}, ms: 1000,
+    note: 'ไม่มี Grounding check จาก agent-api — ความน่าเชื่อถือขึ้นกับโมเดลและผลลัพธ์ tool'});
+  steps.push({day: 0, mod: 'Claude Desktop', title: 'แสดงคำตอบให้ผู้ใช้', nodes: ['claude', 'user'], edges: [{id: 'c1', rev: true, label: 'คำตอบ'}],
+    in: {stop_reason: 'end_turn'}, out: 'แสดงผลในหน้าต่างสนทนา', ms: 5,
+    fx: async (tok) => { const sp = chatAdd('a', '', ['direct', 'CLAUDE DESKTOP']); await typeInto(sp, calls.length || sc.kind === 'tools' ? sc.answer : (sc.desktopAnswer || sc.answer), tok); }});
+  return steps;
+}
+
+/* ======================================================================
+   5) run engine
+   ====================================================================== */
+const R = {cnt: {llm: 0, emb: 0}, token: 0, sc: null, steps: [], i: 0, auto: false, busy: false, total: 0};
+
+function setBtns(){
+  $('#bStep').disabled = R.busy;
+  $('#bHop').disabled = R.busy;
+  $('#bPlay').textContent = R.auto ? '⏸ หยุดชั่วคราว' : '▶ เล่น';
+  $('#bPlay').disabled = R.busy && !R.auto;
+}
+function seedBKK(){
+  newSession(); S.turn = 1; S.topic = {label: 'APE-BKK-05, BKK', entities: ['APE-BKK-05', 'BKK']}; S.topicVec = vec('topic:APE-BKK-05');
+  S.recent = [{role: 'user', content: SEED_Q}, {role: 'assistant', content: SEED_A}]; S.lastSummary = 'APE-BKK-05 มี ticket ค้าง 2 ใบ (link_down) ยังไม่มีข้อสรุปสาเหตุ';
+  $('#chatbox').innerHTML = ''; chatAdd('sys', 'จำลองเทิร์นก่อนหน้าให้อัตโนมัติ เพื่อสาธิต Memory (session ถูกรีเซ็ตและตั้งต้นที่หัวข้อ APE-BKK-05)');
+  chatAdd('u', SEED_Q); chatAdd('a', SEED_A, ['answered', 'ANSWERED']); renderMem('topic'); setVec({});
+  $('#vecBody').innerHTML = '<div class="hint">จะแสดงเมื่อถึงขั้นที่ใช้ embedding</div>';
+}
+function startScenario(sc, auto = true){
+  R.token++; R.busy = false; R.cur = null;
+  const mode = client(); R.mode = mode;
+  clearDiagram(); svg.pk.style.display = 'none';
+  $('#log').innerHTML = ''; R.total = 0; R.cnt = {llm: 0, emb: 0}; setCnt(R.cnt);
+  $('#memNote').style.display = mode === 'desktop' ? '' : 'none';
+  $('#memNote').textContent = mode === 'desktop' ? 'โหมด Claude Desktop: Memory ของ agent-api ไม่ถูกใช้ (ประวัติสนทนาอยู่ที่ฝั่ง Claude Desktop เอง)' : '';
+  if (mode === 'chainlit' && sc.needs === 'bkk' && !(S.topic && S.topic.entities.includes('APE-BKK-05'))) seedBKK();
+  for (const id of document.querySelectorAll('.chip')) id.classList.toggle('sel', id.dataset.id === sc.id);
+  if (mode === 'chainlit') NS.claude = 'skipped';
+  else for (const id of [...ALL_AGENT, 'chainlit', 'llm']) NS[id] = 'skipped';
+  paint();
+  chatAdd('u', sc.q);
+  R.sc = sc; R.i = 0; R.steps = mode === 'desktop' ? buildDesktop(sc) : buildChainlit(sc); R.auto = auto; setBtns();
+  if (auto) loop();
+}
+async function begin(){
+  const tok = R.token, s = R.steps[R.i], n = R.i; R.busy = true; R.i++; hidePop(); setBtns();
+  for (const id in NS) if (NS[id] === 'active') NS[id] = 'done';
+  (s.dim || []).forEach(id => { if (NS[id] !== 'done' && NS[id] !== 'active') NS[id] = 'skipped'; });
+  [...s.nodes, ...(s.edges || []).filter(e => e.svc).map(e => e.svc)].forEach(id => NS[id] = 'active'); paint();
+  if (s.fx) await s.fx(tok);
+  if (tok !== R.token) return;
+  R.cur = {s, n, e: 0, card: addCard(s, n)}; R.busy = false; setBtns();
+}
+async function hop(){
+  const tok = R.token, c = R.cur; R.busy = true; setBtns();
+  const spec = c.s.edges[c.e++]; c.card.querySelector('.hops').textContent = `ส่ง ${c.e}/${c.s.edges.length}`;
+  if (spec.svc && !spec.rev){ R.cnt[spec.svc]++; setCnt(R.cnt); }
+  await travel(spec, tok);
+  if (tok !== R.token) return;
+  R.busy = false; setBtns();
+}
+function finish(){
+  const c = R.cur; if (!c) return; const s = c.s; hidePop();
+  if (s.stop) s.stop.forEach(id => NS[id] = 'stopped');
+  R.total += s.ms; R.cur = null;
+  if (R.i >= R.steps.length){
+    for (const id in NS) if (NS[id] === 'active') NS[id] = 'done'; (s.stop || []).forEach(id => NS[id] = 'stopped');
+    const d = document.createElement('div'); d.className = 'hint'; d.textContent = `จบ turn · ${R.mode === 'desktop' ? `LLM คือโมเดลของ Claude Desktop เอง (ไม่ผ่าน agent-api) · Embedding ${R.cnt.emb} ครั้ง` : `เรียก LLM ${R.cnt.llm} ครั้ง · Embedding ${R.cnt.emb} ครั้ง`} · latency รวม (สมมติ) ≈ ${(R.total / 1000).toFixed(1)} วินาที`;
+    $('#log').appendChild(d); $('#log').scrollTop = $('#log').scrollHeight; R.auto = false;
+  }
+  paint(); setBtns();
+}
+/* mode 'step': ทำให้จบทั้งขั้น · mode 'hop': ทีละกล่อง (เริ่มขั้น → แพ็กเก็ตทีละเส้น → ปิดขั้น+เริ่มขั้นถัดไป) */
+async function tick(mode){
+  if (R.busy) return; const tok = R.token;
+  if (mode === 'hop'){
+    if (!R.cur){ if (R.i < R.steps.length) await begin(); return; }
+    if (R.cur.e < R.cur.s.edges.length){
+      await hop();
+      if (tok === R.token && R.cur && R.cur.e >= R.cur.s.edges.length && R.i >= R.steps.length) finish();
+      return;
+    }
+    finish(); if (R.i < R.steps.length) await begin(); return;
+  }
+  if (!R.cur){ if (R.i >= R.steps.length) return; await begin(); }
+  if (tok !== R.token || !R.cur) return;
+  while (R.cur && R.cur.e < R.cur.s.edges.length){ await hop(); if (tok !== R.token) return; }
+  R.busy = true; setBtns(); await sleep(380 / speed()); R.busy = false;
+  if (tok !== R.token) return;
+  finish();
+}
+async function loop(){ const tok = R.token; while (R.auto && tok === R.token && !R.busy && (R.cur || R.i < R.steps.length)) await tick('step'); setBtns(); }
+function addCard(s, i){
+  const log = $('#log'); log.querySelectorAll('.step.cur').forEach(x => { x.classList.remove('cur', 'open'); });
+  const d = document.createElement('div'); d.className = 'step open cur d' + s.day;
+  const o = typeof s.out === 'function' ? s.out() : s.out;
+  const uses = [...new Set((s.edges || []).filter(e => e.svc && !e.rev).map(e => e.svc))];
+  const retryPill = s.retry ? '<b class="rb">↻ ลองใหม่ 1 ครั้ง</b>' : '';
+  d.innerHTML = `<div class="sh"><span class="num">${i + 1}</span><span class="mod">${esc(s.mod)}</span><span class="uses">${uses.map(u => `<b>${u === 'llm' ? '🧠 LLM' : '🔢 EMB'}</b>`).join('')}${retryPill}</span><span class="hops">${(s.edges || []).length ? `ส่ง 0/${s.edges.length}` : ''}</span><span class="ms">${s.ms} ms</span></div><div class="st">${esc(s.title)}</div>` +
+    `<div class="sb"><div class="lbl">INPUT</div><pre>${esc(fmt(s.in))}</pre><div class="lbl">OUTPUT</div><pre>${esc(fmt(o))}</pre>${s.note ? `<div class="note">${esc(s.note)}</div>` : ''}</div>`;
+  d.querySelector('.sh').onclick = () => { d.classList.toggle('open'); s.nodes.forEach(id => { nodeEls[id].classList.add('flash'); setTimeout(() => nodeEls[id].classList.remove('flash'), 1200); }); };
+  log.appendChild(d); log.scrollTop = log.scrollHeight; return d;
+}
+
+/* ======================================================================
+   6) UI wiring
+   ====================================================================== */
+(function buildChips(){
+  const names = {in_scope: 'in_scope · ตอบจากข้อมูลระบบ', needs_clarification: 'needs_clarification', out_of_scope: 'out_of_scope', general_knowledge: 'general_knowledge', memory: 'Memory · ถามต่อ / เปลี่ยนเรื่อง', json: '{✗}→{✓} ตัวอย่าง JSON ไม่ผ่าน → ลองใหม่'};
+  let cur = '', h = '';
+  for (const sc of SC){
+    if (sc.group !== cur){ cur = sc.group; h += `<div class="grp"><span class="tag">${esc(names[cur])}</span></div>`; }
+    h += `<button class="chip" data-id="${sc.id}">${esc(sc.chip)}<small>${esc(sc.sub)}</small></button>`;
+  }
+  $('#qlist').innerHTML = h;
+  $('#qlist').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) startScenario(SC.find(x => x.id === b.dataset.id), false); });
+})();
+const ensure = () => { if (R.busy) return; if (!R.sc || (!R.cur && R.i >= R.steps.length)) startScenario(R.sc || SC[0], false); };
+$('#bPlay').onclick = () => { if (R.auto){ R.auto = false; setBtns(); return; } ensure(); R.auto = true; setBtns(); loop(); };
+$('#bStep').onclick = async () => { ensure(); R.auto = false; setBtns(); await tick('step'); setBtns(); };
+$('#bHop').onclick = async () => { ensure(); R.auto = false; setBtns(); await tick('hop'); setBtns(); };
+$('#bReset').onclick = () => { R.token++; R.busy = false; R.sc = null; R.steps = []; R.i = 0; R.auto = false; R.cur = null; R.cnt = {llm: 0, emb: 0}; setCnt(R.cnt); newSession(); clearDiagram(); svg.pk.style.display = 'none';
+  $('#log').innerHTML = '<div class="hint">เลือกคำถามทางซ้ายเพื่อเริ่ม</div>'; $('#chatbox').innerHTML = '<div class="hint">ยังไม่มีบทสนทนา</div>';
+  $('#vecBody').innerHTML = '<div class="hint">จะแสดงเมื่อถึงขั้นที่ใช้ embedding (Memory หรือ semantic search)</div>';
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('sel')); renderMem(); setBtns(); };
+document.querySelectorAll('input[name=client]').forEach(r => r.addEventListener('change', () => { if (R.sc) startScenario(R.sc, false); }));
+renderMem(); setBtns();
+</script>
+</body>
+</html>
