@@ -16,7 +16,7 @@
 | 2 | [day0/02-initial-data.md](INSTRUCTIONS/day0/02-initial-data.md) | ตัวอย่างข้อมูลจริงใน 3 ฐานข้อมูลหลัง seed (PostgreSQL/Neo4j/OpenSearch) |
 | 3 | [day0/03-prerequisites.md](INSTRUCTIONS/day0/03-prerequisites.md) | สิ่งที่ต้องเตรียมตัวก่อนมาเรียน |
 | 4 | [day0/04-full-demo.md](INSTRUCTIONS/day0/04-full-demo.md) | ลองรันทั้งระบบให้จบใน 10 นาที ก่อนเริ่มเรียนจริง (ไม่บังคับ) |
-| 5 | [day0/05-setup.md](INSTRUCTIONS/day0/05-setup.md) | ติดตั้งและตรวจสอบระบบด้วยตัวเอง |
+| 5 | [day0/05-setup.md](INSTRUCTIONS/day0/05-setup.md) | ติดตั้งและตรวจสอบระบบด้วยตัวเอง (หากทำข้อ 4 แล้วและยังไม่ได้ล้างระบบ ให้ข้ามหัวข้อ 1 ของหน้านี้) |
 
 ---
 

@@ -164,3 +164,5 @@ docker compose -f docker/docker-compose.yml --env-file .env --profile demo down 
 ## ถัดไป
 
 เริ่มเข้าสู่หลักสูตรจริงที่ [03-prerequisites.md](03-prerequisites.md)
+
+> ✅ **หมายเหตุสำหรับขั้นตอนติดตั้ง:** เมื่อเดินทางไปถึง [05-setup.md](05-setup.md) ให้**ข้ามหัวข้อ 1** (เปิดระบบ) หากยังไม่ได้ล้างระบบตามหัวข้อ 7 ข้างต้น เนื่องจากหน้านี้ได้ตั้งค่า `.env` เปิดฐานข้อมูล และ seed ข้อมูลไว้ให้แล้ว และ**ห้ามรัน `cp .env.example .env` ซ้ำ** เพราะจะทับ API key ที่ใส่ไว้
