@@ -163,13 +163,16 @@ ExampleSchema.model_validate_json(weird)  # ValidationError ทันที: 'UR
 
 การส่ง schema ไปใน system prompt เฉย ๆ เป็นเพียง "คำขอร้อง" โมเดลยังมีโอกาสตอบผิดรูปแบบได้เสมอ **Guided decoding** คือการบังคับที่ระดับ inference engine ให้สร้างได้เฉพาะ token ที่ทำให้ผลลัพธ์ valid ตาม schema เท่านั้น (ผ่านพารามิเตอร์ `response_format` แบบ OpenAI-compatible) ซึ่งเข้มงวดกว่าการขอด้วยคำพูดมาก
 
+อย่างไรก็ตาม **guided decoding ไม่ใช่สิ่งที่พึ่งพาเพียงอย่างเดียวได้** gateway บางตัวรับพารามิเตอร์ `response_format` โดยไม่แสดง error แต่ไม่ได้บังคับจริง (พบกับ `qwen3-30b-a3b` ผ่าน OpenRouter: โมเดลตอบเป็นข้อความธรรมดาหรือขาดฟิลด์ `thought` ครบทั้ง 3 ครั้งของการลองใหม่) และหากไม่เคยแจ้งชื่อฟิลด์ใน prompt โมเดลก็ไม่มีทางทราบว่าต้องตอบรูปแบบใด `complete_structured()` จึงฝัง schema ลงใน system prompt **ทุกครั้ง** และใช้ guided decoding เป็นชั้นเสริมเท่านั้น
+
 `complete_structured()` ใน `apps/agent-api/agent/llm.py` ประกอบทั้งสี่หัวข้อข้างต้นเข้าด้วยกันเป็น pipeline เดียว:
 
 ```mermaid
 flowchart TD
-    A["สร้าง JSON Schema จาก Pydantic model"] --> B{"LLM_GUIDED_DECODING=true?"}
-    B -->|ใช่| C["ส่ง response_format=json_schema<br/>(guided decoding)"]
-    B -->|ไม่| D["ฝัง schema ไว้ใน system prompt แทน"]
+    A["สร้าง JSON Schema จาก Pydantic model"] --> A2["ฝัง schema ไว้ใน system prompt เสมอ<br/>(ไม่ว่าจะเปิด guided หรือไม่)"]
+    A2 --> B{"LLM_GUIDED_DECODING=true?"}
+    B -->|ใช่| C["เพิ่ม response_format=json_schema<br/>(ชั้นเสริม ได้ผลเมื่อ gateway บังคับจริง)"]
+    B -->|ไม่| D["ไม่ส่ง response_format<br/>(พึ่ง prompt + ตรวจ + retry)"]
     C --> E["เรียก LLM (temperature=0.0)"]
     D --> E
     E --> F["ลอก markdown fence ออกถ้ามี"]

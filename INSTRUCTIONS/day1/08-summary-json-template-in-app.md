@@ -47,7 +47,7 @@ flowchart TD
     J -->|"JSON: GroundingVerdict"| K["ส่งคำตอบ + event ทั้งหมดกลับ Chainlit ผ่าน SSE"]
 ```
 
-**สังเกต**: จุดที่มี 🔒 คือจุดที่ LLM **ถูกบังคับ** ให้ตอบ JSON ตาม schema (guided decoding) มี 3 จุด (`IntentResult` → `ReactDecision` ×N รอบ → `GroundingVerdict`) ส่วนคำตอบสุดท้ายที่ผู้ใช้เห็นจริง ๆ (`synthesizer.synthesize_stream`) กลับ**ไม่ได้**ถูกบังคับ schema — เป็นข้อความธรรมดาที่ stream ออกมาทีละ token เหมือน ChatGPT ปกติ เหตุผลคือคำตอบสุดท้ายต้องเป็นภาษาธรรมชาติอ่านง่าย ไม่ใช่ข้อมูลโครงสร้างที่ระบบอื่นต้องเอาไปประมวลผลต่อแบบ `IntentResult`/`ReactDecision`/`GroundingVerdict`
+**สังเกต**: จุดที่มี 🔒 คือจุดที่ LLM **ถูกบังคับ** ให้ตอบ JSON ตาม schema (ผ่าน schema ใน prompt, guided decoding และการตรวจพร้อม retry) มี 3 จุด (`IntentResult` → `ReactDecision` ×N รอบ → `GroundingVerdict`) ส่วนคำตอบสุดท้ายที่ผู้ใช้เห็นจริง ๆ (`synthesizer.synthesize_stream`) กลับ**ไม่ได้**ถูกบังคับ schema — เป็นข้อความธรรมดาที่ stream ออกมาทีละ token เหมือน ChatGPT ปกติ เหตุผลคือคำตอบสุดท้ายต้องเป็นภาษาธรรมชาติอ่านง่าย ไม่ใช่ข้อมูลโครงสร้างที่ระบบอื่นต้องเอาไปประมวลผลต่อแบบ `IntentResult`/`ReactDecision`/`GroundingVerdict`
 
 ---
 
@@ -57,13 +57,25 @@ flowchart TD
 
 ```python
 json_schema = schema.model_json_schema()
+
+# ชั้นที่ 1: แจ้ง schema ในพรอมต์เสมอ (ไม่ว่าจะเปิด guided decoding หรือไม่)
+schema_hint = {
+    "role": "system",
+    "content": ("Respond with a single JSON object matching this schema. "
+                "No prose, no markdown fence.\n" + json.dumps(json_schema, ensure_ascii=False)),
+}
+conversation = list(messages) + [schema_hint]
+
+# ชั้นที่ 2: หากเปิด guided decoding จะส่งเป็นตัวบังคับเสริม
 kwargs["response_format"] = {
     "type": "json_schema",
     "json_schema": {"name": schema.__name__, "schema": json_schema, "strict": True},
 }
 ```
 
-เมื่อแก้ไข field ใน schema (`schemas.py`) ฟังก์ชัน `model_json_schema()` จะปรับปรุงข้อมูลโดยอัตโนมัติ และ guided decoding จะบังคับให้ LLM ตอบตามรูปแบบใหม่ทันที ไม่จำเป็นต้องแก้ไขส่วนอื่นเพิ่มเติม หากเป็นเพียงการเพิ่ม field ใหม่
+เหตุที่ต้องมีทั้งสองชั้น: gateway บางตัวรับ `response_format` โดยไม่บังคับจริง จึงต้องบอก schema ในพรอมต์ด้วย (รายละเอียดอยู่ใน [Module 3 หัวข้อ 4](06-module3-json-api.md))
+
+เมื่อแก้ไข field ใน schema (`schemas.py`) ฟังก์ชัน `model_json_schema()` จะปรับปรุงข้อมูลโดยอัตโนมัติ ทำให้ทั้ง schema ที่ฝังในพรอมต์และ guided decoding ปรับตามรูปแบบใหม่ทันที ไม่จำเป็นต้องแก้ไขส่วนอื่นเพิ่มเติม หากเป็นเพียงการเพิ่ม field ใหม่
 
 ---
 
@@ -127,7 +139,7 @@ yield EventType.THOUGHT, {"step": step_num, "thought": decision.thought,
 
 หากแก้ไข schema แล้วยังไม่พบ field ใหม่ในผลลัพธ์ ให้ตรวจสอบตามลำดับดังนี้:
 
-- โมเดลที่ใช้งานรองรับ guided decoding จริงหรือไม่ (`LLM_GUIDED_DECODING=true` ใน `.env`) — หากปิดอยู่ โมเดลอาจข้าม field ที่ไม่บังคับหรือระบุ type ไม่ถูกต้อง
+- การบังคับ schema ทำงานจริงหรือไม่: ตรวจ `LLM_GUIDED_DECODING=true` ใน `.env` และโปรดทราบว่า gateway บางตัวรับ `response_format` โดยไม่บังคับจริง จึงถือ schema ที่ฝังในพรอมต์เป็นชั้นหลัก — หากรันผ่าน container (`mpls-demo`) ต้อง build image ใหม่ด้วย `--build` เพราะโค้ดถูกฝังไว้ใน image ไม่ได้อ่านจากโฟลเดอร์โดยตรง
 - แก้ไข `schemas.py` ถูกไฟล์จริงหรือไม่ (มีเพียงไฟล์เดียว ไม่มีชุดซ้ำกันที่อื่น)
 - ฝั่งที่แสดงผล (Chainlit/MCP Inspector) มีโค้ดสำหรับอ่าน field ใหม่แล้วหรือยัง (ค่าอาจถูกส่งมาถึงจริงแล้ว แต่ UI ยังไม่ได้แสดงผลออกมา)
 

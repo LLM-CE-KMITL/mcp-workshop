@@ -109,7 +109,20 @@ async def complete_structured(
     auto-retry mechanism built in Workshop 1, promoted into the agent.
     """
     json_schema = schema.model_json_schema()
-    conversation = list(messages)
+
+    # The schema is ALWAYS spelled out in the prompt, not only as a constraint on
+    # decoding. Some gateways accept `response_format` without enforcing it
+    # (seen with qwen3-30b-a3b through OpenRouter): the request succeeds, no
+    # exception is raised, and the model - never told the field names - answers
+    # in prose or with a made-up shape. Guided decoding then becomes a bonus on
+    # top of this instruction, not a replacement for it.
+    schema_hint = {
+        "role": "system",
+        "content": ("Respond with a single JSON object matching this schema. "
+                    "No prose, no markdown fence.\n"
+                    + json.dumps(json_schema, ensure_ascii=False)),
+    }
+    conversation = list(messages) + [schema_hint]
 
     kwargs: dict[str, Any] = {}
     if GUIDED:
@@ -133,15 +146,10 @@ async def complete_structured(
             )
         except Exception as exc:  # noqa: BLE001
             # A gateway that does not understand response_format fails here.
-            # Fall back to prompting for JSON rather than giving up entirely.
+            # The schema is already in the prompt, so just drop the constraint
+            # and retry rather than giving up entirely.
             if kwargs:
                 kwargs = {}
-                conversation = conversation + [{
-                    "role": "system",
-                    "content": ("Respond with a single JSON object matching this schema. "
-                                "No prose, no markdown fence.\n"
-                                + json.dumps(json_schema, ensure_ascii=False)),
-                }]
                 continue
             raise RuntimeError(f"LLM request failed: {exc}") from exc
 

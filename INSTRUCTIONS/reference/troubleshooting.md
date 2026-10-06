@@ -21,7 +21,7 @@
 | `Connection refused` ไปที่ LLM | ยังไม่ได้ต่อ VPN หรือ URL ผิด | `curl $LLM_BASE_URL/models` ทดสอบก่อน · URL **ต้องลงท้ายด้วย `/v1`** |
 | ตอบช้ามาก | หลายคนใช้ GPU ตัวเดียวกัน | ระหว่าง lab ใช้ `LLM_MODEL=$LLM_MODEL_FAST` |
 | `[WARN] ticket embeddings empty` | embedding endpoint ต่อไม่ได้ตอน seed | `make embed-tickets && make embed-devices` |
-| JSON ที่ได้ไม่ผ่าน schema บ่อย | gateway ไม่รองรับ guided decoding | ตั้ง `LLM_GUIDED_DECODING=false` แล้วพึ่ง auto-retry |
+| JSON ที่ได้ไม่ผ่าน schema บ่อย (เช่น `Field required` หรือ `Invalid JSON` จนเกิด `Could not obtain valid ... after 3 attempts`) | gateway รับ `response_format` โดยไม่แสดง error แต่ไม่ได้บังคับจริง โมเดลจึงตอบเป็นข้อความธรรมดาหรือขาดฟิลด์ (พบกับ `qwen3-30b-a3b` ผ่าน OpenRouter) หรือ container ยังใช้ image ที่มีโค้ดเก่า | ตรวจว่า `complete_structured()` ใน `agent/llm.py` ฝัง schema ลงใน prompt **ทุกครั้ง** (ไม่ใช่เฉพาะตอนที่การเรียก API ล้มเหลว) · การตั้ง `LLM_GUIDED_DECODING=false` เพียงอย่างเดียว**ไม่ช่วย** · หากรันผ่าน container ให้ build ใหม่ด้วย `docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d --build mcp-demo` · อาการอาจเกิดเป็นครั้งคราวได้เพราะโมเดลมีการสุ่ม กลไก retry อัตโนมัติจะช่วยแก้ได้ในกรณีส่วนใหญ่ |
 | `usage` ไม่มีใน stream | gateway ไม่รองรับ `stream_options` | นับเองด้วย `agent/tokenizer.py` |
 | มิติ embedding ไม่ตรง | โมเดลคนละตัวกับที่ตั้งไว้ | ตรวจ `EMBEDDING_DIM` ให้ตรงกับ column และ mapping ทั้งสามที่ |
 
