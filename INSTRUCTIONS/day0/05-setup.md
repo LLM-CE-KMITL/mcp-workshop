@@ -202,8 +202,8 @@ uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w
 | `docker compose -f docker/docker-compose.yml --env-file .env down -v` | ล้างทุกอย่างเริ่มใหม่ |
 | `docker compose -f docker/docker-compose.yml --env-file .env up -d postgres pgadmin neo4j opensearch opensearch-dashboards mailhog + docker compose -f docker/docker-compose.yml --env-file .env up seeder` | เปิดระบบทั้งหมด + seed อัตโนมัติ |
 | `docker compose -f docker/docker-compose.yml --env-file .env run --rm loader python load_logs.py` | โหลด log จาก `data/logs/incoming/` เข้า OpenSearch |
-| `docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo` | เปิดแอปสำเร็จรูป (โหมดจริง) |
-| `$env:DEMO_MODE="replay"; docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo` | เปิดแอปสำเร็จรูป (โหมด replay ไม่ต้องมี LLM) |
+| `docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d --build mcp-demo` | เปิดแอปสำเร็จรูป (โหมดจริง) |
+| `$env:DEMO_MODE="replay"; docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d --build mcp-demo` | เปิดแอปสำเร็จรูป (โหมด replay ไม่ต้องมี LLM) |
 
 ## 8. ตารางเปรียบเทียบคำสั่ง Make กับ Windows PowerShell (สามารถรัน `cat Makefile` เพื่อดูคำสั่งทั้งหมดได้ และหากต้องการติดตั้ง Make ให้รัน `make install`)
 
@@ -219,8 +219,8 @@ uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w
 | `make reset` | docker compose -f docker/docker-compose.yml --env-file .env down -v |
 | `make up` | docker compose -f docker/docker-compose.yml --env-file .env up -d postgres pgadmin neo4j opensearch opensearch-dashboards mailhog + docker compose -f docker/docker-compose.yml --env-file .env up seeder |
 | `make load-logs` | docker compose -f docker/docker-compose.yml --env-file .env run --rm loader python load_logs.py |
-| `make demo` | docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo |
-| `make demo-offline` | $env:DEMO_MODE="replay"; docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo |
+| `make demo` | docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d --build mcp-demo |
+| `make demo-offline` | $env:DEMO_MODE="replay"; docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d --build mcp-demo |
 | `make lab1-reset` | `Get-Content scripts/lab/lab1_reset_vector.sql \| docker exec -i mpls-postgres psql -U mpls -d mplsdb` ตามด้วย `Get-Content scripts/lab/lab1_reset_vector.cypher \| docker exec -i mpls-neo4j cypher-shell -u neo4j -p neo4j_dev_password` |
 | `make lab1-solution` | `(Get-Content scripts/lab/lab1_solution_vector.sql) -replace '__EMBEDDING_DIM__','1024' \| docker exec -i mpls-postgres psql -U mpls -d mplsdb` |
 | `make embed-tickets` | `uv run python scripts/embed_tickets.py` |

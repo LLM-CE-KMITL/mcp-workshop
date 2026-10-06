@@ -185,8 +185,8 @@ flowchart TD
 | `docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder python seed.py --purge` | สร้างข้อมูลใหม่ให้ timestamp สดใหม่ (**ทำเช้าวันเดโม**) |
 | `docker compose -f docker/docker-compose.yml --env-file .env run --rm loader python load_logs.py` | โหลด log จาก `data/logs/incoming/` เข้า OpenSearch |
 | `uv run uvicorn main:app --app-dir apps/agent-api --reload --port 8080` / `uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w` | รัน Agent API / Chainlit ของผู้เรียน |
-| `docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo` | เปิดแอปสำเร็จรูป (โหมดจริง) |
-| `$env:DEMO_MODE="replay"; docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo` | เปิดแอปสำเร็จรูป (โหมด replay ไม่ต้องมี LLM) |
+| `docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d --build mcp-demo` | เปิดแอปสำเร็จรูป (โหมดจริง) |
+| `$env:DEMO_MODE="replay"; docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d --build mcp-demo` | เปิดแอปสำเร็จรูป (โหมด replay ไม่ต้องมี LLM) |
 | `docker compose -f docker/docker-compose.yml --env-file .env down` / `docker compose -f docker/docker-compose.yml --env-file .env down -v` | ปิดระบบ / ล้างข้อมูลทั้งหมด |
 
 ---

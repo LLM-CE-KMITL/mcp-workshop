@@ -69,11 +69,11 @@ mcp: ## Run the MCP server standalone (:9000)
 
 # ---------- Reference demo app ----------
 demo: ## Start the reference demo app, live mode (:8100)
-	$(COMPOSE) --profile demo up -d mcp-demo
+	$(COMPOSE) --profile demo up -d --build mcp-demo
 	@echo "Open http://localhost:8100"
 
 demo-offline: ## Start the demo app in replay mode (no LLM or network needed)
-	DEMO_MODE=replay $(COMPOSE) --profile demo up -d mcp-demo
+	DEMO_MODE=replay $(COMPOSE) --profile demo up -d --build mcp-demo
 	@echo "Open http://localhost:8100 (replay mode)"
 
 demo-record: ## Record fresh traces for replay mode  << run after every reseed

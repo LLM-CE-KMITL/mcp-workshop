@@ -66,7 +66,7 @@ EMBEDDING_DIM=1024
 ## 3. รันทั้งระบบ — คำสั่งเดียว
 
 ```bash
-docker compose -f docker/docker-compose.yml --env-file .env up -d postgres pgadmin neo4j opensearch opensearch-dashboards mailhog && docker compose -f docker/docker-compose.yml --env-file .env build seeder && docker compose -f docker/docker-compose.yml --env-file .env up seeder && docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d mcp-demo
+docker compose -f docker/docker-compose.yml --env-file .env up -d postgres pgadmin neo4j opensearch opensearch-dashboards mailhog && docker compose -f docker/docker-compose.yml --env-file .env build seeder && docker compose -f docker/docker-compose.yml --env-file .env up seeder && docker compose -f docker/docker-compose.yml --env-file .env --profile demo up -d --build mcp-demo
 ```
 
 `&&` รับประกันว่าหากขั้นตอนใดล้มเหลว (เช่น seed ไม่ผ่าน) กระบวนการจะหยุดทันที ไม่ดำเนินต่อไปยังขั้นตอนถัดไปในสภาพที่ยังไม่สมบูรณ์
