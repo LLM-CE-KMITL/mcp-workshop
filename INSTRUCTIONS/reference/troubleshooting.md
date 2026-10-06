@@ -10,7 +10,7 @@
 | `make up` ค้างที่ seeder | Neo4j ยังบูตไม่เสร็จ (ใช้เวลานานกว่าตัวอื่น) | รอ 60 วินาที ถ้ายังค้างให้ `make down && make up` |
 | Port ชนกัน | มีบริการอื่นใช้ port อยู่ | `lsof -i :5432` แล้วปิด หรือแก้ port ใน `docker/docker-compose.yml` |
 | `make verify` FAIL ทุกข้อ | seed ยังไม่ทำงาน | `make seed` แล้วดู log |
-| pgAdmin ล็อกอินไม่ได้ | ค่าใน `.env` ไม่ตรง | ค่าเริ่มต้น `workshop@example.com` / `workshop` |
+| pgAdmin ถามรหัสผ่านตอนเปิด server แล้วเข้าไม่ได้ | ใช้รหัสผ่านไม่ตรงกับบัญชีของ server นั้น หรือค่า `PG_PASSWORD` ใน `.env` ถูกเปลี่ยน | server `MPLS Workshop DB` ใช้บัญชี `mpls` / `mpls_dev_password` · server `... (read-only ...)` ใช้บัญชี `mcp_reader` / `mcp_reader_password` (ตรวจ `PG_PASSWORD` และ `PG_READONLY_PASSWORD` ใน `.env`) |
 
 ---
 

@@ -39,7 +39,7 @@ docker compose -f docker/docker-compose.yml --env-file .env run --rm seeder pyth
 | Neo4j Browser | http://localhost:7474 | ดู topology |
 | MailHog | http://localhost:8025 | ดูอีเมลที่ agent ส่ง |
 
-> **pgAdmin**: ล็อกอินด้วย `workshop@example.com` / `workshop` (ตั้งค่าได้ใน `.env`)
+> **pgAdmin**: เปิดได้ทันทีโดยไม่ต้องล็อกอิน เมื่อเปิด server ให้ใส่รหัสผ่านของ PostgreSQL (`mpls_dev_password` สำหรับบัญชี `mpls`)
 > มี server ลงทะเบียนไว้แล้ว 2 ตัว — ตัวเต็มสิทธิ์ (`mpls`) และ **ตัวอ่านอย่างเดียวที่ MCP ใช้จริง** (`mcp_reader`)
 > สามารถทดลองรัน `UPDATE` ด้วยบัญชี `mcp_reader` เพื่อดูว่า guardrail ระดับสิทธิ์ทำงานอย่างไร (ใช้ใน Module 8)
 

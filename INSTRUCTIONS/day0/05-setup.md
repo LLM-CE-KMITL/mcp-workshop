@@ -84,7 +84,7 @@ flowchart LR
 
 | บริการ | URL | ล็อกอิน |
 |---|---|---|
-| pgAdmin | http://localhost:5050 | `workshop@example.com` / `workshop` |
+| pgAdmin | http://localhost:5050 | รหัสผ่านเมื่อเปิด server: `mpls_dev_password` (รายละเอียดอยู่ในหัวข้อ 4.1) |
 | Neo4j Browser | http://localhost:7474 | `neo4j` / `neo4j_dev_password` |
 | OpenSearch Dashboards | http://localhost:5601 | ไม่ต้องล็อกอิน |
 | MailHog | http://localhost:8025 | ไม่ต้องล็อกอิน |
@@ -97,11 +97,14 @@ flowchart LR
 
 **http://localhost:5050**
 
-Password (กรอกตอน login เข้า server ที่ลงทะเบียนไว้ 2 ตัว):
+pgAdmin จะถามรหัสผ่านของ PostgreSQL เมื่อเปิด server แต่ละตัวที่ลงทะเบียนไว้ล่วงหน้า 2 ตัว (บัญชีและรหัสผ่านต่างกัน):
 
-```
-mpls_dev_password
-```
+| Server | Username | Password |
+|---|---|---|
+| `MPLS Workshop DB` (สำหรับดูข้อมูลและทำ Lab) | `mpls` | `mpls_dev_password` |
+| `MPLS Workshop DB (read-only as MCP sees it)` (บัญชีเดียวกับที่ MCP Server ใช้) | `mcp_reader` | `mcp_reader_password` |
+
+ตัวอย่างในหัวข้อนี้แนะนำให้ใช้ server ตัวแรก
 
 จากนั้นลองรันคำสั่งเพื่อให้เห็นภาพรวมของข้อมูลแต่ละส่วน (มีทั้งหมด 9 ตาราง ดูโครงสร้างเต็มได้ที่ `docker/postgres/init/02_schema.sql.template`):
 
