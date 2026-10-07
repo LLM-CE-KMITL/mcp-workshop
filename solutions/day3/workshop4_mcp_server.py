@@ -343,12 +343,11 @@ def _embed_query(text: str) -> list[float] | None:
     try:
         response = httpx.post(
             f"{EMBEDDING_BASE_URL.rstrip('/')}/embeddings",
-            json={
-                "model": EMBEDDING_MODEL,
-                "input": [text],
-                "dimensions": EMBEDDING_DIM,
-            },
-            headers={"Authorization": f"Bearer {LLM_API_KEY}"},
+            # No "dimensions" field: bge-m3 already returns EMBEDDING_DIM numbers, and
+            # vLLM-style servers reject the field (HTTP 400) for models without
+            # Matryoshka support.
+            json={"model": EMBEDDING_MODEL, "input": [text]},
+            headers={"Authorization": f"Bearer {os.getenv('EMBEDDING_API_KEY') or LLM_API_KEY}"},
             timeout=20,
         )
         response.raise_for_status()

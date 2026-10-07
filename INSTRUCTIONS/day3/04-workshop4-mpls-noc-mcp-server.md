@@ -136,7 +136,7 @@ def search_tickets(status: str | None = None, days: int = 7,
 ทำซ้ำแบบเดียวกันกับอีก 4 tool ที่เหลือ โดยมีจุดที่ต้องระวังเพิ่มเติม:
 
 - **`export_report` และ `send_notification`**: ต้องตั้ง `readOnlyHint: False` เพราะ tool ทั้งสองนี้สร้างผลข้างเคียงจริง (ไฟล์ใหม่ / อีเมลจริง) เทียบรูปแบบ annotations ได้จาก `apps/mcp-server/tools/reports.py:131-133` และ `apps/mcp-server/tools/notifications.py:9-16` ตามลำดับ — client ที่ดี (รวมถึง Claude Desktop) จะแจ้งเตือนผู้ใช้ก่อนอนุญาตให้เรียก tool ประเภทนี้ ต่างจาก tool อ่านอย่างเดียวที่มักอนุญาตให้เรียกได้ทันที
-- **`send_notification`**: อีเมลที่ส่งออกไปจริง ๆ ไปที่ MailHog (`SMTP_HOST=localhost`, `SMTP_PORT=1025` — `.env.example:79-80`) ไม่ใช่กล่องจดหมายจริง ตรวจผลลัพธ์ได้ที่ `http://localhost:8025` ตามที่ฟังก์ชันเดิมคืนค่าไว้ที่ `solutions/day2/workshop2_agent.py:207`
+- **`send_notification`**: อีเมลที่ส่งออกไปจริง ๆ ไปที่ MailHog (`SMTP_HOST=localhost`, `SMTP_PORT=1025` — `.env.example:86-87`) ไม่ใช่กล่องจดหมายจริง ตรวจผลลัพธ์ได้ที่ `http://localhost:8025` ตามที่ฟังก์ชันเดิมคืนค่าไว้ที่ `solutions/day2/workshop2_agent.py:207`
 - **`get_upstream_devices`**: ฟังก์ชันเดิมรับเฉพาะ `list[str]` (`workshop2_agent.py:96`) ให้คงไว้แบบเดิมได้ ไม่จำเป็นต้องรองรับทั้ง `list[str] | str` แบบที่ `apps/mcp-server/tools/network.py:68` ทำ (นั่นคือรายละเอียดที่ระบบ production เพิ่มเข้ามาเพื่อทนต่อกรณีที่โมเดลส่งค่ามาเป็น string เดี่ยว) — ทำให้ใช้งานได้ก่อน แล้วค่อยพิจารณาเพิ่มเป็นโบนัสถ้าเวลาเหลือ
 - **`search_docs_semantic`**: นำฟังก์ชันที่เขียนเองไว้แล้วในวันที่ 2 มาห่อด้วยแพทเทิร์นเดียวกัน เทียบกับเวอร์ชันที่ทำงานได้จริงของระบบที่ `apps/mcp-server/tools/logs.py:194-210` เพื่อตรวจว่า docstring ของตนเองบอกครบหรือไม่ว่า "ห้ามใช้เมื่อไหร่" (`logs.py:202-203` เป็นตัวอย่าง)
 

@@ -60,12 +60,12 @@ def embed_query(text: str) -> list[float] | None:
     try:
         response = httpx.post(
             f"{settings().embedding_base_url.rstrip('/')}/embeddings",
-            json={
-                "model": settings().embedding_model,
-                "input": [text],
-                "dimensions": settings().embedding_dim,
-            },
-            headers={"Authorization": f"Bearer {settings().llm_api_key}"},
+            # No "dimensions" field: the model already returns EMBEDDING_DIM numbers
+            # (bge-m3: 1024), and servers such as vLLM reject the field for models
+            # without Matryoshka support (HTTP 400), which made every semantic
+            # search silently fall back to keyword search.
+            json={"model": settings().embedding_model, "input": [text]},
+            headers={"Authorization": f"Bearer {settings().embedding_api_key or settings().llm_api_key}"},
             timeout=20,
         )
         response.raise_for_status()

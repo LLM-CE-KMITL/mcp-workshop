@@ -30,6 +30,7 @@ def embed(text: str) -> list[float]:
     response = httpx.post(
         f"{os.getenv('EMBEDDING_BASE_URL', 'https://openrouter.ai/api/v1').rstrip('/')}/embeddings",
         json={"model": os.getenv("EMBEDDING_MODEL", "baai/bge-m3"), "input": [text]},
+        headers={"Authorization": f"Bearer {os.getenv('EMBEDDING_API_KEY') or os.getenv('LLM_API_KEY', 'not-needed')}"},
         timeout=30,
     )
     response.raise_for_status()

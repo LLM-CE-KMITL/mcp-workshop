@@ -64,7 +64,7 @@ def embed_many(texts: list[str]) -> list[list[float]] | None:
         response = httpx.post(
             f"{EMBEDDING_BASE_URL.rstrip('/')}/embeddings",
             json={"model": EMBEDDING_MODEL, "input": texts},
-            headers={"Authorization": f"Bearer {os.getenv('LLM_API_KEY', 'not-needed')}"},
+            headers={"Authorization": f"Bearer {os.getenv('EMBEDDING_API_KEY') or os.getenv('LLM_API_KEY', 'not-needed')}"},
             timeout=TIMEOUT,
         )
         response.raise_for_status()

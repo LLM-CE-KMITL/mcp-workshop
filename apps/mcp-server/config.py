@@ -52,6 +52,8 @@ class Settings(BaseSettings):
     )
     embedding_dim: int = Field(default=1024, alias="EMBEDDING_DIM")
     llm_api_key: str = Field(default="not-needed", alias="LLM_API_KEY")
+    # Key for the embedding endpoint. Empty means "use llm_api_key" (see db.embed_query).
+    embedding_api_key: str = Field(default="", alias="EMBEDDING_API_KEY")
 
     # ---------- guardrails ----------
     # These are not suggestions to the model. They are enforced in code,

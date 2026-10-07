@@ -190,6 +190,7 @@ services:
       SEED_RANDOM_SEED: ${SEED_RANDOM_SEED:-42}
       SEED_DAYS_BACK: ${SEED_DAYS_BACK:-30}
       LLM_API_KEY: ${LLM_API_KEY:-not-needed}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
       EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-https://openrouter.ai/api/v1}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-baai/bge-m3}
       EMBEDDING_DIM: ${EMBEDDING_DIM:-1024}
@@ -247,7 +248,9 @@ services:
       READ_ONLY: "true"
       LLM_BASE_URL: ${LLM_BASE_URL:-https://openrouter.ai/api/v1}
       LLM_API_KEY: ${LLM_API_KEY:-not-needed}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
       LLM_MODEL: ${LLM_MODEL:-qwen/qwen3-30b-a3b}
+      LLM_ENABLE_THINKING: ${LLM_ENABLE_THINKING:-true}
       EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-https://openrouter.ai/api/v1}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-baai/bge-m3}
       EMBEDDING_DIM: ${EMBEDDING_DIM:-1024}

@@ -57,7 +57,7 @@ def _embed(text: str) -> list[float] | None:
         response = httpx.post(
             f"{EMBEDDING_BASE_URL.rstrip('/')}/embeddings",
             json={"model": EMBEDDING_MODEL, "input": [text]},
-            headers={"Authorization": f"Bearer {os.getenv('LLM_API_KEY', 'not-needed')}"},
+            headers={"Authorization": f"Bearer {os.getenv('EMBEDDING_API_KEY') or os.getenv('LLM_API_KEY', 'not-needed')}"},
             timeout=15,
         )
         response.raise_for_status()
@@ -161,7 +161,7 @@ class SessionMemory:
                     },
                     {"role": "user", "content": transcript},
                 ],
-                stats=stats, temperature=0.1, max_tokens=200,
+                stats=stats, temperature=0.1,
             )
             label = self.topic.label if self.topic else "ไม่ระบุ"
             return f"[{label}] {summary.strip()}"

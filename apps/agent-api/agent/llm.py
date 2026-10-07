@@ -32,6 +32,11 @@ MODEL = os.getenv("LLM_MODEL", "qwen/qwen3-30b-a3b")
 MODEL_FAST = os.getenv("LLM_MODEL_FAST", "qwen/qwen3-30b-a3b")
 TIMEOUT = float(os.getenv("LLM_TIMEOUT_SECONDS", "120"))
 GUIDED = os.getenv("LLM_GUIDED_DECODING", "true").lower() == "true"
+# Set LLM_ENABLE_THINKING=false to switch the model's "thinking" phase off. Reasoning
+# models (Qwen3 and later, served by vLLM) spend most of a reply on thinking tokens,
+# which makes every call many times slower. Default true = send nothing extra, so
+# gateways that do not know the field (OpenRouter and others) behave exactly as before.
+ENABLE_THINKING = os.getenv("LLM_ENABLE_THINKING", "true").lower() == "true"
 
 # Some corporate proxies terminate TLS with a self-signed certificate.
 # Off by default - only disable verification when the gateway requires it.
@@ -74,20 +79,54 @@ class LLMStats:
         }
 
 
+def _thinking_kwargs() -> dict:
+    """Request fields that turn thinking off (empty when LLM_ENABLE_THINKING is true)."""
+    if ENABLE_THINKING:
+        return {}
+    return {"extra_body": {"chat_template_kwargs": {"enable_thinking": False}}}
+
+
+def _merge_system(messages: list[dict]) -> list[dict]:
+    """Collapse every system message into ONE system message at the very start.
+
+    Several parts of the agent each contribute their own system message (the
+    prompt, the tool catalogue, the clock, a conversation summary, the JSON
+    schema). OpenRouter accepts that, but servers that apply the model's own
+    chat template - Qwen on vLLM, for one - reject anything except a single
+    leading system message ("System message must be at the beginning").
+    Merging here, at the one place every request passes through, keeps the
+    callers free to build their prompts in pieces.
+    """
+    system = [m["content"] for m in messages if m["role"] == "system"]
+    if len(system) <= 1 and (not system or messages[0]["role"] == "system"):
+        return list(messages)
+    rest = [m for m in messages if m["role"] != "system"]
+    if not system:
+        return rest
+    return [{"role": "system", "content": "\n\n".join(system)}] + rest
+
+
 async def complete(
     messages: list[dict],
     stats: LLMStats | None = None,
     model: str | None = None,
     temperature: float = 0.2,
-    max_tokens: int = 1024,
+    max_tokens: int | None = None,
 ) -> str:
-    """Plain completion, no schema."""
+    """Plain completion, no schema.
+
+    No max_tokens by default: with a reasoning model the thinking tokens count
+    against the same budget, so a small cap can be used up before the answer
+    starts and the reply comes back empty. Pass max_tokens only when a hard cap
+    is really wanted.
+    """
     started = time.time()
     response = await client.chat.completions.create(
         model=model or MODEL,
-        messages=messages,
+        messages=_merge_system(messages),
         temperature=temperature,
-        max_tokens=max_tokens,
+        **({"max_tokens": max_tokens} if max_tokens else {}),
+        **_thinking_kwargs(),
     )
     if stats:
         stats.record(response.usage, int((time.time() - started) * 1000))
@@ -124,7 +163,7 @@ async def complete_structured(
     }
     conversation = list(messages) + [schema_hint]
 
-    kwargs: dict[str, Any] = {}
+    kwargs: dict[str, Any] = dict(_thinking_kwargs())
     if GUIDED:
         # Ask the gateway to constrain generation. Ollama accepts a schema in
         # `format`; vLLM exposes the same capability through response_format.
@@ -139,17 +178,16 @@ async def complete_structured(
         try:
             response = await client.chat.completions.create(
                 model=model or MODEL,
-                messages=conversation,
+                messages=_merge_system(conversation),
                 temperature=temperature,
-                max_tokens=2048,
                 **kwargs,
             )
         except Exception as exc:  # noqa: BLE001
             # A gateway that does not understand response_format fails here.
             # The schema is already in the prompt, so just drop the constraint
             # and retry rather than giving up entirely.
-            if kwargs:
-                kwargs = {}
+            if "response_format" in kwargs:
+                kwargs.pop("response_format")
                 continue
             raise RuntimeError(f"LLM request failed: {exc}") from exc
 
@@ -200,16 +238,16 @@ async def stream(
     try:
         response = await client.chat.completions.create(
             model=model or MODEL,
-            messages=messages,
+            messages=_merge_system(messages),
             temperature=temperature,
-            max_tokens=2048,
             stream=True,
             stream_options={"include_usage": True},
+            **_thinking_kwargs(),
         )
     except TypeError:
         response = await client.chat.completions.create(
-            model=model or MODEL, messages=messages,
-            temperature=temperature, max_tokens=2048, stream=True,
+            model=model or MODEL, messages=_merge_system(messages),
+            temperature=temperature, stream=True, **_thinking_kwargs(),
         )
 
     async for chunk in response:

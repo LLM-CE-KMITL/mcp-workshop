@@ -89,7 +89,7 @@ pg_dsn: str = Field(
 )
 ```
 
-และคอมเมนต์ใน `.env.example:36` ย้ำกฎนี้ตรง ๆ:
+และคอมเมนต์ใน `.env.example:43` ย้ำกฎนี้ตรง ๆ:
 
 ```
 # Read-only user. The MCP server must use ONLY this account.
@@ -97,11 +97,11 @@ PG_READONLY_USER=mcp_reader
 PG_READONLY_PASSWORD=mcp_reader_password
 PG_DSN=postgresql://mcp_reader:mcp_reader_password@localhost:5432/mplsdb
 ```
-*(`.env.example:36-39`)*
+*(`.env.example:43-46`)*
 
-สังเกตว่า `.env.example` ยังมี `PG_USER`/`PG_PASSWORD` อีกคู่หนึ่ง (บรรทัด 34-35) ซึ่งเป็นบัญชีที่มีสิทธิ์เขียนได้ — ใช้เฉพาะตอน seed ข้อมูลหรือรัน migration เท่านั้น MCP server ไม่เคยแตะบัญชีนั้นเลย เพราะ `config.py` อ่านเฉพาะ `PG_DSN` (ที่ผูกกับ `mcp_reader`) เข้าไปใช้งานจริง
+สังเกตว่า `.env.example` ยังมี `PG_USER`/`PG_PASSWORD` อีกคู่หนึ่ง (บรรทัด 41-42) ซึ่งเป็นบัญชีที่มีสิทธิ์เขียนได้ — ใช้เฉพาะตอน seed ข้อมูลหรือรัน migration เท่านั้น MCP server ไม่เคยแตะบัญชีนั้นเลย เพราะ `config.py` อ่านเฉพาะ `PG_DSN` (ที่ผูกกับ `mcp_reader`) เข้าไปใช้งานจริง
 
-ส่วน `MCP_SERVER_NAME`, `MCP_TRANSPORT`, `MCP_MAX_ROWS`, `MCP_MAX_LOG_RESULTS`, `MCP_QUERY_TIMEOUT_SECONDS` (`.env.example:58-66`) คือค่าที่ควบคุมชั้น 3 (result caps) — ตัวเลขเหล่านี้ไม่ได้ hardcode ไว้ในโค้ด แต่อ่านจาก `.env` ทั้งหมด ทำให้ปรับเพดานได้โดยไม่ต้องแก้โค้ดแม้แต่บรรทัดเดียว
+ส่วน `MCP_SERVER_NAME`, `MCP_TRANSPORT`, `MCP_MAX_ROWS`, `MCP_MAX_LOG_RESULTS`, `MCP_QUERY_TIMEOUT_SECONDS` (`.env.example:65-73`) คือค่าที่ควบคุมชั้น 3 (result caps) — ตัวเลขเหล่านี้ไม่ได้ hardcode ไว้ในโค้ด แต่อ่านจาก `.env` ทั้งหมด ทำให้ปรับเพดานได้โดยไม่ต้องแก้โค้ดแม้แต่บรรทัดเดียว
 
 **กฎที่ต้องถือปฏิบัติเองตลอดเวิร์กช็อปนี้**: `.env` ไม่ถูก commit เข้า git (`.gitignore:1` — `.env`) มีเพียง `.env.example` ที่เป็นแม่แบบปลอดภัยเท่านั้นที่อยู่ใน repository เมื่อเพิ่มค่าลับใหม่ในบ่ายนี้ (เช่น token ใด ๆ ที่อาจต้องใช้) ต้องเพิ่มลง `.env` ของตนเอง **ไม่ใช่** ลงในโค้ดหรือใน `.env.example`
 

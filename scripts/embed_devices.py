@@ -23,7 +23,8 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 EMBEDDING_BASE_URL = os.getenv("EMBEDDING_BASE_URL", "https://openrouter.ai/api/v1")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "baai/bge-m3")
-API_KEY = os.getenv("LLM_API_KEY", "not-needed")
+# Separate key for the embedding endpoint; falls back to the LLM key when unset or empty.
+API_KEY = os.getenv("EMBEDDING_API_KEY") or os.getenv("LLM_API_KEY", "not-needed")
 
 def embed_batch(texts: list[str]) -> list[list[float]]:
     response = httpx.post(

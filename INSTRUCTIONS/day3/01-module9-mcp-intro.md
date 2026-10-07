@@ -139,7 +139,7 @@ python apps/mcp-server/server.py --transport streamable-http --port 9000
 
 **ทำไมไม่ตั้งเป็น `streamable-http` แล้วให้ Claude Desktop ต่อผ่าน URL แทน เพื่อจะได้ไม่ต้องแก้ JSON เลย?** — ทำไม่ได้กับ server ที่รันบนเครื่องตัวเองแบบนี้ Claude Desktop มีสองทางเข้าเท่านั้น: (1) หน้า Settings → Connectors → Add custom connector ซึ่งรับเฉพาะ URL แบบ **HTTPS สาธารณะ** เท่านั้น ปฏิเสธ `http://localhost:...` โดยตรง (2) ใส่ field `"url"` ใน `claude_desktop_config.json` แทน `"command"/"args"` ได้ตามสเปก MCP เหมือนกัน แต่นั่นก็ยังต้องแก้ JSON อยู่ดี (แค่ field ต่างไปจากที่ใช้ตอน stdio) ไม่ได้ช่วยให้ตัดขั้นตอนนี้ออกไปได้ ถ้าต้องการต่อผ่าน URL จริงๆ โดยไม่แตะ JSON เลย ต้องเปิด server ให้มี domain + HTTPS จริง (เช่น เจาะอุโมงค์ผ่าน ngrok) ซึ่งซับซ้อนกว่าการแก้ JSON ตามข้อ 3.2 มาก — สำหรับ workshop นี้ `stdio` + JSON ตามที่สอนจึงเป็นทางที่ตรงและง่ายที่สุด
 
-ข้อควรระวัง: `--transport` มีค่า default มาจาก `settings().transport` (`apps/mcp-server/server.py:111`, อ่านจาก `MCP_TRANSPORT` ใน `apps/mcp-server/config.py:26`) และ `.env.example:62` ตั้งค่า `MCP_TRANSPORT=streamable-http` ไว้เป็นค่าเริ่มต้นสำหรับ container สาธิต ดังนั้นเมื่อต่อกับ Claude Desktop **ต้องระบุ `--transport stdio` เองอย่างชัดเจน** มิฉะนั้น server จะพยายามเปิดเป็น HTTP แทน และ Claude Desktop จะต่อไม่ติด
+ข้อควรระวัง: `--transport` มีค่า default มาจาก `settings().transport` (`apps/mcp-server/server.py:111`, อ่านจาก `MCP_TRANSPORT` ใน `apps/mcp-server/config.py:26`) และ `.env.example:69` ตั้งค่า `MCP_TRANSPORT=streamable-http` ไว้เป็นค่าเริ่มต้นสำหรับ container สาธิต ดังนั้นเมื่อต่อกับ Claude Desktop **ต้องระบุ `--transport stdio` เองอย่างชัดเจน** มิฉะนั้น server จะพยายามเปิดเป็น HTTP แทน และ Claude Desktop จะต่อไม่ติด
 
 ```bash
 uv run python apps/mcp-server/server.py --transport stdio
