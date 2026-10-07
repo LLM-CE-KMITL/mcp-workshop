@@ -41,7 +41,9 @@ async def start():
         "### โหมด replay\n\nเล่นจาก trace ที่บันทึกไว้ ไม่ต้องใช้ LLM หรือฐานข้อมูล"
     )
     mode_note = "" if DEMO_MODE == "live" else "\n\n> กำลังทำงานในโหมด replay"
-    await health_page.show_in_sidebar(f"{banner}{mode_note}")
+    await cl.Message(
+        content=f"## ผู้ช่วยดูแลโครงข่าย IP-MPLS\n\n{banner}{mode_note}"
+    ).send()
 
 
 async def _events(question: str, session_id: str):

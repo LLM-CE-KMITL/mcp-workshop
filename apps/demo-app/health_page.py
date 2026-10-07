@@ -77,19 +77,3 @@ def render() -> str:
     all_ok = all(c["ok"] for c in checks)
     header = "ระบบพร้อมใช้งาน" if all_ok else "มีบริการที่ยังไม่พร้อม"
     return f"### {header}\n\n| | ระบบ | สถานะ |\n|---|---|---|\n{rows}"
-
-
-async def show_in_sidebar(markdown: str, title: str = "ผู้ช่วยดูแลโครงข่าย IP-MPLS") -> None:
-    """Put the status in the side panel instead of a chat message.
-
-    A message sent on chat start makes the chat non-empty, and Chainlit only
-    shows the clickable example questions (starters) while the chat is empty.
-    The side panel keeps the status visible without hiding them.
-    """
-    import chainlit as cl
-
-    await cl.ElementSidebar.set_elements(
-        [cl.Text(name="status", content=markdown, display="side")]
-    )
-    # Set the title AFTER the elements: set_elements resets it to the element name.
-    await cl.ElementSidebar.set_title(title)

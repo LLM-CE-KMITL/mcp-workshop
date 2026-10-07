@@ -26,7 +26,6 @@ import chainlit as cl  # noqa: E402
 import httpx  # noqa: E402
 from elements import cost_meter, thought_view, topic_banner  # noqa: E402
 from health_page import render as health_banner  # noqa: E402
-from health_page import show_in_sidebar  # noqa: E402
 from starters import DEMO_STARTERS  # noqa: E402
 
 AGENT_API_URL = os.getenv("AGENT_API_URL", "http://localhost:8080")
@@ -42,9 +41,10 @@ async def start():
     cl.user_session.set("session_id", cl.user_session.get("id"))
 
     # Status of every dependency up front, so an audience can see the whole
-    # stack is reachable before the first question is asked. It goes in the
-    # side panel, not a message, so the example questions stay visible.
-    await show_in_sidebar(health_banner())
+    # stack is reachable before the first question is asked.
+    await cl.Message(
+        content=f"## ผู้ช่วยดูแลโครงข่าย IP-MPLS\n\n{health_banner()}"
+    ).send()
 
 
 @cl.on_message
