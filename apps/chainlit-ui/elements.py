@@ -49,18 +49,25 @@ async def topic_banner(data: dict) -> None:
 
 
 async def cost_meter(usage: dict) -> None:
-    """Show what the turn actually cost in GPU terms."""
-    rows = [
-        ("Token ที่ส่งเข้า (prompt)", usage.get("prompt_tokens", 0)),
-        ("Token ที่สร้างออกมา", usage.get("completion_tokens", 0)),
-        ("รวม", usage.get("total_tokens", 0)),
-        ("ขนาด context ปัจจุบัน", usage.get("context_tokens", 0)),
-        ("เรียก LLM", usage.get("llm_calls", 0)),
-        ("เรียก tool", usage.get("tool_calls", 0)),
-        ("เวลารวม (ms)", usage.get("latency_ms", 0)),
-        ("ความเร็ว (tokens/sec)", usage.get("tokens_per_second", 0)),
-    ]
-    table = "\n".join(f"| {label} | {value} |" for label, value in rows)
+    """Show what the turn actually cost in GPU terms, on a single line.
+
+    A table of eight rows is tall in Chainlit and pushes the answer off screen,
+    while the audience only needs a glance: how long, how many tokens, how many
+    model and tool calls.
+    """
+    prompt = usage.get("prompt_tokens", 0)
+    completion = usage.get("completion_tokens", 0)
+    total = usage.get("total_tokens", 0)
+    seconds = usage.get("latency_ms", 0) / 1000
+
+    summary = (
+        f"⏱ **{seconds:.1f} วินาที** · "
+        f"🔤 **{total:,}** token (เข้า {prompt:,} / ออก {completion:,}) · "
+        f"🧠 LLM **{usage.get('llm_calls', 0)}** ครั้ง · "
+        f"🔧 tool **{usage.get('tool_calls', 0)}** ครั้ง · "
+        f"⚡ {usage.get('tokens_per_second', 0):.1f} token/วินาที · "
+        f"📏 context {usage.get('context_tokens', 0):,}"
+    )
 
     note = ""
     context_tokens = usage.get("context_tokens", 0)
@@ -70,6 +77,6 @@ async def cost_meter(usage: dict) -> None:
         )
 
     await cl.Message(
-        content=f"| รายการ | ค่า |\n|---|---|\n{table}{note}",
+        content=f"{summary}{note}",
         author="มาตรวัดต้นทุน",
     ).send()
