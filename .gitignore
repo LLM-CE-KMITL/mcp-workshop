@@ -14,3 +14,4 @@ data/volumes/
 .DS_Store
 /.chainlit
 data/reports/report-*.md
+*.bkp
