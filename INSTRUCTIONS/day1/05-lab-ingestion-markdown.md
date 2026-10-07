@@ -155,12 +155,22 @@ uv run python scripts/ingest_docs.py
 
 ไฟล์ของตัวเองที่เพิ่งเพิ่มจะปรากฏเป็นอีกหนึ่งบล็อก `📄` ในผลลัพธ์จริงของแต่ละคน จำนวน chunk รวมจึงมากกว่า 12
 
-ตรวจสอบง่ายๆ ก่อนใน OpenSearch Dev Tools ว่าเอกสารเข้า index จริง:
+ตรวจสอบง่ายๆ ก่อนใน OpenSearch Dev Tools ว่าเอกสารเข้า index จริง โดยเรียงให้เอกสารที่เพิ่ง ingest ล่าสุดอยู่บนสุด:
 
 ```
 GET network-docs/_search
-{"size": 10, "query": {"match_all": {}}}
+{
+  "size": 10,
+  "_source": ["doc_id", "title", "source_type", "updated_at"],
+  "query": { "match_all": {} },
+  "sort": [{ "updated_at": { "order": "desc" } }],
+  "collapse": { "field": "doc_id" }
+}
 ```
+
+- `sort` เรียงตาม `updated_at` ซึ่งสคริปต์ `scripts/ingest_docs.py` บันทึกเป็นเวลาที่ ingest ดังนั้นไฟล์ที่เพิ่งเพิ่มของตัวเองจะอยู่แถวแรก
+- `collapse` รวม chunk ของเอกสารเดียวกันให้เหลือหนึ่งแถว (index นี้เก็บเอกสารแยกเป็นหลาย chunk หากไม่ใส่ จะเห็นแถวซ้ำของเอกสารเดียวกันหลายแถว)
+- `_source` เลือกเฉพาะฟิลด์ที่ต้องการ เพื่อตัดฟิลด์ `embedding` (ตัวเลข 1024 ค่า) ที่ทำให้ผลลัพธ์อ่านยาก
 
 จากนั้นค้นด้วยคำถามภาษาธรรมชาติจริงผ่าน kNN (แบบเดียวกับ Module 2c):
 
