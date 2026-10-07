@@ -15,57 +15,36 @@ from __future__ import annotations
 
 import json
 import os
+import sys
+from pathlib import Path
 
-import chainlit as cl
-import httpx
-from elements import cost_meter, thought_view, topic_banner
+# The welcome banner and the example questions are shared with the reference
+# demo app (apps/demo-app), so the UI looks the same whichever one is running.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "demo-app"))
+
+import chainlit as cl  # noqa: E402
+import httpx  # noqa: E402
+from elements import cost_meter, thought_view, topic_banner  # noqa: E402
+from health_page import render as health_banner  # noqa: E402
+from health_page import show_in_sidebar  # noqa: E402
+from starters import DEMO_STARTERS  # noqa: E402
 
 AGENT_API_URL = os.getenv("AGENT_API_URL", "http://localhost:8080")
-
-STARTERS = [
-    ("ticket ที่ยังไม่ปิด",
-     "ticket ที่ยังไม่ปิดตอนนี้มีอะไรบ้าง เรียงตามความรุนแรง"),
-    ("หาสาเหตุร่วม",
-     "ทำไมช่วงสองสัปดาห์นี้ถึงมีลูกค้าแจ้งเน็ตหลุดซ้ำๆ หลายราย"),
-    ("อุปกรณ์ที่น่าเป็นห่วง",
-     "ตอนนี้ทั้งโครงข่ายอุปกรณ์ตัวไหนน่าเป็นห่วงที่สุด เพราะอะไร"),
-    ("ประเมินผลกระทบก่อนซ่อม",
-     "ถ้าจะปิด APE-NBI-03 เพื่อซ่อม จะกระทบลูกค้ากี่ราย ใครบ้าง"),
-]
 
 
 @cl.set_starters
 async def starters():
-    return [
-        cl.Starter(label=label, message=message)
-        for label, message in STARTERS
-    ]
+    return [cl.Starter(label=s["label"], message=s["message"]) for s in DEMO_STARTERS]
 
 
 @cl.on_chat_start
 async def start():
     cl.user_session.set("session_id", cl.user_session.get("id"))
 
-    # Show the data window up front. Without it, an audience wonders why
-    # "today" is not today - the dataset defines its own present moment.
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            response = await client.get(f"{AGENT_API_URL}/health")
-            health = response.json()
-        tool_count = health.get("mcp", {}).get("tool_count", "?")
-        status = f"เชื่อมต่อ MCP Server แล้ว ({tool_count} tools)"
-    except Exception as exc:  # noqa: BLE001
-        status = f"ยังเชื่อมต่อ Agent API ไม่ได้: {exc}"
-
-    await cl.Message(
-        content=(
-            "### ผู้ช่วยดูแลโครงข่าย IP-MPLS\n\n"
-            f"{status}\n\n"
-            "ระบบตอบได้เฉพาะเรื่องโครงข่าย ครอบคลุมพื้นที่ **BKK** และ **NBI** "
-            "รวม 10 อุปกรณ์\n\n"
-            "ลองเลือกคำถามตัวอย่างด้านล่าง หรือพิมพ์คำถามเอง"
-        )
-    ).send()
+    # Status of every dependency up front, so an audience can see the whole
+    # stack is reachable before the first question is asked. It goes in the
+    # side panel, not a message, so the example questions stay visible.
+    await show_in_sidebar(health_banner())
 
 
 @cl.on_message
@@ -106,10 +85,10 @@ async def on_message(message: cl.Message):
                         )
                         await intent_step.__aenter__()
                         intent_step.output = (
-                            f"ผล: **{data['label']}** "
-                            f"(ความมั่นใจ {data['confidence']:.0%}, "
+                            f"**{data['label']}** "
+                            f"(มั่นใจ {data['confidence']:.0%} · "
                             f"ตัดสินโดย {data.get('decided_by', '-')})\n\n"
-                            f"เหตุผล: {data['reason']}"
+                            f"{data['reason']}"
                         )
                         await intent_step.__aexit__(None, None, None)
 
