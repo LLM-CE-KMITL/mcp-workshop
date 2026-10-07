@@ -200,6 +200,7 @@ uv run chainlit run apps/chainlit-ui/app.py --port 8000 -w
 | ต่อ LLM ไม่ได้ | ตรวจสอบ VPN และตรวจสอบว่า `LLM_BASE_URL` ลงท้ายด้วย `/v1` |
 | Port ชนกัน | มีบริการอื่นใช้ port นั้นอยู่ → แก้ไขที่ `docker/docker-compose.yml` |
 | ข้อมูลดูเก่า | `make reseed` เพื่อสร้าง timestamp ใหม่ |
+| (Windows) `password authentication failed for user "mcp_reader"` พร้อมกับ Neo4j `0 node` / OpenSearch ไม่มี index | ไฟล์สคริปต์ถูกแปลงเป็น CRLF ทำให้ init ของ PostgreSQL ล้มเหลว → รัน `uv run python scripts/fix_line_endings.py --reset-db` แล้วทำหัวข้อ 1 ใหม่ (รายละเอียดใน [troubleshooting.md](../reference/troubleshooting.md)) |
 
 รายละเอียดเพิ่มเติมที่ [reference/troubleshooting.md](../reference/troubleshooting.md)
 

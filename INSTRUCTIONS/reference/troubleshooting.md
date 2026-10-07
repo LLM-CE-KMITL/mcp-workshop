@@ -11,6 +11,32 @@
 | Port ชนกัน | มีบริการอื่นใช้ port อยู่ | `lsof -i :5432` แล้วปิด หรือแก้ port ใน `docker/docker-compose.yml` |
 | `make verify` FAIL ทุกข้อ | seed ยังไม่ทำงาน | `make seed` แล้วดู log |
 | pgAdmin ถามรหัสผ่านตอนเปิด server แล้วเข้าไม่ได้ | ใช้รหัสผ่านไม่ตรงกับบัญชีของ server นั้น หรือค่า `PG_PASSWORD` ใน `.env` ถูกเปลี่ยน | server `MPLS Workshop DB` ใช้บัญชี `mpls` / `mpls_dev_password` · server `... (read-only ...)` ใช้บัญชี `mcp_reader` / `mcp_reader_password` (ตรวจ `PG_PASSWORD` และ `PG_READONLY_PASSWORD` ใน `.env`) |
+| `password authentication failed for user "mcp_reader"` พร้อมกับ Neo4j `0 node` และ OpenSearch `no such index [network-docs]` (พบบน Windows) | ไฟล์สคริปต์ถูกแปลงท้ายบรรทัดเป็น CRLF ทำให้ init ของ PostgreSQL ล้มเหลว จึงไม่มีตารางและไม่มีบัญชี `mcp_reader` แล้ว seeder ล้มตามไปด้วย | รัน `uv run python scripts/fix_line_endings.py --reset-db` (รายละเอียดในหัวข้อ "Windows: ฐานข้อมูลว่างและไม่มีบัญชี mcp_reader" ด้านล่าง) |
+
+### Windows: ฐานข้อมูลว่างและไม่มีบัญชี `mcp_reader`
+
+**อาการ** (มักพบพร้อมกัน): ตารางสถานะในหน้าแชตแสดง PostgreSQL เป็น 🔴 `password authentication failed for user "mcp_reader"`, Neo4j แสดง `0 node · 0 relationship`, OpenSearch แสดง `no such index [network-docs]` และเมื่อตรวจด้วย `docker exec mpls-postgres psql -U mpls -d mplsdb -c "\du"` จะไม่พบบัญชี `mcp_reader`
+
+**สาเหตุ:** Git บน Windows มักแปลงท้ายบรรทัดของไฟล์เป็น CRLF ตอน clone สคริปต์ `docker/postgres/init/02_schema.sh` ซึ่งรันใน container Linux จึงล้มเหลว การ init ของ PostgreSQL (ซึ่งรันเพียงครั้งเดียวตอนสร้าง volume) หยุดก่อนสร้างตาราง ข้อมูลอ้างอิง และบัญชี `mcp_reader` จากนั้น container สตาร์ตใหม่โดยข้าม init เพราะมีข้อมูลอยู่แล้ว ฐานข้อมูลจึงว่างทั้งที่สถานะเป็น healthy และ seeder ล้มที่คำสั่ง INSERT แรก
+
+**ตรวจยืนยัน:** หากผลลัพธ์มี `w/crlf` แสดงว่าไฟล์ถูกแปลงเป็น CRLF (ปกติต้องเป็น `w/lf`)
+
+```powershell
+git ls-files --eol docker/postgres/init/02_schema.sh docker/demo/entrypoint.sh
+```
+
+**วิธีแก้:** รันสคริปต์จากโฟลเดอร์โปรเจกต์ สคริปต์จะแปลงไฟล์เป็น LF แล้วล้างฐานข้อมูลเพื่อให้ init ทำงานใหม่ โดยจะถามให้พิมพ์ `yes` ก่อนลบข้อมูล
+
+```bash
+uv run python scripts/fix_line_endings.py --reset-db
+```
+
+เมื่อเสร็จ ให้ทำ [หัวข้อ 1 ของ 05-setup.md](../day0/05-setup.md) ใหม่ตั้งแต่ต้น (เปิดฐานข้อมูล, `up seeder` ให้จบ) แล้วตรวจด้วย `verify.py`
+
+- **ดูก่อนโดยไม่แก้ไฟล์:** `uv run python scripts/fix_line_endings.py --check`
+- **คำเตือน:** `--reset-db` ลบข้อมูลทั้งหมดใน volume ของ workshop (PostgreSQL, Neo4j, OpenSearch, pgAdmin) ซึ่ง seed ใหม่ได้ ต้องล้างด้วย เพราะสคริปต์ init รันเฉพาะตอน volume ว่าง แก้ไฟล์อย่างเดียวไม่มีผล
+- **ป้องกันการเกิดซ้ำ:** ก่อน clone ครั้งถัดไป ให้ตั้งค่า `git config --global core.autocrlf input` เพื่อไม่ให้ Git แปลงเป็น CRLF
+- **หากยังไม่ใช่สาเหตุนี้:** ตรวจว่ามี PostgreSQL ที่ติดตั้งเป็น Windows service ครองพอร์ต 5432 อยู่หรือไม่ ด้วย `netstat -ano | findstr :5432` (ควรเป็นโปรเซสของ Docker เท่านั้น)
 
 ---
 
